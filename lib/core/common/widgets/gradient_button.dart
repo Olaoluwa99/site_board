@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_palette.dart';
+import '../../theme/app_palette.dart';
 
-class AuthGradientButton extends StatelessWidget {
+class GradientButton extends StatelessWidget {
   final VoidCallback onClick;
   final String text;
-  const AuthGradientButton({
-    required this.onClick,
-    required this.text,
-    super.key,
-  });
+  const GradientButton({required this.onClick, required this.text, super.key});
 
   @override
   Widget build(BuildContext context) {
