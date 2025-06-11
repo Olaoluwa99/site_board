@@ -3,12 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/auth/presentation/pages/signup_page.dart';
 import 'package:site_board/feature/main/home/presentation/pages/home_page.dart';
 
+import '../../../../core/common/widgets/gradient_button.dart';
 import '../../../../core/common/widgets/loader.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../bloc/auth_bloc.dart';
 import '../widgets/auth_field.dart';
-import '../widgets/auth_gradient_button.dart';
 
 class LoginPage extends StatefulWidget {
   static route() => MaterialPageRoute(builder: (context) => const LoginPage());
@@ -33,6 +33,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(),
       body: Padding(
         padding: const EdgeInsets.all(15.0),
         child: BlocConsumer<AuthBloc, AuthState>(
@@ -70,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
                     isObscureText: true,
                   ),
                   const SizedBox(height: 20),
-                  AuthGradientButton(
+                  GradientButton(
                     onClick: () {
                       if (formKey.currentState!.validate()) {
                         context.read<AuthBloc>().add(
