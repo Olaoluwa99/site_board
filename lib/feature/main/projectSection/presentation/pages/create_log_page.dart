@@ -4,6 +4,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
 import 'package:site_board/feature/main/home/presentation/widgets/pseudo_editor.dart';
+import 'package:site_board/feature/main/projectSection/presentation/widgets/task_list_item.dart';
 
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/utils/pick_image.dart';
@@ -19,8 +20,6 @@ class CreateLogPage extends StatefulWidget {
 
 class _CreateLogPageState extends State<CreateLogPage> {
   final TextEditingController _textController = TextEditingController();
-  //File? image;
-  // Example variables you need in your state:
   List<File?> images = List.filled(5, null);
 
   Future<void> selectImage(int index) async {
@@ -29,6 +28,30 @@ class _CreateLogPageState extends State<CreateLogPage> {
       setState(() {
         images[index] = File(pickedFile.path);
       });
+    }
+  }
+
+  List<TextEditingController> controllers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    addNewTask();
+  }
+
+  void addNewTask() {
+    controllers.add(TextEditingController());
+    setState(() {});
+  }
+
+  void removeTask(int index) {
+    if (controllers.length > 1) {
+      controllers.removeAt(index);
+      setState(() {});
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('At least one task is required.')));
     }
   }
 
@@ -85,6 +108,41 @@ class _CreateLogPageState extends State<CreateLogPage> {
                   PseudoEditor(
                     hintText: 'Scheduling Planned tasks',
                     onTap: () {},
+                  ),
+                  SizedBox(height: 16),
+                  // Build dynamic TaskListItems
+                  // Render the list of TaskListItems
+                  ...List.generate(controllers.length, (index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TaskListItem(
+                        index: index,
+                        controller: controllers[index],
+                        isRemovable: controllers.length > 1,
+                        onRemove: () => removeTask(index),
+                      ),
+                    );
+                  }),
+                  SizedBox(height: 16),
+                  InkWell(
+                    onTap: addNewTask,
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(0),
+                        border: Border.all(
+                          color: AppPalette.borderColor,
+                          width: 3,
+                        ),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.all(6),
+                        child: Text(
+                          'Add another task',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
                   ),
                   SizedBox(height: 24),
                   Divider(),
@@ -200,3 +258,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
 //  9. Site Photos - After
 //  0. Notes or Observations
 //  6.
+
+//  Panned Task
+//  1. Name of task
+//  2. Assigned to
+//  3.

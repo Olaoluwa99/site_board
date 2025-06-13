@@ -10,6 +10,7 @@ class PseudoEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
