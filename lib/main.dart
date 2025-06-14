@@ -7,39 +7,6 @@ import 'core/theme/theme.dart';
 import 'feature/auth/presentation/bloc/auth_bloc.dart';
 import 'init_dependencies.dart';
 
-/*void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SiteBoard',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('Home', style: TextStyle(fontWeight: FontWeight.bold)),
-          shadowColor: Colors.grey,
-          elevation: 10,
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {},
-          label: Text('Create Project'),
-          icon: Icon(Icons.add),
-        ),
-        body: const Center(child: Text('Home page')),
-      ),
-    );
-  }
-}*/
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDependencies();
