@@ -17,10 +17,8 @@ class TaskListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    _border([Color color = AppPalette.borderColor]) => UnderlineInputBorder(
-      borderSide: BorderSide(color: color, width: 3),
-      //borderRadius: BorderRadius.circular(12),
-    );
+    border([Color color = AppPalette.borderColor]) =>
+        UnderlineInputBorder(borderSide: BorderSide(color: color, width: 3));
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,11 +29,12 @@ class TaskListItem extends StatelessWidget {
             controller: controller,
             decoration: InputDecoration(
               contentPadding: EdgeInsets.symmetric(horizontal: 0),
-              prefixText: '${index + 1}.  ',
-              border: _border(),
-              enabledBorder: _border(),
-              focusedBorder: _border(AppPalette.gradient2),
-              errorBorder: _border(AppPalette.errorColor),
+              //prefixText: '${index + 1}.  ',
+              prefix: Text('${index + 1}.  '),
+              border: border(),
+              enabledBorder: border(),
+              focusedBorder: border(AppPalette.gradient2),
+              errorBorder: border(AppPalette.errorColor),
             ),
           ),
         ),

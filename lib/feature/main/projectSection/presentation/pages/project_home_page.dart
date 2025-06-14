@@ -70,7 +70,13 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
             builder:
                 (context) => SizedBox(
                   height: MediaQuery.of(context).size.height,
-                  child: CreateLogPage(onClose: () => Navigator.pop(context)),
+                  child: CreateLogPage(
+                    isEdit: true,
+                    onClose: () => Navigator.pop(context),
+                    onCompleted: (retrievedLog) {
+                      Navigator.pop(context);
+                    },
+                  ),
                 ),
           );
         },

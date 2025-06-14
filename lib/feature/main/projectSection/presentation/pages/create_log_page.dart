@@ -4,6 +4,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
 import 'package:site_board/feature/main/home/presentation/widgets/pseudo_editor.dart';
+import 'package:site_board/feature/main/projectSection/domain/DailyLog.dart';
 import 'package:site_board/feature/main/projectSection/presentation/widgets/task_list_item.dart';
 
 import '../../../../../core/theme/app_palette.dart';
@@ -11,15 +12,27 @@ import '../../../../../core/utils/pick_image.dart';
 import '../../../home/presentation/widgets/field_editor.dart';
 
 class CreateLogPage extends StatefulWidget {
+  final bool isEdit;
   final VoidCallback onClose;
-  const CreateLogPage({required this.onClose, super.key});
+  final void Function(DailyLog dailyLog) onCompleted;
+  const CreateLogPage({
+    required this.isEdit,
+    required this.onClose,
+    required this.onCompleted,
+    super.key,
+  });
 
   @override
   State<CreateLogPage> createState() => _CreateLogPageState();
 }
 
 class _CreateLogPageState extends State<CreateLogPage> {
-  final TextEditingController _textController = TextEditingController();
+  final TextEditingController _numberOfWorkersController =
+      TextEditingController();
+  final TextEditingController _weatherConditionController =
+      TextEditingController();
+  final TextEditingController _observationsController = TextEditingController();
+
   List<File?> images = List.filled(5, null);
 
   Future<void> selectImage(int index) async {
@@ -31,22 +44,29 @@ class _CreateLogPageState extends State<CreateLogPage> {
     }
   }
 
-  List<TextEditingController> controllers = [];
+  List<TextEditingController> plannedTasksControllers = [];
+  List<TextEditingController> materialsControllers = [];
 
   @override
   void initState() {
     super.initState();
     addNewTask();
+    addNewMaterial();
   }
 
   void addNewTask() {
-    controllers.add(TextEditingController());
+    plannedTasksControllers.add(TextEditingController(text: ' '));
+    setState(() {});
+  }
+
+  void addNewMaterial() {
+    materialsControllers.add(TextEditingController(text: ' '));
     setState(() {});
   }
 
   void removeTask(int index) {
-    if (controllers.length > 1) {
-      controllers.removeAt(index);
+    if (plannedTasksControllers.length > 1) {
+      plannedTasksControllers.removeAt(index);
       setState(() {});
     } else {
       ScaffoldMessenger.of(
@@ -55,9 +75,24 @@ class _CreateLogPageState extends State<CreateLogPage> {
     }
   }
 
+  void removeMaterial(int index) {
+    if (materialsControllers.length > 1) {
+      materialsControllers.removeAt(index);
+      setState(() {});
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('At least one material is required.')),
+      );
+    }
+  }
+
   @override
   void dispose() {
-    _textController.dispose();
+    _numberOfWorkersController.dispose();
+    _weatherConditionController.dispose();
+    _observationsController.dispose();
+    plannedTasksControllers.clear();
+    materialsControllers.clear();
     super.dispose();
   }
 
@@ -65,7 +100,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create Log'),
+        title: Text(widget.isEdit ? 'Edit Log' : 'Create Log'),
         automaticallyImplyLeading: false,
         leading: null,
         actions: [
@@ -86,39 +121,73 @@ class _CreateLogPageState extends State<CreateLogPage> {
                     'Input the required details into the fields.',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  SizedBox(height: 24),
-                  PseudoEditor(hintText: 'Date & Time', onTap: () {}),
+                  widget.isEdit ? SizedBox(height: 24) : SizedBox.shrink(),
+                  widget.isEdit
+                      ? PseudoEditor(hintText: 'Date & Time', onTap: () {})
+                      : SizedBox.shrink(),
                   SizedBox(height: 16),
                   FieldEditor(
                     hintText: 'Number of Workers',
-                    controller: _textController,
+                    controller: _numberOfWorkersController,
                     textInputType: TextInputType.number,
                   ),
                   SizedBox(height: 16),
                   PseudoEditor(hintText: 'Weather Condition', onTap: () {}),
                   SizedBox(height: 16),
-                  FieldEditor(
-                    hintText: 'Materials Available',
-                    controller: _textController,
-                    minLines: 5,
-                  ),
-                  SizedBox(height: 16),
                   Divider(),
                   SizedBox(height: 16),
-                  PseudoEditor(
-                    hintText: 'Scheduling Planned tasks',
-                    onTap: () {},
+                  Text(
+                    'Materials Available',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 16),
-                  // Build dynamic TaskListItems
-                  // Render the list of TaskListItems
-                  ...List.generate(controllers.length, (index) {
+                  ...List.generate(materialsControllers.length, (index) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: TaskListItem(
                         index: index,
-                        controller: controllers[index],
-                        isRemovable: controllers.length > 1,
+                        controller: materialsControllers[index],
+                        isRemovable: materialsControllers.length > 1,
+                        onRemove: () => removeMaterial(index),
+                      ),
+                    );
+                  }),
+                  SizedBox(height: 16),
+                  InkWell(
+                    onTap: addNewMaterial,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppPalette.borderColor,
+                          width: 3,
+                        ),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.all(6),
+                        child: Text(
+                          'Add another material',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 32),
+                  Text(
+                    'Scheduling Planned tasks',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  ...List.generate(plannedTasksControllers.length, (index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TaskListItem(
+                        index: index,
+                        controller: plannedTasksControllers[index],
+                        isRemovable: plannedTasksControllers.length > 1,
                         onRemove: () => removeTask(index),
                       ),
                     );
@@ -126,10 +195,12 @@ class _CreateLogPageState extends State<CreateLogPage> {
                   SizedBox(height: 16),
                   InkWell(
                     onTap: addNewTask,
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
+                      alignment: Alignment.center,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(0),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppPalette.borderColor,
                           width: 3,
@@ -215,6 +286,77 @@ class _CreateLogPageState extends State<CreateLogPage> {
                 ),
               ),
             ),
+
+            SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Select post-work Images',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: SizedBox(
+                height: 150, // Square height
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(5, (index) {
+                      final image = images[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: GestureDetector(
+                          onTap: () => selectImage(index),
+                          child: SizedBox(
+                            width: 150,
+                            height: 150,
+                            child:
+                                image != null
+                                    ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.file(
+                                        image,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                    : DottedBorder(
+                                      options: RoundedRectDottedBorderOptions(
+                                        color: AppPalette.borderColor,
+                                        dashPattern: [10, 5],
+                                        strokeWidth: 2,
+                                        padding: EdgeInsets.all(0),
+                                        radius: Radius.circular(12),
+                                        strokeCap: StrokeCap.round,
+                                      ),
+                                      child: Container(
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.folder_open, size: 44),
+                                            SizedBox(height: 15),
+                                            Text(
+                                              'Select\nimage ${index + 1}',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ),
+
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -223,11 +365,42 @@ class _CreateLogPageState extends State<CreateLogPage> {
                   SizedBox(height: 16),
                   FieldEditor(
                     hintText: 'Observation & Notes',
-                    controller: _textController,
+                    controller: _observationsController,
                     minLines: 5,
                   ),
                   SizedBox(height: 24),
-                  GradientButton(onClick: () {}, text: 'Upload'),
+                  GradientButton(
+                    onClick: () {
+                      widget.onCompleted(
+                        DailyLog(
+                          id: '12345',
+                          dateTime: DateTime.now(),
+                          numberOfWorkers: int.parse(
+                            _numberOfWorkersController.text.trim(),
+                          ),
+                          weatherCondition:
+                              _weatherConditionController.text.trim(),
+                          materialsAvailable:
+                              materialsControllers
+                                  .map((controller) => controller.text)
+                                  .toList(),
+                          plannedTasks:
+                              plannedTasksControllers
+                                  .map(
+                                    (controller) => LogTask(
+                                      plannedTask: controller.text,
+                                      status: 'Not started',
+                                    ),
+                                  )
+                                  .toList(),
+                          startingImageUrl: ['', '', '', '', ''],
+                          endingImageUrl: ['', '', '', '', ''],
+                          observations: _observationsController.text.trim(),
+                        ),
+                      );
+                    },
+                    text: 'Upload',
+                  ),
                   SizedBox(height: 36),
                 ],
               ),
