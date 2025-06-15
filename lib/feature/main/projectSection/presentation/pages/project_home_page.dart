@@ -3,6 +3,7 @@ import 'package:site_board/core/theme/app_palette.dart';
 import 'package:site_board/feature/main/projectSection/domain/DailyLog.dart';
 import 'package:site_board/feature/main/projectSection/presentation/pages/create_log_page.dart';
 import 'package:site_board/feature/main/projectSection/presentation/pages/view_log_page.dart';
+import 'package:site_board/feature/main/projectSection/presentation/widgets/log_list_item.dart';
 
 import '../../../../../core/utils/show_rounded_bottom_sheet.dart';
 
@@ -58,6 +59,14 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         'Rainfall started around 2:45 PM and interrupted concreting works on the external columns. Tarpaulin covers were quickly deployed, but some areas may need surface retouching. Work is scheduled to resume once weather permits.',
   );
 
+  List<DailyLog> dailyLogsList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    dailyLogsList.add(sampleLog);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,10 +80,12 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 (context) => SizedBox(
                   height: MediaQuery.of(context).size.height,
                   child: CreateLogPage(
-                    isEdit: true,
+                    isEdit: false,
                     onClose: () => Navigator.pop(context),
                     onCompleted: (retrievedLog) {
+                      dailyLogsList.add(retrievedLog);
                       Navigator.pop(context);
+                      setState(() {});
                     },
                   ),
                 ),
@@ -83,7 +94,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         label: const Text('Create Log'),
         icon: const Icon(Icons.add),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,48 +113,45 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 20),
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                showRoundedBottomSheet(
-                  context: context,
-                  backgroundColor: AppPalette.backgroundColor,
-                  builder:
-                      (context) => SizedBox(
-                        height: MediaQuery.of(context).size.height,
-                        child: ViewLogPage(
-                          log: sampleLog,
-                          onClose: () => Navigator.pop(context),
-                        ),
-                      ),
-                );
-              },
-              child: Container(
-                alignment: Alignment.topLeft,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 48.0,
-                  horizontal: 18.0,
-                ),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppPalette.borderColor,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text('Log 1'),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Center(
-                  child: Text(
-                    'Project Logs are currently empty. Click \'Create Log\' to Start a Log for the Day',
-                    style: TextStyle(),
-                    textAlign: TextAlign.center,
+            dailyLogsList.isNotEmpty
+                ? ListView.builder(
+                  itemCount: dailyLogsList.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final item = dailyLogsList[index];
+                    return LogListItem(
+                      log: item,
+                      isEditable: true,
+                      onEdit: () {},
+                      onDelete: () {},
+                      onConfirm: () {},
+                      onOpen: () {
+                        showRoundedBottomSheet(
+                          context: context,
+                          backgroundColor: AppPalette.backgroundColor,
+                          builder:
+                              (context) => SizedBox(
+                                height: MediaQuery.of(context).size.height,
+                                child: ViewLogPage(
+                                  log: item,
+                                  onClose: () => Navigator.pop(context),
+                                ),
+                              ),
+                        );
+                      },
+                    );
+                  },
+                )
+                : Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Center(
+                    child: Text(
+                      'Project Logs are currently empty. Click \'Create Log\' to Start a Log for the Day',
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
-              ),
-            ),
           ],
         ),
       ),

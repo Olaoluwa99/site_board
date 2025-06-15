@@ -34,6 +34,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
   final TextEditingController _observationsController = TextEditingController();
 
   List<File?> images = List.filled(5, null);
+  String weatherShowText = 'Weather Condition';
 
   Future<void> selectImage(int index) async {
     final pickedFile = await pickImage();
@@ -46,6 +47,13 @@ class _CreateLogPageState extends State<CreateLogPage> {
 
   List<TextEditingController> plannedTasksControllers = [];
   List<TextEditingController> materialsControllers = [];
+
+  List<WeatherItem> weatherModes = [
+    WeatherItem(tag: 'Rainy', iconData: Icons.thunderstorm_rounded),
+    WeatherItem(tag: 'Sunny', iconData: Icons.sunny),
+    WeatherItem(tag: 'Cloudy', iconData: Icons.cloud),
+  ];
+  bool dropdownOpen = false;
 
   @override
   void initState() {
@@ -132,8 +140,44 @@ class _CreateLogPageState extends State<CreateLogPage> {
                     textInputType: TextInputType.number,
                   ),
                   SizedBox(height: 16),
-                  PseudoEditor(hintText: 'Weather Condition', onTap: () {}),
+                  PseudoEditor(
+                    hintText: weatherShowText,
+                    onTap: () {
+                      setState(() {
+                        dropdownOpen = !dropdownOpen;
+                      });
+                    },
+                  ),
                   SizedBox(height: 16),
+
+                  /// Dropdown (Visible only when dropdownOpen is true)
+                  if (dropdownOpen)
+                    Column(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children:
+                              weatherModes.map((mode) {
+                                return ListTile(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  title: Text(mode.tag),
+                                  onTap: () {
+                                    setState(() {
+                                      _weatherConditionController.text =
+                                          mode.tag;
+                                      weatherShowText =
+                                          'Weather Condition : ${mode.tag}';
+                                      dropdownOpen = false;
+                                    });
+                                  },
+                                  trailing: Icon(mode.iconData),
+                                );
+                              }).toList(),
+                        ),
+                      ],
+                    ),
                   Divider(),
                   SizedBox(height: 16),
                   Text(
@@ -371,10 +415,11 @@ class _CreateLogPageState extends State<CreateLogPage> {
                   SizedBox(height: 24),
                   GradientButton(
                     onClick: () {
+                      final dateTimeInput = DateTime.now();
                       widget.onCompleted(
                         DailyLog(
-                          id: '12345',
-                          dateTime: DateTime.now(),
+                          id: dateTimeInput.toIso8601String(),
+                          dateTime: dateTimeInput,
                           numberOfWorkers: int.parse(
                             _numberOfWorkersController.text.trim(),
                           ),
@@ -395,7 +440,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
                                   .toList(),
                           startingImageUrl: ['', '', '', '', ''],
                           endingImageUrl: ['', '', '', '', ''],
-                          observations: _observationsController.text.trim(),
+                          observations: '${_observationsController.text}\n\n\n',
                         ),
                       );
                     },
@@ -410,6 +455,13 @@ class _CreateLogPageState extends State<CreateLogPage> {
       ),
     );
   }
+}
+
+class WeatherItem {
+  final String tag;
+  final IconData iconData;
+
+  const WeatherItem({required this.tag, required this.iconData});
 }
 
 //  Pre-Work
