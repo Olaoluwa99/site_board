@@ -16,7 +16,7 @@ class FieldEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
-      decoration: InputDecoration(hintText: hintText),
+      decoration: InputDecoration(labelText: hintText),
       validator: (value) {
         if (value!.isEmpty) {
           return '$hintText is missing!';

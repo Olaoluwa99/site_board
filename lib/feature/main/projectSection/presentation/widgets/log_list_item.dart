@@ -7,6 +7,7 @@ import '../../../../../core/utils/format_date.dart';
 class LogListItem extends StatelessWidget {
   final DailyLog log;
   final bool isEditable;
+  final IconData weatherIcon;
   final VoidCallback onEdit;
   final VoidCallback onConfirm;
   final VoidCallback onOpen;
@@ -14,6 +15,7 @@ class LogListItem extends StatelessWidget {
   const LogListItem({
     required this.log,
     required this.isEditable,
+    required this.weatherIcon,
     required this.onEdit,
     required this.onConfirm,
     required this.onOpen,
@@ -38,34 +40,49 @@ class LogListItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(formatDateDDMMYYYYHHMM(log.dateTime)),
-                Text(log.weatherCondition),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      formatDateDDMMYYYYHHMM(log.dateTime),
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Icon(weatherIcon),
+                  ],
+                ),
+                //Text(log.weatherCondition),
+                Divider(),
                 Text(
                   log.observations,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Divider(),
-                Row(
-                  //mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    LogListItemButton(
-                      text: 'Confirm',
-                      iconData: Icons.check,
-                      onClick: onConfirm,
+                isEditable
+                    ? Row(
+                      //mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        LogListItemButton(
+                          text: 'Confirm',
+                          iconData: Icons.check,
+                          onClick: onConfirm,
+                        ),
+                        LogListItemButton(
+                          text: 'Modify',
+                          iconData: Icons.edit,
+                          onClick: onEdit,
+                        ),
+                        LogListItemButton(
+                          text: 'Delete',
+                          iconData: Icons.delete,
+                          onClick: onDelete,
+                        ),
+                      ],
+                    )
+                    : Text(
+                      'Score: ${log.workScore}',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    LogListItemButton(
-                      text: 'Modify',
-                      iconData: Icons.edit,
-                      onClick: onEdit,
-                    ),
-                    LogListItemButton(
-                      text: 'Delete',
-                      iconData: Icons.delete,
-                      onClick: onDelete,
-                    ),
-                  ],
-                ),
               ],
             ),
           ),

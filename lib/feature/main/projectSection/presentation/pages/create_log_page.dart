@@ -12,11 +12,11 @@ import '../../../../../core/utils/pick_image.dart';
 import '../../../home/presentation/widgets/field_editor.dart';
 
 class CreateLogPage extends StatefulWidget {
-  final bool isEdit;
+  final DailyLog? log;
   final VoidCallback onClose;
   final void Function(DailyLog dailyLog) onCompleted;
   const CreateLogPage({
-    required this.isEdit,
+    this.log,
     required this.onClose,
     required this.onCompleted,
     super.key,
@@ -58,17 +58,32 @@ class _CreateLogPageState extends State<CreateLogPage> {
   @override
   void initState() {
     super.initState();
-    addNewTask();
-    addNewMaterial();
+    addNewTask(' ');
+    addNewMaterial(' ');
+    final log = widget.log;
+    if (log != null) {
+      _weatherConditionController.text =
+          'Weather Condition : ${log.weatherCondition}';
+      weatherShowText = _weatherConditionController.text;
+      _numberOfWorkersController.text = log.numberOfWorkers.toString();
+      _observationsController.text = log.observations;
+      log.materialsAvailable.map((material) {
+        addNewMaterial(material);
+      });
+      log.plannedTasks.map((task) {
+        addNewTask(task.plannedTask);
+      });
+      setState(() {});
+    }
   }
 
-  void addNewTask() {
-    plannedTasksControllers.add(TextEditingController(text: ' '));
+  void addNewTask(String task) {
+    plannedTasksControllers.add(TextEditingController(text: task));
     setState(() {});
   }
 
-  void addNewMaterial() {
-    materialsControllers.add(TextEditingController(text: ' '));
+  void addNewMaterial(String material) {
+    materialsControllers.add(TextEditingController(text: material));
     setState(() {});
   }
 
@@ -108,7 +123,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEdit ? 'Edit Log' : 'Create Log'),
+        title: Text(widget.log != null ? 'Edit Log' : 'Create Log'),
         automaticallyImplyLeading: false,
         leading: null,
         actions: [
@@ -129,10 +144,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
                     'Input the required details into the fields.',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  widget.isEdit ? SizedBox(height: 24) : SizedBox.shrink(),
-                  widget.isEdit
-                      ? PseudoEditor(hintText: 'Date & Time', onTap: () {})
-                      : SizedBox.shrink(),
+                  widget.log != null ? SizedBox(height: 24) : SizedBox.shrink(),
                   SizedBox(height: 16),
                   FieldEditor(
                     hintText: 'Number of Workers',
@@ -198,7 +210,9 @@ class _CreateLogPageState extends State<CreateLogPage> {
                   }),
                   SizedBox(height: 16),
                   InkWell(
-                    onTap: addNewMaterial,
+                    onTap: () {
+                      addNewMaterial(' ');
+                    },
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       alignment: Alignment.center,
@@ -238,7 +252,9 @@ class _CreateLogPageState extends State<CreateLogPage> {
                   }),
                   SizedBox(height: 16),
                   InkWell(
-                    onTap: addNewTask,
+                    onTap: () {
+                      addNewTask(' ');
+                    },
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       alignment: Alignment.center,
@@ -304,7 +320,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
                                         radius: Radius.circular(12),
                                         strokeCap: StrokeCap.round,
                                       ),
-                                      child: Container(
+                                      child: SizedBox(
                                         width: double.infinity,
                                         height: double.infinity,
                                         child: Column(
@@ -332,81 +348,14 @@ class _CreateLogPageState extends State<CreateLogPage> {
             ),
 
             SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Select post-work Images',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: SizedBox(
-                height: 150, // Square height
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: List.generate(5, (index) {
-                      final image = images[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 12.0),
-                        child: GestureDetector(
-                          onTap: () => selectImage(index),
-                          child: SizedBox(
-                            width: 150,
-                            height: 150,
-                            child:
-                                image != null
-                                    ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Image.file(
-                                        image,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    )
-                                    : DottedBorder(
-                                      options: RoundedRectDottedBorderOptions(
-                                        color: AppPalette.borderColor,
-                                        dashPattern: [10, 5],
-                                        strokeWidth: 2,
-                                        padding: EdgeInsets.all(0),
-                                        radius: Radius.circular(12),
-                                        strokeCap: StrokeCap.round,
-                                      ),
-                                      child: Container(
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.folder_open, size: 44),
-                                            SizedBox(height: 15),
-                                            Text(
-                                              'Select\nimage ${index + 1}',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(fontSize: 14),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-            ),
+            Divider(indent: 16, endIndent: 16),
 
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 16),
+                  //SizedBox(height: 16),
                   FieldEditor(
                     hintText: 'Observation & Notes',
                     controller: _observationsController,
@@ -434,13 +383,14 @@ class _CreateLogPageState extends State<CreateLogPage> {
                                   .map(
                                     (controller) => LogTask(
                                       plannedTask: controller.text,
-                                      status: 'Not started',
+                                      percentCompleted: 0.0,
                                     ),
                                   )
                                   .toList(),
                           startingImageUrl: ['', '', '', '', ''],
                           endingImageUrl: ['', '', '', '', ''],
                           observations: '${_observationsController.text}\n\n\n',
+                          isConfirmed: false,
                         ),
                       );
                     },

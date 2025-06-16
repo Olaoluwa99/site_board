@@ -87,7 +87,7 @@ class ViewLogPage extends StatelessWidget {
                     final task = entry.value;
                     return TaskViewListItem(
                       taskText: task.plannedTask,
-                      taskStatus: task.status,
+                      percentCompleted: task.percentCompleted,
                       index: index,
                     );
                   }),
@@ -156,13 +156,6 @@ class ViewLogPage extends StatelessWidget {
                                     ),
                                   ),
                                 );
-
-                                /*Image.asset(
-                                  'assets/broken.png',
-                                  fit: BoxFit.cover,
-                                  width: 120,
-                                  height: 120,
-                                );*/
                               },
                             ),
                           ),
