@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 class TaskViewListItem extends StatelessWidget {
   final String taskText;
-  final String taskStatus;
+  final double percentCompleted;
   final int index;
   const TaskViewListItem({
     required this.taskText,
-    required this.taskStatus,
+    required this.percentCompleted,
     required this.index,
     super.key,
   });
@@ -24,7 +24,10 @@ class TaskViewListItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(taskText, style: TextStyle(fontSize: 16)),
-                Text('Status: $taskStatus', style: TextStyle(fontSize: 16)),
+                Text(
+                  'Status: $percentCompleted',
+                  style: TextStyle(fontSize: 16),
+                ),
               ],
             ),
           ],

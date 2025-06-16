@@ -1,6 +1,8 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:site_board/core/theme/app_palette.dart';
 import 'package:site_board/feature/main/projectSection/domain/DailyLog.dart';
+import 'package:site_board/feature/main/projectSection/presentation/pages/confirm_log_page.dart';
 import 'package:site_board/feature/main/projectSection/presentation/pages/create_log_page.dart';
 import 'package:site_board/feature/main/projectSection/presentation/pages/view_log_page.dart';
 import 'package:site_board/feature/main/projectSection/presentation/widgets/log_list_item.dart';
@@ -23,20 +25,20 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
     id: '1234',
     dateTime: DateTime.now(),
     numberOfWorkers: 5,
-    weatherCondition: 'Rainy',
+    weatherCondition: 'Cloudy',
     materialsAvailable: [
       'A Bag of Cement',
       'One Pound of 2mm rod',
       '2 Gallons of water.',
     ],
     plannedTasks: [
-      LogTask(plannedTask: 'Clearing of the Site', status: 'Done'),
-      LogTask(plannedTask: 'Packing of Debris', status: 'Not started'),
-      LogTask(plannedTask: 'Incineration of content', status: 'Not started'),
-      LogTask(plannedTask: 'Setting out', status: 'Not started'),
+      LogTask(plannedTask: 'Clearing of the Site', percentCompleted: 20),
+      LogTask(plannedTask: 'Packing of Debris', percentCompleted: 35),
+      LogTask(plannedTask: 'Incineration of content', percentCompleted: 80),
+      LogTask(plannedTask: 'Setting out', percentCompleted: 70),
       LogTask(
         plannedTask: 'Excavation of the 25mm surface soil',
-        status: 'Not started',
+        percentCompleted: 100,
       ),
     ],
     startingImageUrl: [
@@ -57,13 +59,19 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         'At 12:30 PM, it was observed that the formwork for the second-floor slab was not properly supported on the western edge. Immediate reinforcement was instructed to prevent potential collapse or misalignment. Additionally, site cleanliness around the mixing area needs improvement to avoid safety hazards.\n'
         'The bricklaying team completed 70% of the ground floor internal walls. However, some mortar joints on the eastern partition wall appear uneven and will require correction during inspection. Supervisor notified for follow-up.\n'
         'Rainfall started around 2:45 PM and interrupted concreting works on the external columns. Tarpaulin covers were quickly deployed, but some areas may need surface retouching. Work is scheduled to resume once weather permits.',
+    isConfirmed: false,
   );
+
+  final barWidth = 15.0;
 
   List<DailyLog> dailyLogsList = [];
 
   @override
   void initState() {
     super.initState();
+    dailyLogsList.add(sampleLog);
+    dailyLogsList.add(sampleLog);
+    dailyLogsList.add(sampleLog);
     dailyLogsList.add(sampleLog);
   }
 
@@ -80,7 +88,6 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 (context) => SizedBox(
                   height: MediaQuery.of(context).size.height,
                   child: CreateLogPage(
-                    isEdit: false,
                     onClose: () => Navigator.pop(context),
                     onCompleted: (retrievedLog) {
                       dailyLogsList.add(retrievedLog);
@@ -99,12 +106,121 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
+            /*Container(
               width: double.infinity,
               height: 180,
               decoration: BoxDecoration(
                 color: AppPalette.gradient3,
                 borderRadius: BorderRadius.circular(16),
+              ),
+            ),*/
+            Container(
+              width: double.infinity,
+              height: 240,
+              decoration: BoxDecoration(
+                color: AppPalette.borderColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+                child: BarChart(
+                  BarChartData(
+                    borderData: FlBorderData(
+                      border: const Border(
+                        top: BorderSide.none,
+                        right: BorderSide.none,
+                        left: BorderSide(
+                          width: 3,
+                          color: AppPalette.whiteColor,
+                        ),
+                        bottom: BorderSide(
+                          width: 3,
+                          color: AppPalette.whiteColor,
+                        ),
+                      ),
+                    ),
+                    groupsSpace: 10,
+                    barGroups: [
+                      BarChartGroupData(
+                        x: 1,
+                        barRods: [
+                          BarChartRodData(
+                            fromY: 0,
+                            toY: 3,
+                            width: barWidth,
+                            color: Colors.amber,
+                          ),
+                        ],
+                      ),
+                      BarChartGroupData(
+                        x: 2,
+                        barRods: [
+                          BarChartRodData(
+                            fromY: 0,
+                            toY: 7,
+                            width: barWidth,
+                            color: Colors.amber,
+                          ),
+                        ],
+                      ),
+                      BarChartGroupData(
+                        x: 3,
+                        barRods: [
+                          BarChartRodData(
+                            fromY: 0,
+                            toY: 8,
+                            width: barWidth,
+                            color: Colors.amber,
+                          ),
+                        ],
+                      ),
+                      BarChartGroupData(
+                        x: 4,
+                        barRods: [
+                          BarChartRodData(
+                            fromY: 0,
+                            toY: 2,
+                            width: barWidth,
+                            color: Colors.amber,
+                          ),
+                        ],
+                      ),
+                      BarChartGroupData(
+                        x: 5,
+                        barRods: [
+                          BarChartRodData(
+                            fromY: 0,
+                            toY: 10,
+                            width: barWidth,
+                            color: Colors.amber,
+                          ),
+                        ],
+                      ),
+                      BarChartGroupData(
+                        x: 6,
+                        barRods: [
+                          BarChartRodData(
+                            fromY: 0,
+                            toY: 4,
+                            width: barWidth,
+                            color: Colors.amber,
+                          ),
+                        ],
+                      ),
+                      BarChartGroupData(
+                        x: 7,
+                        barRods: [
+                          BarChartRodData(
+                            fromY: 0,
+                            toY: 6,
+                            width: barWidth,
+                            color: Colors.amber,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -120,12 +236,56 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                   physics: const NeverScrollableScrollPhysics(),
                   itemBuilder: (context, index) {
                     final item = dailyLogsList[index];
+                    IconData weatherIcon;
+                    if (item.weatherCondition == 'Rainy') {
+                      weatherIcon = Icons.thunderstorm;
+                    } else if (item.weatherCondition == 'Cloudy') {
+                      weatherIcon = Icons.cloud;
+                    } else {
+                      weatherIcon = Icons.sunny;
+                    }
                     return LogListItem(
                       log: item,
-                      isEditable: true,
-                      onEdit: () {},
+                      isEditable: !item.isConfirmed,
+                      onEdit: () {
+                        showRoundedBottomSheet(
+                          context: context,
+                          backgroundColor: AppPalette.backgroundColor,
+                          builder:
+                              (context) => SizedBox(
+                                height: MediaQuery.of(context).size.height,
+                                child: CreateLogPage(
+                                  log: item,
+                                  onCompleted: (retrievedLog) {
+                                    dailyLogsList.add(retrievedLog);
+                                    setState(() {});
+                                    Navigator.pop(context);
+                                  },
+                                  onClose: () => Navigator.pop(context),
+                                ),
+                              ),
+                        );
+                      },
                       onDelete: () {},
-                      onConfirm: () {},
+                      onConfirm: () {
+                        showRoundedBottomSheet(
+                          context: context,
+                          backgroundColor: AppPalette.backgroundColor,
+                          builder:
+                              (context) => SizedBox(
+                                height: MediaQuery.of(context).size.height,
+                                child: ConfirmLogPage(
+                                  log: item,
+                                  onCompleted: (retrievedLog) {
+                                    dailyLogsList.add(retrievedLog);
+                                    setState(() {});
+                                    Navigator.pop(context);
+                                  },
+                                  onClose: () => Navigator.pop(context),
+                                ),
+                              ),
+                        );
+                      },
                       onOpen: () {
                         showRoundedBottomSheet(
                           context: context,
@@ -140,6 +300,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                               ),
                         );
                       },
+                      weatherIcon: weatherIcon,
                     );
                   },
                 )
@@ -158,3 +319,6 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
     );
   }
 }
+
+//  Project settings - Change Security, Accept user, Delete Project, Transfer Project
+//
