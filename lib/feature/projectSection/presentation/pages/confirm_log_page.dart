@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
-import 'package:site_board/feature/main/projectSection/presentation/widgets/confirm_status_list_item.dart';
 
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/utils/pick_image.dart';
-import '../../../home/presentation/widgets/field_editor.dart';
 import '../../domain/DailyLog.dart';
+import '../widgets/confirm_status_list_item.dart';
+import '../widgets/field_editor.dart';
 
 class ConfirmLogPage extends StatefulWidget {
   final DailyLog log;

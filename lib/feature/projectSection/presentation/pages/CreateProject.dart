@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
 import 'package:site_board/core/utils/show_snackbar.dart';
 
-import '../../../home/presentation/widgets/field_editor.dart';
+import '../widgets/field_editor.dart';
 
 class CreateProjectDialog extends StatefulWidget {
   final void Function(String selectedName, String outputModes) onCompleted;

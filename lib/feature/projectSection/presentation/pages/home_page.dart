@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:site_board/feature/auth/presentation/pages/login_page.dart';
-import 'package:site_board/feature/main/createProject/presentation/pages/CreateProject.dart';
-import 'package:site_board/feature/main/home/presentation/widgets/activate_field_editor.dart';
-import 'package:site_board/feature/main/projectSection/presentation/pages/project_home_page.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/project_home_page.dart';
+
+import '../widgets/activate_field_editor.dart';
+import 'CreateProject.dart';
 
 class HomePage extends StatefulWidget {
   static route() => MaterialPageRoute(builder: (context) => const HomePage());

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/auth/presentation/pages/signup_page.dart';
-import 'package:site_board/feature/main/home/presentation/pages/home_page.dart';
 
 import '../../../../core/common/widgets/gradient_button.dart';
 import '../../../../core/common/widgets/loader.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/utils/show_snackbar.dart';
+import '../../../projectSection/presentation/pages/home_page.dart';
 import '../bloc/auth_bloc.dart';
 import '../widgets/auth_field.dart';
 

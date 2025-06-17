@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:site_board/feature/main/home/presentation/pages/home_page.dart';
 
 import 'core/common/cubits/app_user/app_user_cubit.dart';
 import 'core/theme/theme.dart';
 import 'feature/auth/presentation/bloc/auth_bloc.dart';
+import 'feature/projectSection/presentation/pages/home_page.dart';
 import 'init_dependencies.dart';
 
 void main() async {

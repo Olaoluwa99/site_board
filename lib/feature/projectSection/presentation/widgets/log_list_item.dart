@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:site_board/core/theme/app_palette.dart';
-import 'package:site_board/feature/main/projectSection/domain/DailyLog.dart';
 
 import '../../../../../core/utils/format_date.dart';
+import '../../domain/DailyLog.dart';
 
 class LogListItem extends StatelessWidget {
   final DailyLog log;
@@ -44,7 +44,7 @@ class LogListItem extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      formatDateDDMMYYYYHHMM(log.dateTime),
+                      formatDateDDMMYYYYHHMM(log.dateTimeList[0]),
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Icon(weatherIcon),

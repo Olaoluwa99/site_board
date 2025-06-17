@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:site_board/feature/main/projectSection/domain/DailyLog.dart';
-import 'package:site_board/feature/main/projectSection/presentation/widgets/task_view_list_item.dart';
-import 'package:site_board/feature/main/projectSection/presentation/widgets/text_list_item.dart';
 
 import '../../../../../core/utils/format_date.dart';
+import '../../domain/DailyLog.dart';
+import '../widgets/task_view_list_item.dart';
+import '../widgets/text_list_item.dart';
 
 class ViewLogPage extends StatelessWidget {
   final DailyLog log;
@@ -32,7 +32,9 @@ class ViewLogPage extends StatelessWidget {
                           text: 'Date/Time: ',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        TextSpan(text: formatDateDDMMYYYYHHMM(log.dateTime)),
+                        TextSpan(
+                          text: formatDateDDMMYYYYHHMM(log.dateTimeList[0]),
+                        ),
                       ],
                     ),
                   ),
