@@ -6,7 +6,7 @@ import 'package:site_board/core/common/widgets/gradient_button.dart';
 
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/utils/pick_image.dart';
-import '../../domain/DailyLog.dart';
+import '../../domain/entities/daily_log.dart';
 import '../widgets/confirm_status_list_item.dart';
 import '../widgets/field_editor.dart';
 

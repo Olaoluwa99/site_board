@@ -4,7 +4,7 @@ import 'package:site_board/core/theme/app_palette.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/view_log_page.dart';
 
 import '../../../../../core/utils/show_rounded_bottom_sheet.dart';
-import '../../domain/DailyLog.dart';
+import '../../domain/entities/daily_log.dart';
 import '../widgets/log_list_item.dart';
 import 'confirm_log_page.dart';
 import 'create_log_page.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/utils/format_date.dart';
-import '../../domain/DailyLog.dart';
+import '../../domain/entities/daily_log.dart';
 import '../widgets/task_view_list_item.dart';
 import '../widgets/text_list_item.dart';
 

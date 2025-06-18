@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/DailyLog.dart';
+import '../../domain/entities/daily_log.dart';
 
 class ConfirmStatusListItem extends StatefulWidget {
   final LogTask task;

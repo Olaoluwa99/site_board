@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:hive/hive.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,12 +14,19 @@ import 'feature/auth/domain/usecases/current_user.dart';
 import 'feature/auth/domain/usecases/user_login.dart';
 import 'feature/auth/domain/usecases/user_sign_up.dart';
 import 'feature/auth/presentation/bloc/auth_bloc.dart';
+import 'feature/projectSection/data/dataSources/project_local_data_source.dart';
+import 'feature/projectSection/data/dataSources/project_remote_data_source.dart';
+import 'feature/projectSection/data/repositories/project_repository_impl.dart';
+import 'feature/projectSection/domain/repositories/project_repository.dart';
+import 'feature/projectSection/domain/useCases/get_all_projects.dart';
+import 'feature/projectSection/domain/useCases/upload_project.dart';
+import 'feature/projectSection/presentation/bloc/project_bloc.dart';
 
 final serviceLocator = GetIt.instance;
 
 Future<void> initDependencies() async {
   _initAuth();
-  //_initBlog();
+  _initProject();
 
   final supabase = await Supabase.initialize(
     url: AppSecrets.supabaseUrl,
@@ -26,12 +34,12 @@ Future<void> initDependencies() async {
   );
 
   final appDocsDir = await getApplicationDocumentsDirectory();
-  /*Hive.init(appDocsDir.path);
+  Hive.init(appDocsDir.path);
 
-  final blogBox = await Hive.openBox('blogs');*/
+  final blogBox = await Hive.openBox('projects');
 
   serviceLocator.registerLazySingleton(() => supabase.client);
-  //serviceLocator.registerLazySingleton(() => blogBox);
+  serviceLocator.registerLazySingleton(() => blogBox);
   serviceLocator.registerLazySingleton(() => AppUserCubit());
   serviceLocator.registerFactory(() => InternetConnection());
   serviceLocator.registerFactory<ConnectionChecker>(
@@ -61,27 +69,29 @@ void _initAuth() {
     );
 }
 
-/*void _initBlog() {
+void _initProject() {
   serviceLocator
     //DataSource
-    ..registerFactory<BlogRemoteDataSource>(
-      () => BlogRemoteDataSourceImpl(serviceLocator()),
+    ..registerFactory<ProjectRemoteDataSource>(
+      () => ProjectRemoteDataSourceImpl(serviceLocator()),
     )
-    ..registerFactory<BlogLocalDataSource>(
-      () => BlogLocalDataSourceImpl(serviceLocator()),
+    ..registerFactory<ProjectLocalDataSource>(
+      () => ProjectLocalDataSourceImpl(serviceLocator()),
     ) //Repository
-    ..registerFactory<BlogRepository>(
-      () => BlogRepositoryImpl(
+    ..registerFactory<ProjectRepository>(
+      () => ProjectRepositoryImpl(
         serviceLocator(),
         serviceLocator(),
         serviceLocator(),
       ),
     ) //UseCases
-    ..registerFactory(() => UploadBlog(serviceLocator()))
-    ..registerFactory(() => GetAllBlogs(serviceLocator()))
+    ..registerFactory(() => UploadProject(serviceLocator()))
+    ..registerFactory(() => GetAllProjects(serviceLocator()))
     //Bloc
     ..registerLazySingleton(
-      () =>
-          BlogBloc(uploadBlog: serviceLocator(), getAllBlogs: serviceLocator()),
+      () => ProjectBloc(
+        uploadProject: serviceLocator(),
+        getAllProjects: serviceLocator(),
+      ),
     );
-}*/
+}

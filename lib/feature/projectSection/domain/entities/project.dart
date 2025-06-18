@@ -1,6 +1,6 @@
 import 'package:uuid/uuid.dart';
 
-import 'DailyLog.dart';
+import 'daily_log.dart';
 
 class Project {
   final String id;
@@ -10,7 +10,6 @@ class Project {
   final String? description;
   final List<String> teamMemberIds;
   final DateTime createdDate;
-  final DateTime? startDate;
   final DateTime? endDate;
   final List<DailyLog> dailyLogs;
   final String? location;
@@ -26,7 +25,6 @@ class Project {
     this.description,
     this.teamMemberIds = const [],
     DateTime? createdDate,
-    this.startDate,
     this.endDate,
     this.dailyLogs = const [],
     this.location,

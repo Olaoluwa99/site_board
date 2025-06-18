@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:site_board/core/theme/app_palette.dart';
 
 import '../../../../../core/utils/format_date.dart';
-import '../../domain/DailyLog.dart';
+import '../../domain/entities/daily_log.dart';
 
 class LogListItem extends StatelessWidget {
   final DailyLog log;
