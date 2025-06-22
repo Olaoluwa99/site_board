@@ -5,23 +5,24 @@ import 'package:site_board/feature/projectSection/presentation/pages/view_log_pa
 
 import '../../../../../core/utils/show_rounded_bottom_sheet.dart';
 import '../../domain/entities/daily_log.dart';
+import '../../domain/entities/project.dart';
 import '../widgets/log_list_item.dart';
 import 'confirm_log_page.dart';
 import 'create_log_page.dart';
 
 class ProjectHomePage extends StatefulWidget {
-  final String titleText;
-  static route(String titleText) => MaterialPageRoute(
-    builder: (context) => ProjectHomePage(titleText: titleText),
+  final Project project;
+  static route(Project project) => MaterialPageRoute(
+    builder: (context) => ProjectHomePage(project: project),
   );
-  const ProjectHomePage({required this.titleText, super.key});
+  const ProjectHomePage({required this.project, super.key});
 
   @override
   State<ProjectHomePage> createState() => _ProjectHomePageState();
 }
 
 class _ProjectHomePageState extends State<ProjectHomePage> {
-  final sampleLog = DailyLog(
+  /*final sampleLog = DailyLog(
     id: '1234',
     dateTimeList: [DateTime.now()],
     numberOfWorkers: 5,
@@ -60,7 +61,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         'The bricklaying team completed 70% of the ground floor internal walls. However, some mortar joints on the eastern partition wall appear uneven and will require correction during inspection. Supervisor notified for follow-up.\n'
         'Rainfall started around 2:45 PM and interrupted concreting works on the external columns. Tarpaulin covers were quickly deployed, but some areas may need surface retouching. Work is scheduled to resume once weather permits.',
     isConfirmed: false,
-  );
+  );*/
 
   final barWidth = 15.0;
 
@@ -69,16 +70,13 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
   @override
   void initState() {
     super.initState();
-    dailyLogsList.add(sampleLog);
-    dailyLogsList.add(sampleLog);
-    dailyLogsList.add(sampleLog);
-    dailyLogsList.add(sampleLog);
+    dailyLogsList.addAll(widget.project.dailyLogs);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.titleText)),
+      appBar: AppBar(title: Text(widget.project.projectName)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           showRoundedBottomSheet(

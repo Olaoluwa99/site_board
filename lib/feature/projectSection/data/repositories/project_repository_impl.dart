@@ -32,7 +32,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required bool isUpdate,
     required bool isCoverImage,
     required bool isDailyLogIncluded,
-    required File image,
+    required File? image,
     required List<File?> taskImageList,
   }) async {
     try {
@@ -52,9 +52,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
         );
 
         if (isCoverImage) {
-          final imageUrl = await projectRemoteDataSource
-              .uploadProjectCoverImage(image: image, project: projectModel);
-          projectModel = projectModel.copyWith(coverPhotoUrl: imageUrl);
+          if (image != null) {
+            final imageUrl = await projectRemoteDataSource
+                .uploadProjectCoverImage(image: image, project: projectModel);
+            projectModel = projectModel.copyWith(coverPhotoUrl: imageUrl);
+          }
         }
 
         if (isDailyLogIncluded) {

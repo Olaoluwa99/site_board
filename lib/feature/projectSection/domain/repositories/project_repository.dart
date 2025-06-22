@@ -13,7 +13,7 @@ abstract interface class ProjectRepository {
     required bool isUpdate,
     required bool isCoverImage,
     required bool isDailyLogIncluded,
-    required File image,
+    required File? image,
     required List<File?> taskImageList,
   });
 

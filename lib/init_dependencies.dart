@@ -36,10 +36,10 @@ Future<void> initDependencies() async {
   final appDocsDir = await getApplicationDocumentsDirectory();
   Hive.init(appDocsDir.path);
 
-  final blogBox = await Hive.openBox('projects');
+  final projectBox = await Hive.openBox('projects');
 
   serviceLocator.registerLazySingleton(() => supabase.client);
-  serviceLocator.registerLazySingleton(() => blogBox);
+  serviceLocator.registerLazySingleton(() => projectBox);
   serviceLocator.registerLazySingleton(() => AppUserCubit());
   serviceLocator.registerFactory(() => InternetConnection());
   serviceLocator.registerFactory<ConnectionChecker>(
@@ -92,6 +92,7 @@ void _initProject() {
       () => ProjectBloc(
         uploadProject: serviceLocator(),
         getAllProjects: serviceLocator(),
+        useDummyData: true,
       ),
     );
 }

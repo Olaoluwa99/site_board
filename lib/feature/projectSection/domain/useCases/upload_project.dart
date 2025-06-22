@@ -27,11 +27,11 @@ class UploadProject implements UserCase<Project, UploadProjectParams> {
 
 class UploadProjectParams {
   final Project project;
-  final DailyLog dailyLog;
+  final DailyLog? dailyLog;
   final bool isUpdate;
   final bool isCoverImage;
   final bool isDailyLogIncluded;
-  final File coverImage;
+  final File? coverImage;
   final List<File?> taskImageList;
 
   UploadProjectParams({
