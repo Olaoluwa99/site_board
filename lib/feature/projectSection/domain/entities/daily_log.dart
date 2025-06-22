@@ -1,6 +1,6 @@
 class DailyLog {
   final String id;
-  final DateTime dateTime;
+  final List<DateTime> dateTimeList;
   final int numberOfWorkers;
   final String weatherCondition;
   final List<String> materialsAvailable;
@@ -14,7 +14,7 @@ class DailyLog {
 
   const DailyLog({
     required this.id,
-    required this.dateTime,
+    required this.dateTimeList,
     required this.numberOfWorkers,
     required this.weatherCondition,
     required this.materialsAvailable,
@@ -29,7 +29,7 @@ class DailyLog {
 
   DailyLog copyWith({
     String? id,
-    DateTime? dateTime,
+    List<DateTime>? dateTimeList,
     int? numberOfWorkers,
     String? weatherCondition,
     List<String>? materialsAvailable,
@@ -43,7 +43,7 @@ class DailyLog {
   }) {
     return DailyLog(
       id: id ?? this.id,
-      dateTime: dateTime ?? this.dateTime,
+      dateTimeList: dateTimeList ?? this.dateTimeList,
       numberOfWorkers: numberOfWorkers ?? this.numberOfWorkers,
       weatherCondition: weatherCondition ?? this.weatherCondition,
       materialsAvailable: materialsAvailable ?? this.materialsAvailable,

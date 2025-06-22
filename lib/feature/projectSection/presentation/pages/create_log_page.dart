@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
-import 'package:site_board/feature/main/home/presentation/widgets/pseudo_editor.dart';
-import 'package:site_board/feature/main/projectSection/domain/DailyLog.dart';
-import 'package:site_board/feature/main/projectSection/presentation/widgets/task_list_item.dart';
 
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/utils/pick_image.dart';
-import '../../../home/presentation/widgets/field_editor.dart';
+import '../../domain/entities/daily_log.dart';
+import '../widgets/field_editor.dart';
+import '../widgets/pseudo_editor.dart';
+import '../widgets/task_list_item.dart';
 
 class CreateLogPage extends StatefulWidget {
   final DailyLog? log;
@@ -364,11 +364,17 @@ class _CreateLogPageState extends State<CreateLogPage> {
                   SizedBox(height: 24),
                   GradientButton(
                     onClick: () {
-                      final dateTimeInput = DateTime.now();
+                      //final dateTimeInput = DateTime.now();
+                      final List<DateTime> newDateTimeInputList = [];
+                      if (widget.log == null) {
+                        newDateTimeInputList.add(DateTime.now());
+                      } else {
+                        newDateTimeInputList.addAll(widget.log!.dateTimeList);
+                      }
                       widget.onCompleted(
                         DailyLog(
-                          id: dateTimeInput.toIso8601String(),
-                          dateTime: dateTimeInput,
+                          id: newDateTimeInputList[0].toIso8601String(),
+                          dateTimeList: newDateTimeInputList,
                           numberOfWorkers: int.parse(
                             _numberOfWorkersController.text.trim(),
                           ),

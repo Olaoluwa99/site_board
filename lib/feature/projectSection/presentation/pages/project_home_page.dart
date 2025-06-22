@@ -1,29 +1,30 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:site_board/core/theme/app_palette.dart';
-import 'package:site_board/feature/main/projectSection/domain/DailyLog.dart';
-import 'package:site_board/feature/main/projectSection/presentation/pages/confirm_log_page.dart';
-import 'package:site_board/feature/main/projectSection/presentation/pages/create_log_page.dart';
-import 'package:site_board/feature/main/projectSection/presentation/pages/view_log_page.dart';
-import 'package:site_board/feature/main/projectSection/presentation/widgets/log_list_item.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/view_log_page.dart';
 
 import '../../../../../core/utils/show_rounded_bottom_sheet.dart';
+import '../../domain/entities/daily_log.dart';
+import '../../domain/entities/project.dart';
+import '../widgets/log_list_item.dart';
+import 'confirm_log_page.dart';
+import 'create_log_page.dart';
 
 class ProjectHomePage extends StatefulWidget {
-  final String titleText;
-  static route(String titleText) => MaterialPageRoute(
-    builder: (context) => ProjectHomePage(titleText: titleText),
+  final Project project;
+  static route(Project project) => MaterialPageRoute(
+    builder: (context) => ProjectHomePage(project: project),
   );
-  const ProjectHomePage({required this.titleText, super.key});
+  const ProjectHomePage({required this.project, super.key});
 
   @override
   State<ProjectHomePage> createState() => _ProjectHomePageState();
 }
 
 class _ProjectHomePageState extends State<ProjectHomePage> {
-  final sampleLog = DailyLog(
+  /*final sampleLog = DailyLog(
     id: '1234',
-    dateTime: DateTime.now(),
+    dateTimeList: [DateTime.now()],
     numberOfWorkers: 5,
     weatherCondition: 'Cloudy',
     materialsAvailable: [
@@ -60,7 +61,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         'The bricklaying team completed 70% of the ground floor internal walls. However, some mortar joints on the eastern partition wall appear uneven and will require correction during inspection. Supervisor notified for follow-up.\n'
         'Rainfall started around 2:45 PM and interrupted concreting works on the external columns. Tarpaulin covers were quickly deployed, but some areas may need surface retouching. Work is scheduled to resume once weather permits.',
     isConfirmed: false,
-  );
+  );*/
 
   final barWidth = 15.0;
 
@@ -69,16 +70,13 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
   @override
   void initState() {
     super.initState();
-    dailyLogsList.add(sampleLog);
-    dailyLogsList.add(sampleLog);
-    dailyLogsList.add(sampleLog);
-    dailyLogsList.add(sampleLog);
+    dailyLogsList.addAll(widget.project.dailyLogs);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.titleText)),
+      appBar: AppBar(title: Text(widget.project.projectName)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           showRoundedBottomSheet(
@@ -106,14 +104,11 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /*Container(
-              width: double.infinity,
-              height: 180,
-              decoration: BoxDecoration(
-                color: AppPalette.gradient3,
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),*/
+            Text(
+              '7-day Log chart',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 20),
             Container(
               width: double.infinity,
               height: 240,
@@ -146,7 +141,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         barRods: [
                           BarChartRodData(
                             fromY: 0,
-                            toY: 3,
+                            toY: 30,
                             width: barWidth,
                             color: Colors.amber,
                           ),
@@ -157,7 +152,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         barRods: [
                           BarChartRodData(
                             fromY: 0,
-                            toY: 7,
+                            toY: 70,
                             width: barWidth,
                             color: Colors.amber,
                           ),
@@ -168,7 +163,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         barRods: [
                           BarChartRodData(
                             fromY: 0,
-                            toY: 8,
+                            toY: 80,
                             width: barWidth,
                             color: Colors.amber,
                           ),
@@ -179,7 +174,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         barRods: [
                           BarChartRodData(
                             fromY: 0,
-                            toY: 2,
+                            toY: 20,
                             width: barWidth,
                             color: Colors.amber,
                           ),
@@ -190,7 +185,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         barRods: [
                           BarChartRodData(
                             fromY: 0,
-                            toY: 10,
+                            toY: 100,
                             width: barWidth,
                             color: Colors.amber,
                           ),
@@ -201,7 +196,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         barRods: [
                           BarChartRodData(
                             fromY: 0,
-                            toY: 4,
+                            toY: 40,
                             width: barWidth,
                             color: Colors.amber,
                           ),
@@ -212,7 +207,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         barRods: [
                           BarChartRodData(
                             fromY: 0,
-                            toY: 6,
+                            toY: 60,
                             width: barWidth,
                             color: Colors.amber,
                           ),

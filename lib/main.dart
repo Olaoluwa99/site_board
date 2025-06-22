@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:site_board/feature/main/home/presentation/pages/home_page.dart';
+import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
 
 import 'core/common/cubits/app_user/app_user_cubit.dart';
 import 'core/theme/theme.dart';
 import 'feature/auth/presentation/bloc/auth_bloc.dart';
+import 'feature/projectSection/presentation/pages/home_page.dart';
 import 'init_dependencies.dart';
 
 void main() async {
@@ -15,7 +16,7 @@ void main() async {
       providers: [
         BlocProvider(create: (_) => serviceLocator<AppUserCubit>()),
         BlocProvider(create: (_) => serviceLocator<AuthBloc>()),
-        //BlocProvider(create: (_) => serviceLocator<BlogBloc>()),
+        BlocProvider(create: (_) => serviceLocator<ProjectBloc>()),
       ],
       child: const MyApp(),
     ),

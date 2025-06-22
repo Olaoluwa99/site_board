@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
 import 'package:site_board/core/utils/show_snackbar.dart';
+import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 
-import '../../../home/presentation/widgets/field_editor.dart';
+import '../widgets/field_editor.dart';
 
 class CreateProjectDialog extends StatefulWidget {
-  final void Function(String selectedName, String outputModes) onCompleted;
+  final void Function(Project project) onCompleted;
   const CreateProjectDialog({required this.onCompleted, super.key});
 
   @override
@@ -13,7 +14,9 @@ class CreateProjectDialog extends StatefulWidget {
 }
 
 class _CreateProjectDialogState extends State<CreateProjectDialog> {
-  final TextEditingController _textController = TextEditingController();
+  final TextEditingController _projectNameController = TextEditingController();
+  final TextEditingController _projectDescriptionController =
+      TextEditingController();
   String? selectedMode;
 
   List<String> modes = ['None', 'Password', 'Approval by Admin'];
@@ -21,7 +24,8 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
   @override
   void dispose() {
-    _textController.dispose();
+    _projectNameController.dispose();
+    _projectDescriptionController.dispose();
     super.dispose();
   }
 
@@ -34,7 +38,13 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
         children: [
           FieldEditor(
             hintText: 'Enter a Project name',
-            controller: _textController,
+            controller: _projectNameController,
+          ),
+          SizedBox(height: 16),
+          FieldEditor(
+            hintText: 'Enter a Project description',
+            controller: _projectDescriptionController,
+            minLines: 3,
           ),
           SizedBox(height: 16),
 
@@ -101,8 +111,22 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 });
               } else {
                 // Close dialog
-                if (_textController.text.isNotEmpty && selectedMode != null) {
-                  widget.onCompleted(_textController.text, selectedMode!);
+                if (_projectNameController.text.isNotEmpty &&
+                    _projectDescriptionController.text.isNotEmpty &&
+                    selectedMode != null) {
+                  widget.onCompleted(
+                    Project(
+                      projectName: _projectNameController.text,
+                      creatorId: '12345',
+                      createdDate: DateTime.now(),
+                      endDate: DateTime.now(),
+                      lastUpdated: DateTime.now(),
+                      isActive: true,
+                      dailyLogs: [],
+                      description: _projectDescriptionController.text,
+                      projectLink: 'https://site-board.com/project1/',
+                    ),
+                  );
                   Navigator.of(context).pop();
                 } else {
                   showSnackBar(
