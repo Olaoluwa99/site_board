@@ -371,9 +371,11 @@ class _CreateLogPageState extends State<CreateLogPage> {
                       } else {
                         newDateTimeInputList.addAll(widget.log!.dateTimeList);
                       }
+                      final dailyLogId =
+                          newDateTimeInputList[0].toIso8601String();
                       widget.onCompleted(
                         DailyLog(
-                          id: newDateTimeInputList[0].toIso8601String(),
+                          id: dailyLogId,
                           dateTimeList: newDateTimeInputList,
                           numberOfWorkers: int.parse(
                             _numberOfWorkersController.text.trim(),
@@ -388,6 +390,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
                               plannedTasksControllers
                                   .map(
                                     (controller) => LogTask(
+                                      id: DateTime.now().toIso8601String(),
+                                      dailyLogId: dailyLogId,
                                       plannedTask: controller.text,
                                       percentCompleted: 0.0,
                                     ),

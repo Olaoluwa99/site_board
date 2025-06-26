@@ -96,11 +96,16 @@ class ProjectRepositoryImpl implements ProjectRepository {
           id: const Uuid().v1(),
           projectName: project.projectName,
           creatorId: project.creatorId,
+          projectLink: project.projectLink,
+          description: project.description,
           teamMemberIds: project.teamMemberIds,
           createdDate: DateTime.now(),
+          endDate: project.endDate,
           dailyLogs: logConverter(project.dailyLogs),
+          location: project.location,
           isActive: project.isActive,
           lastUpdated: DateTime.now(),
+          coverPhotoUrl: project.coverPhotoUrl,
         );
         final uploadedProject = await projectRemoteDataSource.uploadProject(
           projectModel,
@@ -158,6 +163,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
     for (LogTask lTask in tasks) {
       updatedList.add(
         LogTaskModel(
+          id: lTask.id,
+          dailyLogId: lTask.dailyLogId,
           plannedTask: lTask.plannedTask,
           percentCompleted: lTask.percentCompleted,
         ),

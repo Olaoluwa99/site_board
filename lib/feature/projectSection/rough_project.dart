@@ -9,18 +9,29 @@ List<Project> getDummyProjects() {
   List<LogTask> makeTasks() {
     return [
       LogTask(
+        id: '',
+        dailyLogId: '',
         plannedTask: 'Excavation',
         percentCompleted: Random().nextDouble(),
       ),
       LogTask(
+        id: '',
+        dailyLogId: '',
         plannedTask: 'Rebar Installation',
         percentCompleted: Random().nextDouble(),
       ),
       LogTask(
+        id: '',
+        dailyLogId: '',
         plannedTask: 'Concrete Pouring',
         percentCompleted: Random().nextDouble(),
       ),
-      LogTask(plannedTask: 'Formwork', percentCompleted: Random().nextDouble()),
+      LogTask(
+        id: '',
+        dailyLogId: '',
+        plannedTask: 'Formwork',
+        percentCompleted: Random().nextDouble(),
+      ),
     ];
   }
 

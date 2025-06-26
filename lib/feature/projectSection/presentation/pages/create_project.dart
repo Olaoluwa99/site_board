@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
 import 'package:site_board/core/utils/show_snackbar.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 
+import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 import '../widgets/field_editor.dart';
 
 class CreateProjectDialog extends StatefulWidget {
@@ -21,6 +23,13 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
   List<String> modes = ['None', 'Password', 'Approval by Admin'];
   bool dropdownOpen = false;
+  late final String userId;
+
+  @override
+  void initState() {
+    super.initState();
+    userId = (context.read<AppUserCubit>().state as AppUserLoggedIn).user.id;
+  }
 
   @override
   void dispose() {
@@ -117,14 +126,18 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   widget.onCompleted(
                     Project(
                       projectName: _projectNameController.text,
-                      creatorId: '12345',
+                      creatorId: userId,
                       createdDate: DateTime.now(),
-                      endDate: DateTime.now(),
+                      endDate: null,
                       lastUpdated: DateTime.now(),
                       isActive: true,
                       dailyLogs: [],
+                      location: '',
+                      coverPhotoUrl: '',
+                      teamMemberIds: [],
                       description: _projectDescriptionController.text,
-                      projectLink: 'https://site-board.com/project1/',
+                      projectLink:
+                          'https://site-board.com/$userId/${DateTime.now().toIso8601String()}/',
                     ),
                   );
                   Navigator.of(context).pop();
