@@ -90,19 +90,18 @@ class ProjectModel extends Project {
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{
+    return {
       'id': id,
       'project_name': projectName,
       'creator_id': creatorId,
       'project_link': projectLink,
       'description': description,
       'team_member_ids': teamMemberIds,
-      'created_date': createdDate.toIso8601String(),
-      'end_date': endDate?.toIso8601String(),
-      'daily_logs': dailyLogs,
+      'created_date': createdDate.millisecondsSinceEpoch,
+      'end_date': endDate?.millisecondsSinceEpoch,
       'location': location,
       'is_active': isActive,
-      'last_updated': lastUpdated.toIso8601String(),
+      'last_updated': lastUpdated.millisecondsSinceEpoch,
       'cover_photo_url': coverPhotoUrl,
     };
   }
@@ -114,22 +113,26 @@ class ProjectModel extends Project {
       creatorId: map['creator_id'] ?? '',
       projectLink: map['project_link'] ?? '',
       description: map['description'] ?? '',
-      teamMemberIds: map['team_member_ids'] ?? [],
+      teamMemberIds: List<String>.from(map['team_member_ids'] ?? const []),
       createdDate:
-          map['created_date'] == null
-              ? DateTime.now()
-              : DateTime.parse(map['created_date']),
+          map['created_date'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['created_date'])
+              : DateTime.now(),
       endDate:
-          map['end_date'] == null
-              ? DateTime.now()
-              : DateTime.parse(map['end_date']),
-      dailyLogs: map['daily_logs'] ?? [],
+          map['end_date'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['end_date'])
+              : null,
+      dailyLogs:
+          (map['daily_logs'] as List<dynamic>?)?.map((log) {
+            return DailyLogModel.fromJson(log as Map<String, dynamic>);
+          }).toList() ??
+          [],
       location: map['location'] ?? '',
       isActive: map['is_active'] as bool,
       lastUpdated:
-          map['last_updated'] == null
-              ? DateTime.now()
-              : DateTime.parse(map['last_updated']),
+          map['last_updated'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['last_updated'])
+              : DateTime.now(),
       coverPhotoUrl: map['cover_photo_url'] ?? '',
     );
   }

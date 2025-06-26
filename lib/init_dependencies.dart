@@ -92,7 +92,7 @@ void _initProject() {
       () => ProjectBloc(
         uploadProject: serviceLocator(),
         getAllProjects: serviceLocator(),
-        useDummyData: true,
+        useDummyData: false,
       ),
     );
 }

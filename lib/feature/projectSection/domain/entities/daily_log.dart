@@ -59,13 +59,27 @@ class DailyLog {
 }
 
 class LogTask {
+  final String id;
+  final String dailyLogId;
   final String plannedTask;
   final double percentCompleted;
 
-  const LogTask({required this.plannedTask, required this.percentCompleted});
+  const LogTask({
+    required this.id,
+    required this.dailyLogId,
+    required this.plannedTask,
+    required this.percentCompleted,
+  });
 
-  LogTask copyWith({String? plannedTask, double? percentCompleted}) {
+  LogTask copyWith({
+    String? id,
+    String? dailyLogId,
+    String? plannedTask,
+    double? percentCompleted,
+  }) {
     return LogTask(
+      id: id ?? this.id,
+      dailyLogId: dailyLogId ?? this.dailyLogId,
       plannedTask: plannedTask ?? this.plannedTask,
       percentCompleted: percentCompleted ?? this.percentCompleted,
     );

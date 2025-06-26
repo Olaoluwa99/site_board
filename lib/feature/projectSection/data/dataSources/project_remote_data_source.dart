@@ -70,14 +70,14 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
         final filePath = '${dailyLogModel.id}_${i + 1}';
         if (images[i] != null) {
           await supabaseClient.storage
-              .from('project_log_images')
+              .from('daily_log_images')
               .upload(
                 filePath,
                 images[i]!,
                 fileOptions: const FileOptions(upsert: true),
               );
           final publicUrl = supabaseClient.storage
-              .from('project_log_images')
+              .from('daily_log_images')
               .getPublicUrl(filePath);
           imageUrls[i] = publicUrl;
         }
@@ -97,10 +97,10 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   }) async {
     try {
       await supabaseClient.storage
-          .from('project_cover_images')
+          .from('project_images')
           .upload(project.id, image);
       return supabaseClient.storage
-          .from('project_cover_images')
+          .from('project_images')
           .getPublicUrl(project.id);
     } on StorageException catch (e) {
       throw ServerException(e.message);
@@ -112,12 +112,15 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   @override
   Future<List<ProjectModel>> getAllProjects({required String userId}) async {
     try {
-      final projects = await supabaseClient
+      final response = await supabaseClient
           .from('projects')
-          .select()
-          .eq('creatorId', userId);
+          .select('*, daily_logs(*, log_tasks(*))')
+          .eq('creator_id', userId);
 
-      return projects.map((project) => ProjectModel.fromJson(project)).toList();
+      // Parse into ProjectModel
+      return (response as List<dynamic>)
+          .map((project) => ProjectModel.fromJson(project))
+          .toList();
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {

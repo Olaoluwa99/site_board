@@ -76,7 +76,10 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.project.projectName)),
+      appBar: AppBar(
+        title: Text(widget.project.projectName),
+        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.settings))],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           showRoundedBottomSheet(
@@ -217,6 +220,15 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'About Project',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              child: Column(children: [Text(widget.project.projectName)]),
             ),
             const SizedBox(height: 20),
             Text(
