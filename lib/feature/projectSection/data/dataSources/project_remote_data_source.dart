@@ -7,17 +7,28 @@ import '../../../../core/error/exceptions.dart';
 import '../models/daily_log_model.dart';
 
 abstract interface class ProjectRemoteDataSource {
-  Future<ProjectModel> uploadProject(ProjectModel project);
+  Future<ProjectModel> createProject(ProjectModel project);
   Future<ProjectModel> updateProject(ProjectModel project);
+
+  Future<DailyLogModel> createDailyLog(DailyLogModel dailyLog);
+  Future<DailyLogModel> updateDailyLog(DailyLogModel dailyLog);
+
+  Future<void> syncLogTasks({
+    required String dailyLogId,
+    required List<LogTaskModel> currentTasks,
+  });
+
+  Future<List<ProjectModel>> getAllProjects({required String userId});
+
   Future<String> uploadProjectCoverImage({
     required File image,
     required ProjectModel project,
   });
   Future<List<String>> uploadDailyLogImages({
+    required isEndingImages,
     required List<File?> images,
     required DailyLogModel dailyLogModel,
   });
-  Future<List<ProjectModel>> getAllProjects({required String userId});
 }
 
 class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
@@ -25,7 +36,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   ProjectRemoteDataSourceImpl(this.supabaseClient);
 
   @override
-  Future<ProjectModel> uploadProject(ProjectModel project) async {
+  Future<ProjectModel> createProject(ProjectModel project) async {
     try {
       final projectData =
           await supabaseClient
@@ -59,7 +70,42 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   }
 
   @override
+  Future<DailyLogModel> createDailyLog(DailyLogModel dailyLog) async {
+    try {
+      final dailyLogData =
+          await supabaseClient
+              .from('daily_logs')
+              .insert(dailyLog.toJson())
+              .select();
+      return DailyLogModel.fromJson(dailyLogData.first);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<DailyLogModel> updateDailyLog(DailyLogModel dailyLog) async {
+    try {
+      final updatedDailyLogData =
+          await supabaseClient
+              .from('daily_logs')
+              .update(dailyLog.toJson())
+              .eq('id', dailyLog.id)
+              .select();
+
+      return DailyLogModel.fromJson(updatedDailyLogData.first);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
   Future<List<String>> uploadDailyLogImages({
+    required isEndingImages,
     required List<File?> images,
     required DailyLogModel dailyLogModel,
   }) async {
@@ -67,7 +113,13 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
 
     for (int i = 0; i < images.length; i++) {
       try {
-        final filePath = '${dailyLogModel.id}_${i + 1}';
+        String filePath = '';
+        if (isEndingImages) {
+          filePath = '${dailyLogModel.id}_end_${i + 1}';
+        } else {
+          filePath = '${dailyLogModel.id}_start_${i + 1}';
+        }
+
         if (images[i] != null) {
           await supabaseClient.storage
               .from('daily_log_images')
@@ -121,6 +173,77 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
       return (response as List<dynamic>)
           .map((project) => ProjectModel.fromJson(project))
           .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> syncLogTasks({
+    required String dailyLogId,
+    required List<LogTaskModel> currentTasks,
+  }) async {
+    try {
+      // 1. Fetch existing tasks from DB
+      final response = await supabaseClient
+          .from('log_tasks')
+          .select()
+          .eq('daily_log_id', dailyLogId);
+
+      final existingTasks =
+          (response as List<dynamic>)
+              .map((e) => LogTaskModel.fromJson(e))
+              .toList();
+
+      // 2. Create maps for easy comparison
+      final existingMap = {for (var t in existingTasks) t.id: t};
+      final currentMap = {for (var t in currentTasks) t.id: t};
+
+      // 3. Find tasks to delete
+      final tasksToDelete =
+          existingTasks
+              .where((t) => !currentMap.containsKey(t.id))
+              .map((t) => t.id)
+              .toList();
+
+      // 4. Find tasks to insert (new ones without ID or empty UUID)
+      final tasksToInsert =
+          currentTasks
+              .where((t) => t.id.isEmpty || !existingMap.containsKey(t.id))
+              .toList();
+
+      // 5. Find tasks to update (ID exists in both, but content changed)
+      final tasksToUpdate =
+          currentTasks.where((t) {
+            final existing = existingMap[t.id];
+            return existing != null &&
+                existing != t; // Override equality if needed
+          }).toList();
+
+      // 6. Perform deletes
+      if (tasksToDelete.isNotEmpty) {
+        await supabaseClient
+            .from('log_tasks')
+            .delete()
+            .inFilter('id', tasksToDelete);
+      }
+
+      // 7. Perform inserts
+      if (tasksToInsert.isNotEmpty) {
+        await supabaseClient
+            .from('log_tasks')
+            .insert(tasksToInsert.map((e) => e.toJson()).toList());
+      }
+
+      // 8. Perform updates
+      for (final task in tasksToUpdate) {
+        await supabaseClient
+            .from('log_tasks')
+            .update(task.toJson())
+            .eq('id', task.id);
+      }
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {
