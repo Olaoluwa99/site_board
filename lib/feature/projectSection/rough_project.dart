@@ -40,6 +40,7 @@ List<Project> getDummyProjects() {
       final date = now.subtract(Duration(days: i));
       return DailyLog(
         id: 'log_$i',
+        projectId: 'project_$i',
         dateTimeList: [date],
         numberOfWorkers: 5 + i,
         weatherCondition: (i % 2 == 0) ? 'Sunny' : 'Cloudy',

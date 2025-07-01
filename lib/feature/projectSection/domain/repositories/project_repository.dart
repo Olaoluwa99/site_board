@@ -7,14 +7,33 @@ import '../../../../core/error/failure.dart';
 import '../entities/daily_log.dart';
 
 abstract interface class ProjectRepository {
-  Future<Either<Failure, Project>> uploadProject({
+  Future<Either<Failure, Project>> createProject({required Project project});
+
+  Future<Either<Failure, Project>> updateProject({
     required Project project,
-    required DailyLog? dailyLog,
-    required bool isUpdate,
-    required bool isCoverImage,
-    required bool isDailyLogIncluded,
     required File? image,
-    required List<File?> taskImageList,
+  });
+
+  Future<Either<Failure, DailyLog>> createDailyLog({
+    required String projectId,
+    required DailyLog dailyLog,
+    required bool isCurrentTaskModified,
+    required List<LogTask> currentTasks,
+    required List<File?> startingTaskImageList,
+  });
+
+  Future<Either<Failure, DailyLog>> updateDailyLog({
+    required String projectId,
+    required DailyLog dailyLog,
+    required bool isCurrentTaskModified,
+    required List<LogTask> currentTasks,
+    required List<File?> startingTaskImageList,
+    required List<File?> endingTaskImageList,
+  });
+
+  Future<Either<Failure, List<LogTask>>> manageLogTasks({
+    required String dailyLogId,
+    required List<LogTask> currentTasks,
   });
 
   Future<Either<Failure, List<Project>>> getAllProjects({

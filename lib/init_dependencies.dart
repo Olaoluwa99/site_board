@@ -2,6 +2,8 @@ import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/manage_log_task.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/common/cubits/app_user/app_user_cubit.dart';
@@ -18,8 +20,10 @@ import 'feature/projectSection/data/dataSources/project_local_data_source.dart';
 import 'feature/projectSection/data/dataSources/project_remote_data_source.dart';
 import 'feature/projectSection/data/repositories/project_repository_impl.dart';
 import 'feature/projectSection/domain/repositories/project_repository.dart';
+import 'feature/projectSection/domain/useCases/create_daily_log.dart';
+import 'feature/projectSection/domain/useCases/create_project.dart';
 import 'feature/projectSection/domain/useCases/get_all_projects.dart';
-import 'feature/projectSection/domain/useCases/upload_project.dart';
+import 'feature/projectSection/domain/useCases/update_project.dart';
 import 'feature/projectSection/presentation/bloc/project_bloc.dart';
 
 final serviceLocator = GetIt.instance;
@@ -85,14 +89,21 @@ void _initProject() {
         serviceLocator(),
       ),
     ) //UseCases
-    ..registerFactory(() => UploadProject(serviceLocator()))
+    ..registerFactory(() => CreateProject(serviceLocator()))
+    ..registerFactory(() => UpdateProject(serviceLocator()))
+    ..registerFactory(() => CreateDailyLog(serviceLocator()))
+    ..registerFactory(() => UpdateDailyLog(serviceLocator()))
+    ..registerFactory(() => ManageLogTask(serviceLocator()))
     ..registerFactory(() => GetAllProjects(serviceLocator()))
     //Bloc
     ..registerLazySingleton(
       () => ProjectBloc(
-        uploadProject: serviceLocator(),
+        createProject: serviceLocator(),
+        updateProject: serviceLocator(),
+        createDailyLog: serviceLocator(),
+        updateDailyLog: serviceLocator(),
+        manageLogTask: serviceLocator(),
         getAllProjects: serviceLocator(),
-        useDummyData: false,
       ),
     );
 }

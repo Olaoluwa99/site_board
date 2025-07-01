@@ -3,7 +3,7 @@ part of 'project_bloc.dart';
 @immutable
 sealed class ProjectEvent {}
 
-final class ProjectUpload extends ProjectEvent {
+/*final class ProjectUpload extends ProjectEvent {
   final Project project;
   final DailyLog? dailyLog;
   final bool isUpdate;
@@ -21,6 +21,60 @@ final class ProjectUpload extends ProjectEvent {
     required this.coverImage,
     required this.taskImageList,
   });
+}*/
+
+final class ProjectCreate extends ProjectEvent {
+  final Project project;
+
+  ProjectCreate({required this.project});
+}
+
+final class ProjectUpdate extends ProjectEvent {
+  final Project project;
+  final File? coverImage;
+
+  ProjectUpdate({required this.project, required this.coverImage});
+}
+
+final class DailyLogCreate extends ProjectEvent {
+  final String projectId;
+  final DailyLog dailyLog;
+  final bool isCurrentTaskModified;
+  final List<LogTask> currentTasks;
+  final List<File?> startingTaskImageList;
+
+  DailyLogCreate({
+    required this.projectId,
+    required this.dailyLog,
+    required this.isCurrentTaskModified,
+    required this.currentTasks,
+    required this.startingTaskImageList,
+  });
+}
+
+final class DailyLogUpdate extends ProjectEvent {
+  final String projectId;
+  final DailyLog dailyLog;
+  final bool isCurrentTaskModified;
+  final List<LogTask> currentTasks;
+  final List<File?> startingTaskImageList;
+  final List<File?> endingTaskImageList;
+
+  DailyLogUpdate({
+    required this.projectId,
+    required this.dailyLog,
+    required this.isCurrentTaskModified,
+    required this.currentTasks,
+    required this.startingTaskImageList,
+    required this.endingTaskImageList,
+  });
+}
+
+final class ManageCurrentLogTask extends ProjectEvent {
+  final String dailyLogId;
+  final List<LogTask> currentTasks;
+
+  ManageCurrentLogTask({required this.dailyLogId, required this.currentTasks});
 }
 
 final class ProjectGetAllProjects extends ProjectEvent {

@@ -1,14 +1,4 @@
-import 'dart:io';
-
-import 'package:fpdart/fpdart.dart';
-import 'package:site_board/feature/projectSection/domain/repositories/project_repository.dart';
-
-import '../../../../core/error/failure.dart';
-import '../../../../core/usecases/usecase.dart';
-import '../entities/daily_log.dart';
-import '../entities/project.dart';
-
-class UploadProject implements UserCase<Project, UploadProjectParams> {
+/*class UploadProject implements UserCase<Project, UploadProjectParams> {
   final ProjectRepository projectRepository;
   UploadProject(this.projectRepository);
   @override
@@ -43,4 +33,4 @@ class UploadProjectParams {
     required this.coverImage,
     required this.taskImageList,
   });
-}
+}*/

@@ -26,7 +26,7 @@ class _HomePageState extends State<HomePage> {
   final formKey = GlobalKey<FormState>();
   final TextEditingController linkController = TextEditingController();
   bool showExtra = false;
-  String userId = '';
+  //String userId = '';
 
   void _showCustomDialog() {
     showDialog(
@@ -34,17 +34,7 @@ class _HomePageState extends State<HomePage> {
       builder:
           (context) => CreateProjectDialog(
             onCompleted: (Project project) {
-              context.read<ProjectBloc>().add(
-                ProjectUpload(
-                  project: project,
-                  dailyLog: null,
-                  isUpdate: false,
-                  isCoverImage: false,
-                  isDailyLogIncluded: false,
-                  coverImage: null,
-                  taskImageList: [],
-                ),
-              );
+              context.read<ProjectBloc>().add(ProjectCreate(project: project));
               linkController.text = project.projectLink ?? '';
             },
           ),
@@ -154,30 +144,11 @@ class _HomePageState extends State<HomePage> {
                             );
                           }).toList(),
                     );
-                    /*return SizedBox(
-                    child: ListView.builder(
-                      itemCount: state.projects.length,
-                      itemBuilder: (context, index) {
-                        final project = state.projects[index];
-                        return Column(
-                          children: [
-                            Text(project.projectName),
-                            SizedBox(height: 8),
-                            Divider(),
-                            SizedBox(height: 8),
-                          ],
-                        );
-                      },
-                    ),
-                  );*/
                   }
-
                   return const SizedBox();
                 },
               ),
             ),
-
-            //
           ],
         ),
       ),

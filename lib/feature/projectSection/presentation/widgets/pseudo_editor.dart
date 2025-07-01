@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:site_board/core/theme/app_palette.dart';
 
 class PseudoEditor extends StatelessWidget {
-  final String hintText;
+  final String preText;
+  final String text;
   final VoidCallback onTap;
-  const PseudoEditor({required this.hintText, required this.onTap, super.key});
+  const PseudoEditor({
+    this.preText = '',
+    required this.text,
+    required this.onTap,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +25,25 @@ class PseudoEditor extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(hintText, style: TextStyle(fontSize: 16)),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                preText != ''
+                    ? Text(
+                      preText,
+                      style: TextStyle(fontSize: 16),
+                      overflow: TextOverflow.ellipsis,
+                    )
+                    : SizedBox.shrink(),
+                Text(
+                  text,
+                  style: TextStyle(fontSize: 16),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

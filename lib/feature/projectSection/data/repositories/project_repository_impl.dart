@@ -26,92 +26,203 @@ class ProjectRepositoryImpl implements ProjectRepository {
   );
 
   @override
-  Future<Either<Failure, Project>> uploadProject({
+  Future<Either<Failure, Project>> createProject({
     required Project project,
-    required DailyLog? dailyLog,
-    required bool isUpdate,
-    required bool isCoverImage,
-    required bool isDailyLogIncluded,
-    required File? image,
-    required List<File?> taskImageList,
   }) async {
     try {
       if (!await (connectionChecker.isConnected)) {
         return left(Failure(Constants.noConnectionErrorMessage));
       }
-      if (isUpdate) {
-        ProjectModel projectModel = ProjectModel(
-          id: project.id,
-          projectName: project.projectName,
-          creatorId: project.creatorId,
-          teamMemberIds: project.teamMemberIds,
-          createdDate: project.createdDate,
-          dailyLogs: logConverter(project.dailyLogs),
-          isActive: project.isActive,
-          lastUpdated: DateTime.now(),
-        );
+      ProjectModel projectModel = ProjectModel(
+        id: const Uuid().v1(),
+        projectName: project.projectName,
+        creatorId: project.creatorId,
+        projectLink: project.projectLink,
+        description: project.description,
+        teamMemberIds: project.teamMemberIds,
+        createdDate: DateTime.now(),
+        endDate: project.endDate,
+        dailyLogs: [],
+        location: project.location,
+        isActive: project.isActive,
+        lastUpdated: DateTime.now(),
+        coverPhotoUrl: project.coverPhotoUrl,
+      );
+      final uploadedProject = await projectRemoteDataSource.createProject(
+        projectModel,
+      );
+      return right(uploadedProject);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
 
-        if (isCoverImage) {
-          if (image != null) {
-            final imageUrl = await projectRemoteDataSource
-                .uploadProjectCoverImage(image: image, project: projectModel);
-            projectModel = projectModel.copyWith(coverPhotoUrl: imageUrl);
-          }
-        }
-
-        if (isDailyLogIncluded) {
-          DailyLogModel nDailyLog = DailyLogModel(
-            id: dailyLog!.id,
-            dateTimeList: dailyLog.dateTimeList,
-            numberOfWorkers: dailyLog.numberOfWorkers,
-            weatherCondition: dailyLog.weatherCondition,
-            materialsAvailable: dailyLog.materialsAvailable,
-            plannedTasks: dailyLog.plannedTasks,
-            startingImageUrl: dailyLog.startingImageUrl,
-            endingImageUrl: dailyLog.endingImageUrl,
-            observations: dailyLog.observations,
-            isConfirmed: dailyLog.isConfirmed,
-          );
-          final taskImageUrlList = await projectRemoteDataSource
-              .uploadDailyLogImages(
-                images: taskImageList,
-                dailyLogModel: nDailyLog,
-              );
-          List<String> newList = nDailyLog.startingImageUrl;
-          for (int index = 0; index < taskImageUrlList.length; index++) {
-            final selectedUrl = taskImageUrlList[index];
-            if (selectedUrl != '') {
-              newList[index] = selectedUrl;
-            }
-          }
-          nDailyLog.copyWith(startingImageUrl: newList);
-        }
-
-        final uploadedProject = await projectRemoteDataSource.updateProject(
-          projectModel,
-        );
-        return right(uploadedProject);
-      } else {
-        ProjectModel projectModel = ProjectModel(
-          id: const Uuid().v1(),
-          projectName: project.projectName,
-          creatorId: project.creatorId,
-          projectLink: project.projectLink,
-          description: project.description,
-          teamMemberIds: project.teamMemberIds,
-          createdDate: DateTime.now(),
-          endDate: project.endDate,
-          dailyLogs: logConverter(project.dailyLogs),
-          location: project.location,
-          isActive: project.isActive,
-          lastUpdated: DateTime.now(),
-          coverPhotoUrl: project.coverPhotoUrl,
-        );
-        final uploadedProject = await projectRemoteDataSource.uploadProject(
-          projectModel,
-        );
-        return right(uploadedProject);
+  @override
+  Future<Either<Failure, Project>> updateProject({
+    required Project project,
+    required File? image,
+  }) async {
+    try {
+      if (!await (connectionChecker.isConnected)) {
+        return left(Failure(Constants.noConnectionErrorMessage));
       }
+      ProjectModel projectModel = ProjectModel(
+        id: project.id,
+        projectName: project.projectName,
+        creatorId: project.creatorId,
+        projectLink: project.projectLink,
+        description: project.description,
+        teamMemberIds: project.teamMemberIds,
+        createdDate: project.createdDate,
+        endDate: project.endDate,
+        dailyLogs: [],
+        location: project.location,
+        isActive: project.isActive,
+        lastUpdated: DateTime.now(),
+        coverPhotoUrl: project.coverPhotoUrl,
+      );
+      final uploadedProject = await projectRemoteDataSource.updateProject(
+        projectModel,
+      );
+      return right(uploadedProject);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, DailyLog>> createDailyLog({
+    required String projectId,
+    required DailyLog dailyLog,
+    required bool isCurrentTaskModified,
+    required List<LogTask> currentTasks,
+    required List<File?> startingTaskImageList,
+  }) async {
+    try {
+      if (!await (connectionChecker.isConnected)) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      DailyLogModel dailyLogModel = DailyLogModel(
+        id: dailyLog.id,
+        projectId: dailyLog.projectId,
+        dateTimeList: dailyLog.dateTimeList,
+        numberOfWorkers: dailyLog.numberOfWorkers,
+        weatherCondition: dailyLog.weatherCondition,
+        materialsAvailable: dailyLog.materialsAvailable,
+        plannedTasks: dailyLog.plannedTasks,
+        startingImageUrl: dailyLog.startingImageUrl,
+        endingImageUrl: dailyLog.endingImageUrl,
+        observations: dailyLog.observations,
+        isConfirmed: dailyLog.isConfirmed,
+      );
+      final modifiedStartingImageUrlList = await projectRemoteDataSource
+          .uploadDailyLogImages(
+            isEndingImages: false,
+            images: startingTaskImageList,
+            dailyLogModel: dailyLogModel,
+          );
+      dailyLogModel.copyWith(
+        startingImageUrl: imageModifier(
+          dailyLog.startingImageUrl,
+          modifiedStartingImageUrlList,
+        ),
+      );
+
+      final uploadedDailyLog = await projectRemoteDataSource.createDailyLog(
+        dailyLogModel,
+      );
+
+      if (isCurrentTaskModified) {
+        final setupCurrentTasks = taskConverter(currentTasks);
+        await projectRemoteDataSource.syncLogTasks(
+          dailyLogId: dailyLog.id,
+          currentTasks: setupCurrentTasks,
+        );
+      }
+      return right(uploadedDailyLog);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, DailyLog>> updateDailyLog({
+    required String projectId,
+    required DailyLog dailyLog,
+    required bool isCurrentTaskModified,
+    required List<LogTask> currentTasks,
+    required List<File?> startingTaskImageList,
+    required List<File?> endingTaskImageList,
+  }) async {
+    try {
+      if (!await (connectionChecker.isConnected)) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+
+      DailyLogModel dailyLogModel = DailyLogModel(
+        id: dailyLog.id,
+        projectId: dailyLog.projectId,
+        dateTimeList: dailyLog.dateTimeList,
+        numberOfWorkers: dailyLog.numberOfWorkers,
+        weatherCondition: dailyLog.weatherCondition,
+        materialsAvailable: dailyLog.materialsAvailable,
+        plannedTasks: dailyLog.plannedTasks,
+        startingImageUrl: dailyLog.startingImageUrl,
+        endingImageUrl: dailyLog.endingImageUrl,
+        observations: dailyLog.observations,
+        isConfirmed: dailyLog.isConfirmed,
+      );
+
+      final modifiedStartingImageUrlList = await projectRemoteDataSource
+          .uploadDailyLogImages(
+            isEndingImages: false,
+            images: startingTaskImageList,
+            dailyLogModel: dailyLogModel,
+          );
+
+      final modifiedEndingTaskImageUrlList = await projectRemoteDataSource
+          .uploadDailyLogImages(
+            isEndingImages: true,
+            images: endingTaskImageList,
+            dailyLogModel: dailyLogModel,
+          );
+
+      dailyLogModel.copyWith(
+        startingImageUrl: imageModifier(
+          dailyLog.startingImageUrl,
+          modifiedStartingImageUrlList,
+        ),
+        endingImageUrl: imageModifier(
+          dailyLog.endingImageUrl,
+          modifiedEndingTaskImageUrlList,
+        ),
+      );
+
+      final uploadedProject = await projectRemoteDataSource.updateDailyLog(
+        dailyLogModel,
+      );
+      return right(uploadedProject);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<LogTask>>> manageLogTasks({
+    required String dailyLogId,
+    required List<LogTask> currentTasks,
+  }) async {
+    try {
+      if (!await (connectionChecker.isConnected)) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+
+      final setupCurrentTasks = taskConverter(currentTasks);
+      await projectRemoteDataSource.syncLogTasks(
+        dailyLogId: dailyLogId,
+        currentTasks: setupCurrentTasks,
+      );
+      return right(setupCurrentTasks);
     } on ServerException catch (e) {
       return left(Failure(e.message));
     }
@@ -142,6 +253,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
       updatedList.add(
         DailyLogModel(
           id: dLog.id,
+          projectId: dLog.projectId,
           dateTimeList: dLog.dateTimeList,
           numberOfWorkers: dLog.numberOfWorkers,
           weatherCondition: dLog.weatherCondition,
@@ -171,5 +283,19 @@ class ProjectRepositoryImpl implements ProjectRepository {
       );
     }
     return updatedList;
+  }
+
+  List<String> imageModifier(
+    List<String> currentImageUrls,
+    List<String> newImageUrls,
+  ) {
+    List<String> updatedStartingList = currentImageUrls;
+    for (int index = 0; index < newImageUrls.length; index++) {
+      final selectedUrl = newImageUrls[index];
+      if (selectedUrl != '') {
+        updatedStartingList[index] = selectedUrl;
+      }
+    }
+    return updatedStartingList;
   }
 }

@@ -57,7 +57,7 @@ class ProjectModel extends Project {
         '}';
   }
 
-  ProjectModel copyWith({
+  ProjectModel copyWithModel({
     String? id,
     String? projectName,
     String? creatorId,

@@ -89,6 +89,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 (context) => SizedBox(
                   height: MediaQuery.of(context).size.height,
                   child: CreateLogPage(
+                    projectId: widget.project.id,
                     onClose: () => Navigator.pop(context),
                     onCompleted: (retrievedLog) {
                       dailyLogsList.add(retrievedLog);
@@ -262,6 +263,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                               (context) => SizedBox(
                                 height: MediaQuery.of(context).size.height,
                                 child: CreateLogPage(
+                                  projectId: widget.project.id,
                                   log: item,
                                   onCompleted: (retrievedLog) {
                                     dailyLogsList.add(retrievedLog);
