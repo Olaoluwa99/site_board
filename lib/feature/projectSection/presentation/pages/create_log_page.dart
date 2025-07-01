@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/utils/pick_image.dart';
+import '../../../../core/common/widgets/loader.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../domain/entities/daily_log.dart';
 import '../bloc/project_bloc.dart';
@@ -112,8 +113,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
     //
     final inputLog = widget.log;
     if (inputLog != null) {
-      _weatherConditionController.text =
-          'Weather Condition : ${inputLog.weatherCondition}';
+      _weatherConditionController.text = inputLog.weatherCondition;
       weatherShowText = _weatherConditionController.text;
       _numberOfWorkersController.text = inputLog.numberOfWorkers.toString();
       _observationsController.text = inputLog.observations;
@@ -157,31 +157,6 @@ class _CreateLogPageState extends State<CreateLogPage> {
     }
   }
 
-  /*void uploadDailyLog(DailyLog log) {
-    if (widget.log == null) {
-      context.read<ProjectBloc>().add(
-        DailyLogCreate(
-          projectId: widget.projectId,
-          dailyLog: log,
-          isCurrentTaskModified: true,
-          currentTasks: currentTaskList,
-          startingTaskImageList: images,
-        ),
-      );
-    } else {
-      context.read<ProjectBloc>().add(
-        DailyLogUpdate(
-          projectId: widget.projectId,
-          dailyLog: log,
-          isCurrentTaskModified: true,
-          currentTasks: currentTaskList,
-          startingTaskImageList: images,
-          endingTaskImageList: List.filled(5, null),
-        ),
-      );
-    }
-  }*/
-
   void uploadDailyLog(DailyLog log) {
     final updatedTasks = getUpdatedLogTasks(
       currentTaskListControllers,
@@ -194,7 +169,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
           projectId: widget.projectId,
           dailyLog: log,
           isCurrentTaskModified: true,
-          currentTasks: updatedTasks, // <-- USE THIS
+          currentTasks: updatedTasks,
           startingTaskImageList: images,
         ),
       );
@@ -204,7 +179,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
           projectId: widget.projectId,
           dailyLog: log,
           isCurrentTaskModified: true,
-          currentTasks: updatedTasks, // <-- USE THIS
+          currentTasks: updatedTasks,
           startingTaskImageList: images,
           endingTaskImageList: List.filled(5, null),
         ),
@@ -235,6 +210,13 @@ class _CreateLogPageState extends State<CreateLogPage> {
       ),
       body: BlocListener<ProjectBloc, ProjectState>(
         listener: (context, state) {
+          if (state is ProjectLoading) {
+            showLoaderDialog(context);
+          }
+          if (state is DailyLogUploadFailure ||
+              state is ProjectRetrieveSuccess) {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
           if (state is DailyLogUploadFailure) {
             showSnackBar(context, state.error);
           }
@@ -268,7 +250,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
                     ),
                     SizedBox(height: 16),
                     PseudoEditor(
-                      hintText: weatherShowText,
+                      preText: 'Weather Condition : ',
+                      text: weatherShowText,
                       onTap: () {
                         setState(() {
                           dropdownOpen = !dropdownOpen;
@@ -294,8 +277,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
                                       setState(() {
                                         _weatherConditionController.text =
                                             mode.tag;
-                                        weatherShowText =
-                                            'Weather Condition : ${mode.tag}';
+                                        weatherShowText = mode.tag;
                                         dropdownOpen = false;
                                       });
                                     },
