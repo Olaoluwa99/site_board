@@ -15,10 +15,10 @@ final class ProjectFailure extends ProjectState {
 //
 final class ProjectUploadSuccess extends ProjectState {}
 
-final class ProjectRetrieveSuccess extends ProjectState {
+/*final class ProjectRetrieveSuccess extends ProjectState {
   final List<Project> projects;
   ProjectRetrieveSuccess(this.projects);
-}
+}*/
 
 //
 final class DailyLogUploadSuccess extends ProjectState {}
@@ -28,13 +28,23 @@ final class DailyLogUploadFailure extends ProjectState {
   DailyLogUploadFailure(this.error);
 }
 
+class ProjectRetrieveSuccess extends ProjectState {
+  final List<Project> projects;
+
+  ProjectRetrieveSuccess(this.projects);
+
+  ProjectRetrieveSuccess copyWith({List<Project>? projects}) {
+    return ProjectRetrieveSuccess(projects ?? this.projects);
+  }
+}
+
 //
-final class LogTaskSyncSuccess extends ProjectState {}
+/*final class LogTaskSyncSuccess extends ProjectState {}
 
 final class LogTaskSyncFailure extends ProjectState {
   final String error;
   LogTaskSyncFailure(this.error);
-}
+}*/
 
 //EveryTime you Create/Update a DailyLog - Both the Create/Update and SyncTask is called
 //Sync would always be called from the DailyLog Create/Update call and never by itself

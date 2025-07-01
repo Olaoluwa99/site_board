@@ -46,7 +46,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<ProjectGetAllProjects>(_onGetAllProjects);
   }
 
-  void _onProjectCreate(ProjectCreate event, Emitter<ProjectState> emit) async {
+  /*void _onProjectCreate(ProjectCreate event, Emitter<ProjectState> emit) async {
     final response = await _createProject(
       CreateProjectParams(project: event.project),
     );
@@ -54,9 +54,26 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       (l) => emit(ProjectFailure(l.message)),
       (r) => emit(ProjectUploadSuccess()),
     );
+  }*/
+
+  void _onProjectCreate(ProjectCreate event, Emitter<ProjectState> emit) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      final response = await _createProject(
+        CreateProjectParams(project: event.project),
+      );
+      response.fold((l) => emit(ProjectFailure(l.message)), (r) {
+        // Replace updated project in list
+        final updatedProjects =
+            currentState.projects.map((p) {
+              return p.id == event.project.id ? event.project : p;
+            }).toList();
+        emit(ProjectRetrieveSuccess(updatedProjects));
+      });
+    }
   }
 
-  void _onProjectUpdate(ProjectUpdate event, Emitter<ProjectState> emit) async {
+  /*void _onProjectUpdate(ProjectUpdate event, Emitter<ProjectState> emit) async {
     final response = await _updateProject(
       UpdateProjectParams(project: event.project, image: event.coverImage),
     );
@@ -64,9 +81,26 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       (l) => emit(ProjectFailure(l.message)),
       (r) => emit(ProjectUploadSuccess()),
     );
+  }*/
+
+  void _onProjectUpdate(ProjectUpdate event, Emitter<ProjectState> emit) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      final response = await _updateProject(
+        UpdateProjectParams(project: event.project, image: event.coverImage),
+      );
+      response.fold((l) => emit(ProjectFailure(l.message)), (r) {
+        // Replace updated project in list
+        final updatedProjects =
+            currentState.projects.map((p) {
+              return p.id == event.project.id ? event.project : p;
+            }).toList();
+        emit(ProjectRetrieveSuccess(updatedProjects));
+      });
+    }
   }
 
-  void _onDailyLogCreate(
+  /*void _onDailyLogCreate(
     DailyLogCreate event,
     Emitter<ProjectState> emit,
   ) async {
@@ -80,8 +114,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       ),
     );
     response.fold(
-      (l) => emit(ProjectFailure(l.message)),
-      (r) => emit(ProjectUploadSuccess()),
+      (l) => emit(DailyLogUploadFailure(l.message)),
+      (r) => emit(DailyLogUploadSuccess()),
     );
   }
 
@@ -100,8 +134,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       ),
     );
     response.fold(
-      (l) => emit(ProjectFailure(l.message)),
-      (r) => emit(ProjectUploadSuccess()),
+      (l) => emit(DailyLogUploadFailure(l.message)),
+      (r) => emit(DailyLogUploadSuccess()),
     );
   }
 
@@ -116,9 +150,110 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       ),
     );
     response.fold(
-      (l) => emit(ProjectFailure(l.message)),
-      (r) => emit(ProjectUploadSuccess()),
+      (l) => emit(DailyLogUploadFailure(l.message)),
+      (r) => emit(DailyLogUploadSuccess()),
     );
+  }*/
+
+  void _onDailyLogCreate(
+    DailyLogCreate event,
+    Emitter<ProjectState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      final response = await _createDailyLog(
+        CreateDailyLogParams(
+          projectId: event.projectId,
+          dailyLog: event.dailyLog,
+          isCurrentTaskModified: event.isCurrentTaskModified,
+          currentTasks: event.currentTasks,
+          startingTaskImageList: event.startingTaskImageList,
+        ),
+      );
+
+      response.fold((l) => emit(DailyLogUploadFailure(l.message)), (r) {
+        final updatedProjects =
+            currentState.projects.map((project) {
+              if (project.id == event.projectId) {
+                final updatedLogs = [...project.dailyLogs, event.dailyLog];
+                return project.copyWith(dailyLogs: updatedLogs);
+              }
+              return project;
+            }).toList();
+
+        emit(ProjectRetrieveSuccess(updatedProjects));
+      });
+    } else {
+      emit(DailyLogUploadFailure('Something else is wrong!'));
+    }
+  }
+
+  void _onDailyLogUpdate(
+    DailyLogUpdate event,
+    Emitter<ProjectState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      final response = await _updateDailyLog(
+        UpdateDailyLogParams(
+          projectId: event.projectId,
+          dailyLog: event.dailyLog,
+          isCurrentTaskModified: event.isCurrentTaskModified,
+          currentTasks: event.currentTasks,
+          startingTaskImageList: event.startingTaskImageList,
+          endingTaskImageList: event.startingTaskImageList,
+        ),
+      );
+
+      response.fold((l) => emit(DailyLogUploadFailure(l.message)), (r) {
+        final updatedProjects =
+            currentState.projects.map((project) {
+              if (project.id == event.projectId) {
+                final updatedLogs =
+                    project.dailyLogs.map((log) {
+                      return log.id == event.dailyLog.id ? event.dailyLog : log;
+                    }).toList();
+
+                return project.copyWith(dailyLogs: updatedLogs);
+              }
+              return project;
+            }).toList();
+
+        emit(ProjectRetrieveSuccess(updatedProjects));
+      });
+    }
+  }
+
+  void _onManageLogTask(
+    ManageCurrentLogTask event,
+    Emitter<ProjectState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      final response = await _manageLogTask(
+        ManageLogTaskParams(
+          dailyLogId: event.dailyLogId,
+          currentTasks: event.currentTasks,
+        ),
+      );
+
+      response.fold((l) => emit(DailyLogUploadFailure(l.message)), (r) {
+        final updatedProjects =
+            currentState.projects.map((project) {
+              final updatedLogs =
+                  project.dailyLogs.map((log) {
+                    if (log.id == event.dailyLogId) {
+                      return log.copyWith(plannedTasks: event.currentTasks);
+                    }
+                    return log;
+                  }).toList();
+
+              return project.copyWith(dailyLogs: updatedLogs);
+            }).toList();
+
+        emit(ProjectRetrieveSuccess(updatedProjects));
+      });
+    }
   }
 
   void _onGetAllProjects(

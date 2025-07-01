@@ -39,6 +39,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
       TextEditingController();
   final TextEditingController _observationsController = TextEditingController();
 
+  DailyLog? finishedDailyLog;
   List<File?> images = List.filled(5, null);
   String weatherShowText = 'Weather Condition';
 
@@ -62,11 +63,13 @@ class _CreateLogPageState extends State<CreateLogPage> {
     WeatherItem(tag: 'Cloudy', iconData: Icons.cloud),
   ];
   bool dropdownOpen = false;
-  String toUseAsDailyLogId = const Uuid().v1();
+  String? toUseAsDailyLogId; // = const Uuid().v1();
 
   @override
   void initState() {
     super.initState();
+    toUseAsDailyLogId = widget.log?.id ?? const Uuid().v1();
+
     if (widget.log != null) {
       if (widget.log!.plannedTasks.isNotEmpty) {
         for (LogTask log in widget.log!.plannedTasks) {
@@ -86,7 +89,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
       addNewTask(
         LogTask(
           id: const Uuid().v1(),
-          dailyLogId: toUseAsDailyLogId,
+          dailyLogId: toUseAsDailyLogId!,
           plannedTask: ' ',
           percentCompleted: 0.0,
         ),
@@ -154,16 +157,59 @@ class _CreateLogPageState extends State<CreateLogPage> {
     }
   }
 
+  /*void uploadDailyLog(DailyLog log) {
+    if (widget.log == null) {
+      context.read<ProjectBloc>().add(
+        DailyLogCreate(
+          projectId: widget.projectId,
+          dailyLog: log,
+          isCurrentTaskModified: true,
+          currentTasks: currentTaskList,
+          startingTaskImageList: images,
+        ),
+      );
+    } else {
+      context.read<ProjectBloc>().add(
+        DailyLogUpdate(
+          projectId: widget.projectId,
+          dailyLog: log,
+          isCurrentTaskModified: true,
+          currentTasks: currentTaskList,
+          startingTaskImageList: images,
+          endingTaskImageList: List.filled(5, null),
+        ),
+      );
+    }
+  }*/
+
   void uploadDailyLog(DailyLog log) {
-    context.read<ProjectBloc>().add(
-      DailyLogCreate(
-        projectId: widget.projectId,
-        dailyLog: log,
-        isCurrentTaskModified: true,
-        currentTasks: currentTaskList,
-        startingTaskImageList: images,
-      ),
+    final updatedTasks = getUpdatedLogTasks(
+      currentTaskListControllers,
+      currentTaskList,
     );
+
+    if (widget.log == null) {
+      context.read<ProjectBloc>().add(
+        DailyLogCreate(
+          projectId: widget.projectId,
+          dailyLog: log,
+          isCurrentTaskModified: true,
+          currentTasks: updatedTasks, // <-- USE THIS
+          startingTaskImageList: images,
+        ),
+      );
+    } else {
+      context.read<ProjectBloc>().add(
+        DailyLogUpdate(
+          projectId: widget.projectId,
+          dailyLog: log,
+          isCurrentTaskModified: true,
+          currentTasks: updatedTasks, // <-- USE THIS
+          startingTaskImageList: images,
+          endingTaskImageList: List.filled(5, null),
+        ),
+      );
+    }
   }
 
   @override
@@ -189,13 +235,12 @@ class _CreateLogPageState extends State<CreateLogPage> {
       ),
       body: BlocListener<ProjectBloc, ProjectState>(
         listener: (context, state) {
-          if (state is ProjectFailure) {
+          if (state is DailyLogUploadFailure) {
             showSnackBar(context, state.error);
           }
           if (state is ProjectRetrieveSuccess) {
-            //widget.onCompleted();
-            //Navigator.pop(context);
             showSnackBar(context, 'File has been saved!');
+            widget.onCompleted(finishedDailyLog!);
           }
         },
         child: SingleChildScrollView(
@@ -331,9 +376,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
                       onTap: () {
                         addNewTask(
                           LogTask(
-                            id: '',
-                            dailyLogId:
-                                widget.log == null ? '' : widget.log!.id,
+                            id: const Uuid().v1(),
+                            dailyLogId: toUseAsDailyLogId!,
                             plannedTask: ' ',
                             percentCompleted: 0.0,
                           ),
@@ -461,11 +505,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
                         }
                         //final dailyLogId = newDateTimeInputList[0].toIso8601String();
 
-                        final finalDailyLog = DailyLog(
-                          id:
-                              widget.log == null
-                                  ? toUseAsDailyLogId
-                                  : widget.log!.id,
+                        finishedDailyLog = DailyLog(
+                          id: toUseAsDailyLogId!,
                           projectId: widget.projectId,
                           dateTimeList: newDateTimeInputList,
                           numberOfWorkers: int.parse(
@@ -492,7 +533,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
                           observations: '${_observationsController.text}\n\n\n',
                           isConfirmed: false,
                         );
-                        uploadDailyLog(finalDailyLog);
+                        uploadDailyLog(finishedDailyLog!);
                       },
                       text: 'Upload',
                     ),
