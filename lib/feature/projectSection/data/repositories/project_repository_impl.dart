@@ -5,6 +5,7 @@ import 'package:site_board/feature/projectSection/data/models/daily_log_model.da
 import 'package:site_board/feature/projectSection/data/models/project_model.dart';
 import 'package:site_board/feature/projectSection/domain/entities/daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
+import 'package:site_board/feature/projectSection/domain/entities/retrieved_projects.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/constants.dart';
@@ -139,7 +140,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
           currentTasks: setupCurrentTasks,
         );
       }
-      return right(uploadedDailyLog);
+      return right(uploadedDailyLog.copyWith(plannedTasks: currentTasks));
     } on ServerException catch (e) {
       return left(Failure(e.message));
     }
@@ -198,10 +199,16 @@ class ProjectRepositoryImpl implements ProjectRepository {
         ),
       );
 
-      final uploadedProject = await projectRemoteDataSource.updateDailyLog(
+      final setupCurrentTasks = taskConverter(currentTasks);
+      await projectRemoteDataSource.syncLogTasks(
+        dailyLogId: dailyLog.id,
+        currentTasks: setupCurrentTasks,
+      );
+
+      final uploadedDailyLog = await projectRemoteDataSource.updateDailyLog(
         dailyLogModel,
       );
-      return right(uploadedProject);
+      return right(uploadedDailyLog.copyWith(plannedTasks: currentTasks));
     } on ServerException catch (e) {
       return left(Failure(e.message));
     }
@@ -229,19 +236,19 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, List<Project>>> getAllProjects({
+  Future<Either<Failure, RetrievedProjects>> getAllProjects({
     required String userId,
   }) async {
     try {
       if (!await (connectionChecker.isConnected)) {
         final projects = projectLocalDataSource.loadProjects();
-        return right(projects);
+        return right(RetrievedProjects(isLocal: true, projects: projects));
       }
       final projects = await projectRemoteDataSource.getAllProjects(
         userId: userId,
       );
       projectLocalDataSource.uploadLocalProjects(projects: projects);
-      return right(projects);
+      return right(RetrievedProjects(projects: projects));
     } on ServerException catch (e) {
       return left(Failure(e.message));
     }

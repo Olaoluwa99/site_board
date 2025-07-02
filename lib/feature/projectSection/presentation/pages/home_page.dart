@@ -107,12 +107,18 @@ class _HomePageState extends State<HomePage> {
                   if (state is ProjectFailure) {
                     showSnackBar(context, state.error);
                   }
-                  if (state is ProjectRetrieveSuccess) {
+                  if (state is ProjectRetrieveSuccessInit) {
                     if (state.projects.isEmpty) {
                       showExtra = false;
                     } else {
                       showExtra = true;
                     }
+                    showSnackBar(
+                      context,
+                      state.isLocal == true
+                          ? 'Starting App in Offline mode'
+                          : 'Starting App in Normal mode',
+                    );
                   }
                 },
                 builder: (context, state) {
@@ -120,20 +126,22 @@ class _HomePageState extends State<HomePage> {
                     return const Loader();
                   }
 
-                  if (state is ProjectRetrieveSuccess) {
+                  if (state is ProjectRetrieveSuccessInit) {
                     return Column(
                       children:
-                          state.projects.map((project) {
+                          state.projects.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final project = entry.value;
+
                             return InkWell(
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  ProjectHomePage.route(project),
+                                  ProjectHomePage.route(project, index),
                                 );
                               },
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                spacing: 0.0,
                                 children: [
                                   SizedBox(height: 8),
                                   Text(project.projectName),

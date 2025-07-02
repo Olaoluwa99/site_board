@@ -38,13 +38,14 @@ class ProjectRetrieveSuccess extends ProjectState {
   }
 }
 
-//
-/*final class LogTaskSyncSuccess extends ProjectState {}
+class ProjectRetrieveSuccessInit extends ProjectRetrieveSuccess {
+  final bool isLocal;
 
-final class LogTaskSyncFailure extends ProjectState {
-  final String error;
-  LogTaskSyncFailure(this.error);
-}*/
+  ProjectRetrieveSuccessInit({
+    required List<Project> projects,
+    required this.isLocal,
+  }) : super(projects);
+}
 
 //EveryTime you Create/Update a DailyLog - Both the Create/Update and SyncTask is called
 //Sync would always be called from the DailyLog Create/Update call and never by itself

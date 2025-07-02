@@ -20,7 +20,7 @@ class CreateLogPage extends StatefulWidget {
   final String projectId;
   final DailyLog? log;
   final VoidCallback onClose;
-  final void Function(DailyLog dailyLog) onCompleted;
+  final VoidCallback onCompleted;
   const CreateLogPage({
     required this.projectId,
     this.log,
@@ -222,7 +222,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
           }
           if (state is ProjectRetrieveSuccess) {
             showSnackBar(context, 'File has been saved!');
-            widget.onCompleted(finishedDailyLog!);
+            widget.onCompleted();
           }
         },
         child: SingleChildScrollView(

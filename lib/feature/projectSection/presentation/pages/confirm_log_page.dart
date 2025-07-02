@@ -13,7 +13,7 @@ import '../widgets/field_editor.dart';
 class ConfirmLogPage extends StatefulWidget {
   final DailyLog log;
   final VoidCallback onClose;
-  final void Function(DailyLog dailyLog) onCompleted;
+  final VoidCallback onCompleted;
   const ConfirmLogPage({
     required this.log,
     required this.onClose,
@@ -189,7 +189,7 @@ class _ConfirmLogPageState extends State<ConfirmLogPage> {
                         isConfirmed: true,
                         workScore: sum / dailyLog.plannedTasks.length,
                       );
-                      widget.onCompleted(dailyLog);
+                      widget.onCompleted();
                     },
                     text: 'Upload',
                   ),
