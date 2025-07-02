@@ -89,6 +89,27 @@ class ProjectModel extends Project {
     );
   }
 
+  Map<String, dynamic> toCompleteJson() {
+    return {
+      'id': id,
+      'project_name': projectName,
+      'creator_id': creatorId,
+      'project_link': projectLink,
+      'description': description,
+      'team_member_ids': teamMemberIds,
+      'created_date': createdDate.toIso8601String(),
+      'end_date': endDate?.toIso8601String(),
+      'daily_logs':
+          dailyLogs
+              .map((log) => (log as DailyLogModel).toCompleteJson())
+              .toList(),
+      'location': location,
+      'is_active': isActive,
+      'last_updated': lastUpdated.toIso8601String(),
+      'cover_photo_url': coverPhotoUrl,
+    };
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -97,16 +118,16 @@ class ProjectModel extends Project {
       'project_link': projectLink,
       'description': description,
       'team_member_ids': teamMemberIds,
-      'created_date': createdDate.millisecondsSinceEpoch,
-      'end_date': endDate?.millisecondsSinceEpoch,
+      'created_date': createdDate.toIso8601String(),
+      'end_date': endDate?.toIso8601String(),
       'location': location,
       'is_active': isActive,
-      'last_updated': lastUpdated.millisecondsSinceEpoch,
+      'last_updated': lastUpdated.toIso8601String(),
       'cover_photo_url': coverPhotoUrl,
     };
   }
 
-  factory ProjectModel.fromJson(Map<String, dynamic> map) {
+  /*factory ProjectModel.fromJson(Map<String, dynamic> map) {
     return ProjectModel(
       id: map['id'] as String,
       projectName: map['project_name'] ?? '',
@@ -133,6 +154,44 @@ class ProjectModel extends Project {
           map['last_updated'] != null
               ? DateTime.fromMillisecondsSinceEpoch(map['last_updated'])
               : DateTime.now(),
+      coverPhotoUrl: map['cover_photo_url'] ?? '',
+    );
+  }*/
+
+  factory ProjectModel.fromJson(Map<String, dynamic> map) {
+    return ProjectModel(
+      id: map['id'] as String,
+      projectName: map['project_name'] ?? '',
+      creatorId: map['creator_id'] ?? '',
+      projectLink: map['project_link'] ?? '',
+      description: map['description'] ?? '',
+      teamMemberIds: List<String>.from(map['team_member_ids'] ?? const []),
+      createdDate:
+          map['created_date'] == null
+              ? DateTime.now()
+              : DateTime.parse(map['created_date']),
+      endDate:
+          map['end_date'] == null
+              ? DateTime.now()
+              : DateTime.parse(map['end_date']),
+      /*dailyLogs:
+          (map['daily_logs'] as List<dynamic>?)?.map((log) {
+            return DailyLogModel.fromJson(log as Map<String, dynamic>);
+          }).toList() ??
+          [],*/
+      dailyLogs:
+          (map['daily_logs'] as List<dynamic>?)
+              ?.map(
+                (log) => DailyLogModel.fromJson(Map<String, dynamic>.from(log)),
+              )
+              .toList() ??
+          [],
+      location: map['location'] ?? '',
+      isActive: map['is_active'] as bool,
+      lastUpdated:
+          map['last_updated'] == null
+              ? DateTime.now()
+              : DateTime.parse(map['last_updated']),
       coverPhotoUrl: map['cover_photo_url'] ?? '',
     );
   }

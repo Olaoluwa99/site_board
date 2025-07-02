@@ -169,12 +169,10 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
                 if (project.id == event.projectId) {
                   final updatedLogs =
                       project.dailyLogs.map((log) {
-                        debugPrint('${log.id} --- ${event.dailyLog.id}');
                         return log.id == event.dailyLog.id
                             ? event.dailyLog
                             : log;
                       }).toList();
-                  debugPrint('New list size = 0${updatedLogs.length}');
 
                   return project.copyWith(dailyLogs: updatedLogs);
                 }
@@ -234,7 +232,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     final response = await _getAllProjects(
       GetAllProjectsParams(userId: event.userId),
     );
-    debugPrint('Items have been retrieved');
     response.fold((l) => emit(ProjectFailure(l.message)), (r) {
       isLocalMode = r.isLocal;
       emit(

@@ -17,7 +17,7 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
       final data = box.get(i.toString());
       if (data != null) {
         projects.add(ProjectModel.fromJson(Map<String, dynamic>.from(data)));
-      }
+      } else {}
     }
     return projects;
   }
@@ -26,7 +26,7 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   void uploadLocalProjects({required List<ProjectModel> projects}) {
     box.clear();
     for (int i = 0; i < projects.length; i++) {
-      box.put(i.toString(), projects[i].toJson());
+      box.put(i.toString(), projects[i].toCompleteJson());
     }
   }
 }

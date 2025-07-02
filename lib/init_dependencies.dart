@@ -56,7 +56,10 @@ void _initAuth() {
     ..registerFactory<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),
     )
-    //..registerFactory(() => BlogLocalDataSourceImpl(serviceLocator()))
+    /*..registerFactory(
+      <ProjectLocalDataSource>() =>
+          ProjectLocalDataSourceImpl(serviceLocator()),
+    )*/
     ..registerFactory<AuthRepository>(
       () => AuthRepositoryImpl(serviceLocator(), serviceLocator()),
     )
