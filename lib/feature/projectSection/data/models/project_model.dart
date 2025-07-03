@@ -174,11 +174,6 @@ class ProjectModel extends Project {
           map['end_date'] == null
               ? DateTime.now()
               : DateTime.parse(map['end_date']),
-      /*dailyLogs:
-          (map['daily_logs'] as List<dynamic>?)?.map((log) {
-            return DailyLogModel.fromJson(log as Map<String, dynamic>);
-          }).toList() ??
-          [],*/
       dailyLogs:
           (map['daily_logs'] as List<dynamic>?)
               ?.map(

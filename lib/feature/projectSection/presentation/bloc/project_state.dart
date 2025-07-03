@@ -21,11 +21,35 @@ final class ProjectUploadSuccess extends ProjectState {}
 }*/
 
 //
-final class DailyLogUploadSuccess extends ProjectState {}
 
-final class DailyLogUploadFailure extends ProjectState {
+/*final class DailyLogUploadFailure extends ProjectState {
   final String error;
   DailyLogUploadFailure(this.error);
+}*/
+/*final class DailyLogUploadSuccess extends ProjectRetrieveSuccess {}
+
+class DailyLogUploadFailure extends ProjectRetrieveSuccess {
+  final String error;
+  final DateTime timestamp; // or use String uuid = Uuid().v4();
+
+  DailyLogUploadFailure(this.error) : timestamp = DateTime.now();
+
+  @override
+  List<Object> get props => [error, timestamp];
+}*/
+final class DailyLogUploadSuccess extends ProjectRetrieveSuccess {
+  DailyLogUploadSuccess(super.projects);
+}
+
+class DailyLogUploadFailure extends ProjectRetrieveSuccess {
+  final String error;
+  final DateTime timestamp;
+
+  DailyLogUploadFailure({required this.error, required List<Project> projects})
+    : timestamp = DateTime.now(),
+      super(projects);
+
+  List<Object> get props => [error, timestamp, ...projects];
 }
 
 class ProjectRetrieveSuccess extends ProjectState {

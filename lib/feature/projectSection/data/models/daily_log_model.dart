@@ -76,9 +76,16 @@ class DailyLogModel extends DailyLog {
       isConfirmed: map['is_confirmed'] ?? false,
       workScore: (map['work_score'] ?? 0).toDouble(),
       generatedSummary: map['generated_summary'] ?? '',
-      plannedTasks:
+      /*plannedTasks:
           (map['log_tasks'] as List<dynamic>?)
               ?.map((t) => LogTaskModel.fromJson(t as Map<String, dynamic>))
+              .toList() ??
+          [],*/
+      plannedTasks:
+          (map['planned_tasks'] as List<dynamic>?)
+              ?.map(
+                (log) => LogTaskModel.fromJson(Map<String, dynamic>.from(log)),
+              )
               .toList() ??
           [],
     );

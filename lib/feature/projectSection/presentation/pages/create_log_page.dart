@@ -213,14 +213,16 @@ class _CreateLogPageState extends State<CreateLogPage> {
           if (state is ProjectLoading) {
             showLoaderDialog(context);
           }
-          if (state is DailyLogUploadFailure ||
+          /*if (state is DailyLogUploadFailure ||
               state is ProjectRetrieveSuccess) {
             Navigator.of(context, rootNavigator: true).pop();
-          }
+          }*/
           if (state is DailyLogUploadFailure) {
+            Navigator.of(context, rootNavigator: true).pop();
             showSnackBar(context, state.error);
           }
-          if (state is ProjectRetrieveSuccess) {
+          if (state is DailyLogUploadSuccess) {
+            Navigator.of(context, rootNavigator: true).pop();
             showSnackBar(context, 'File has been saved!');
             widget.onCompleted();
           }

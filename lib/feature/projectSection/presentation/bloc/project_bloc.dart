@@ -115,8 +115,13 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
 
       response.fold(
         (l) {
-          emit(DailyLogUploadFailure(l.message));
-          emit(ProjectRetrieveSuccess(currentState.projects));
+          emit(
+            DailyLogUploadFailure(
+              error: l.message,
+              projects: currentState.projects,
+            ),
+          );
+          //emit(ProjectRetrieveSuccess(currentState.projects));
         },
         (r) {
           final updatedProjects =
@@ -134,7 +139,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
                 return project;
               }).toList();
 
-          emit(ProjectRetrieveSuccess(updatedProjects));
+          emit(DailyLogUploadSuccess(updatedProjects));
         },
       );
     }
@@ -160,8 +165,14 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
 
       response.fold(
         (l) {
-          emit(DailyLogUploadFailure(l.message));
-          emit(ProjectRetrieveSuccess(currentState.projects));
+          emit(
+            DailyLogUploadFailure(
+              error: l.message,
+              projects: currentState.projects,
+            ),
+          );
+          //Changed so that when second click of upload, it still shows popup
+          //emit(ProjectRetrieveSuccess(currentState.projects));
         },
         (r) {
           final updatedProjects =
@@ -179,7 +190,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
                 return project;
               }).toList();
 
-          emit(ProjectRetrieveSuccess(updatedProjects));
+          emit(DailyLogUploadSuccess(updatedProjects));
         },
       );
     }
@@ -201,8 +212,13 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
 
       response.fold(
         (l) {
-          emit(DailyLogUploadFailure(l.message));
-          emit(ProjectRetrieveSuccess(currentState.projects));
+          emit(
+            DailyLogUploadFailure(
+              error: l.message,
+              projects: currentState.projects,
+            ),
+          );
+          //emit(ProjectRetrieveSuccess(currentState.projects));
         },
         (r) {
           final updatedProjects =
@@ -218,7 +234,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
                 return project.copyWith(dailyLogs: updatedLogs);
               }).toList();
 
-          emit(ProjectRetrieveSuccess(updatedProjects));
+          emit(DailyLogUploadSuccess(updatedProjects));
         },
       );
     }
