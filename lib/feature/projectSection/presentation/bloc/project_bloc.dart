@@ -46,6 +46,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<ProjectGetAllProjects>(_onGetAllProjects);
   }
 
+  bool isLocalMode = false;
+
   void _onProjectCreate(ProjectCreate event, Emitter<ProjectState> emit) async {
     final currentState = state;
     if (currentState is ProjectRetrieveSuccess) {
@@ -53,14 +55,20 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       final response = await _createProject(
         CreateProjectParams(project: event.project),
       );
-      response.fold((l) => emit(ProjectFailure(l.message)), (r) {
-        // Replace updated project in list
-        final updatedProjects =
-            currentState.projects.map((p) {
-              return p.id == event.project.id ? event.project : p;
-            }).toList();
-        emit(ProjectRetrieveSuccess(updatedProjects));
-      });
+      response.fold(
+        (l) {
+          emit(ProjectFailure(l.message));
+          emit(ProjectRetrieveSuccess(currentState.projects));
+        },
+        (r) {
+          // Replace updated project in list
+          final updatedProjects =
+              currentState.projects.map((p) {
+                return p.id == event.project.id ? event.project : p;
+              }).toList();
+          emit(ProjectRetrieveSuccess(updatedProjects));
+        },
+      );
     }
   }
 
@@ -71,14 +79,20 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       final response = await _updateProject(
         UpdateProjectParams(project: event.project, image: event.coverImage),
       );
-      response.fold((l) => emit(ProjectFailure(l.message)), (r) {
-        // Replace updated project in list
-        final updatedProjects =
-            currentState.projects.map((p) {
-              return p.id == event.project.id ? event.project : p;
-            }).toList();
-        emit(ProjectRetrieveSuccess(updatedProjects));
-      });
+      response.fold(
+        (l) {
+          emit(ProjectFailure(l.message));
+          emit(ProjectRetrieveSuccess(currentState.projects));
+        },
+        (r) {
+          // Replace updated project in list
+          final updatedProjects =
+              currentState.projects.map((p) {
+                return p.id == event.project.id ? event.project : p;
+              }).toList();
+          emit(ProjectRetrieveSuccess(updatedProjects));
+        },
+      );
     }
   }
 
@@ -99,24 +113,35 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         ),
       );
 
-      response.fold((l) => emit(DailyLogUploadFailure(l.message)), (r) {
-        final updatedProjects =
-            currentState.projects.map((project) {
-              if (project.id == event.projectId) {
-                /*final updatedLogs = [
+      response.fold(
+        (l) {
+          emit(
+            DailyLogUploadFailure(
+              error: l.message,
+              projects: currentState.projects,
+            ),
+          );
+          //emit(ProjectRetrieveSuccess(currentState.projects));
+        },
+        (r) {
+          final updatedProjects =
+              currentState.projects.map((project) {
+                if (project.id == event.projectId) {
+                  /*final updatedLogs = [
                   ...project.dailyLogs.where(
                     (log) => log.id != event.dailyLog.id,
                   ),
                   event.dailyLog,
                 ];*/
-                final updatedLogs = [...project.dailyLogs, event.dailyLog];
-                return project.copyWith(dailyLogs: updatedLogs);
-              }
-              return project;
-            }).toList();
+                  final updatedLogs = [...project.dailyLogs, event.dailyLog];
+                  return project.copyWith(dailyLogs: updatedLogs);
+                }
+                return project;
+              }).toList();
 
-        emit(ProjectRetrieveSuccess(updatedProjects));
-      });
+          emit(DailyLogUploadSuccess(updatedProjects));
+        },
+      );
     }
   }
 
@@ -134,26 +159,40 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           isCurrentTaskModified: event.isCurrentTaskModified,
           currentTasks: event.currentTasks,
           startingTaskImageList: event.startingTaskImageList,
-          endingTaskImageList: event.startingTaskImageList,
+          endingTaskImageList: event.endingTaskImageList,
         ),
       );
 
-      response.fold((l) => emit(DailyLogUploadFailure(l.message)), (r) {
-        final updatedProjects =
-            currentState.projects.map((project) {
-              if (project.id == event.projectId) {
-                final updatedLogs =
-                    project.dailyLogs.map((log) {
-                      return log.id == event.dailyLog.id ? event.dailyLog : log;
-                    }).toList();
+      response.fold(
+        (l) {
+          emit(
+            DailyLogUploadFailure(
+              error: l.message,
+              projects: currentState.projects,
+            ),
+          );
+          //Changed so that when second click of upload, it still shows popup
+          //emit(ProjectRetrieveSuccess(currentState.projects));
+        },
+        (r) {
+          final updatedProjects =
+              currentState.projects.map((project) {
+                if (project.id == event.projectId) {
+                  final updatedLogs =
+                      project.dailyLogs.map((log) {
+                        return log.id == event.dailyLog.id
+                            ? event.dailyLog
+                            : log;
+                      }).toList();
 
-                return project.copyWith(dailyLogs: updatedLogs);
-              }
-              return project;
-            }).toList();
+                  return project.copyWith(dailyLogs: updatedLogs);
+                }
+                return project;
+              }).toList();
 
-        emit(ProjectRetrieveSuccess(updatedProjects));
-      });
+          emit(DailyLogUploadSuccess(updatedProjects));
+        },
+      );
     }
   }
 
@@ -171,22 +210,33 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         ),
       );
 
-      response.fold((l) => emit(DailyLogUploadFailure(l.message)), (r) {
-        final updatedProjects =
-            currentState.projects.map((project) {
-              final updatedLogs =
-                  project.dailyLogs.map((log) {
-                    if (log.id == event.dailyLogId) {
-                      return log.copyWith(plannedTasks: event.currentTasks);
-                    }
-                    return log;
-                  }).toList();
+      response.fold(
+        (l) {
+          emit(
+            DailyLogUploadFailure(
+              error: l.message,
+              projects: currentState.projects,
+            ),
+          );
+          //emit(ProjectRetrieveSuccess(currentState.projects));
+        },
+        (r) {
+          final updatedProjects =
+              currentState.projects.map((project) {
+                final updatedLogs =
+                    project.dailyLogs.map((log) {
+                      if (log.id == event.dailyLogId) {
+                        return log.copyWith(plannedTasks: event.currentTasks);
+                      }
+                      return log;
+                    }).toList();
 
-              return project.copyWith(dailyLogs: updatedLogs);
-            }).toList();
+                return project.copyWith(dailyLogs: updatedLogs);
+              }).toList();
 
-        emit(ProjectRetrieveSuccess(updatedProjects));
-      });
+          emit(DailyLogUploadSuccess(updatedProjects));
+        },
+      );
     }
   }
 
@@ -198,9 +248,14 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     final response = await _getAllProjects(
       GetAllProjectsParams(userId: event.userId),
     );
-    response.fold(
-      (l) => emit(ProjectFailure(l.message)),
-      (r) => emit(ProjectRetrieveSuccess(r)),
-    );
+    response.fold((l) => emit(ProjectFailure(l.message)), (r) {
+      isLocalMode = r.isLocal;
+      emit(
+        ProjectRetrieveSuccessInit(projects: r.projects, isLocal: r.isLocal),
+      );
+    });
   }
 }
+
+//TODO - Switch to Offline mode button that allows user once you launch the app and there is error to choose to use the offline mode.
+//TODO - Switch to online mode on home that allows user to keep trying to retrieve data.

@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/image_item.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../../core/theme/app_palette.dart';
@@ -20,7 +20,7 @@ class CreateLogPage extends StatefulWidget {
   final String projectId;
   final DailyLog? log;
   final VoidCallback onClose;
-  final void Function(DailyLog dailyLog) onCompleted;
+  final VoidCallback onCompleted;
   const CreateLogPage({
     required this.projectId,
     this.log,
@@ -41,14 +41,19 @@ class _CreateLogPageState extends State<CreateLogPage> {
   final TextEditingController _observationsController = TextEditingController();
 
   DailyLog? finishedDailyLog;
-  List<File?> images = List.filled(5, null);
+  List<File?> startingImages = List.filled(5, null);
+  List<File?> endingImages = List.filled(5, null);
   String weatherShowText = 'Weather Condition';
 
-  Future<void> selectImage(int index) async {
+  Future<void> selectImage(int index, bool isEnding) async {
     final pickedFile = await pickImage();
     if (pickedFile != null) {
       setState(() {
-        images[index] = File(pickedFile.path);
+        if (isEnding) {
+          endingImages[index] = File(pickedFile.path);
+        } else {
+          startingImages[index] = File(pickedFile.path);
+        }
       });
     }
   }
@@ -170,7 +175,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
           dailyLog: log,
           isCurrentTaskModified: true,
           currentTasks: updatedTasks,
-          startingTaskImageList: images,
+          startingTaskImageList: startingImages,
         ),
       );
     } else {
@@ -180,8 +185,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
           dailyLog: log,
           isCurrentTaskModified: true,
           currentTasks: updatedTasks,
-          startingTaskImageList: images,
-          endingTaskImageList: List.filled(5, null),
+          startingTaskImageList: startingImages,
+          endingTaskImageList: endingImages,
         ),
       );
     }
@@ -213,16 +218,14 @@ class _CreateLogPageState extends State<CreateLogPage> {
           if (state is ProjectLoading) {
             showLoaderDialog(context);
           }
-          if (state is DailyLogUploadFailure ||
-              state is ProjectRetrieveSuccess) {
-            Navigator.of(context, rootNavigator: true).pop();
-          }
           if (state is DailyLogUploadFailure) {
+            Navigator.of(context, rootNavigator: true).pop();
             showSnackBar(context, state.error);
           }
-          if (state is ProjectRetrieveSuccess) {
+          if (state is DailyLogUploadSuccess) {
+            Navigator.of(context, rootNavigator: true).pop();
             showSnackBar(context, 'File has been saved!');
-            widget.onCompleted(finishedDailyLog!);
+            widget.onCompleted();
           }
         },
         child: SingleChildScrollView(
@@ -407,58 +410,57 @@ class _CreateLogPageState extends State<CreateLogPage> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: List.generate(5, (index) {
-                        final image = images[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 12.0),
-                          child: GestureDetector(
-                            onTap: () => selectImage(index),
-                            child: SizedBox(
-                              width: 150,
-                              height: 150,
-                              child:
-                                  image != null
-                                      ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Image.file(
-                                          image,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                      : DottedBorder(
-                                        options: RoundedRectDottedBorderOptions(
-                                          color: AppPalette.borderColor,
-                                          dashPattern: [10, 5],
-                                          strokeWidth: 2,
-                                          padding: EdgeInsets.all(0),
-                                          radius: Radius.circular(12),
-                                          strokeCap: StrokeCap.round,
-                                        ),
-                                        child: SizedBox(
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.folder_open, size: 44),
-                                              SizedBox(height: 15),
-                                              Text(
-                                                'Select\nimage ${index + 1}',
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(fontSize: 14),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                            ),
-                          ),
+                        final image = startingImages[index];
+                        return ImageItem(
+                          index: index,
+                          imageAsFile: image,
+                          imageAsLink:
+                              widget.log?.startingImageUrl[index] ?? '',
+                          onSelect: () => selectImage(index, false),
                         );
                       }),
                     ),
                   ),
                 ),
               ),
+
+              widget.log == null
+                  ? SizedBox.shrink()
+                  : Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 16),
+                        Text(
+                          'Select post-work Images',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 32),
+                        SizedBox(
+                          height: 150, // Square height
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: List.generate(5, (index) {
+                                final image = endingImages[index];
+                                return ImageItem(
+                                  index: index,
+                                  imageAsFile: image,
+                                  imageAsLink:
+                                      widget.log?.endingImageUrl[index] ?? '',
+                                  onSelect: () => selectImage(index, true),
+                                );
+                              }),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
               SizedBox(height: 16),
               Divider(indent: 16, endIndent: 16),

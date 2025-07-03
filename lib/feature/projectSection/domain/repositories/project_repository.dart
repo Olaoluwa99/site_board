@@ -5,6 +5,7 @@ import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 
 import '../../../../core/error/failure.dart';
 import '../entities/daily_log.dart';
+import '../entities/retrieved_projects.dart';
 
 abstract interface class ProjectRepository {
   Future<Either<Failure, Project>> createProject({required Project project});
@@ -36,7 +37,7 @@ abstract interface class ProjectRepository {
     required List<LogTask> currentTasks,
   });
 
-  Future<Either<Failure, List<Project>>> getAllProjects({
+  Future<Either<Failure, RetrievedProjects>> getAllProjects({
     required String userId,
   });
 }

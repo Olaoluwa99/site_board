@@ -17,6 +17,25 @@ class DailyLogModel extends DailyLog {
     super.generatedSummary = '',
   });
 
+  Map<String, dynamic> toCompleteJson() {
+    return {
+      'id': id,
+      'project_id': projectId,
+      'date_time_list': dateTimeList.map((dt) => dt.toIso8601String()).toList(),
+      'number_of_workers': numberOfWorkers,
+      'weather_condition': weatherCondition,
+      'materials_available': materialsAvailable,
+      'log_tasks':
+          plannedTasks.map((task) => (task as LogTaskModel).toJson()).toList(),
+      'starting_image_url': startingImageUrl,
+      'ending_image_url': endingImageUrl,
+      'observations': observations,
+      'is_confirmed': isConfirmed,
+      'work_score': workScore,
+      'generated_summary': generatedSummary,
+    };
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -57,9 +76,16 @@ class DailyLogModel extends DailyLog {
       isConfirmed: map['is_confirmed'] ?? false,
       workScore: (map['work_score'] ?? 0).toDouble(),
       generatedSummary: map['generated_summary'] ?? '',
-      plannedTasks:
+      /*plannedTasks:
           (map['log_tasks'] as List<dynamic>?)
               ?.map((t) => LogTaskModel.fromJson(t as Map<String, dynamic>))
+              .toList() ??
+          [],*/
+      plannedTasks:
+          (map['log_tasks'] as List<dynamic>?)
+              ?.map(
+                (log) => LogTaskModel.fromJson(Map<String, dynamic>.from(log)),
+              )
               .toList() ??
           [],
     );

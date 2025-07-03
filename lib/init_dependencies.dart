@@ -41,6 +41,12 @@ Future<void> initDependencies() async {
   Hive.init(appDocsDir.path);
 
   final projectBox = await Hive.openBox('projects');
+  /*debugPrint('-------------------------------------------------');
+  for (var key in projectBox.keys) {
+    debugPrint('-------------------------------------------------');
+    debugPrint('Key: $key => Value: ${projectBox.get(key)}');
+  }
+  debugPrint('-------------------------------------------------');*/
 
   serviceLocator.registerLazySingleton(() => supabase.client);
   serviceLocator.registerLazySingleton(() => projectBox);
@@ -56,7 +62,10 @@ void _initAuth() {
     ..registerFactory<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),
     )
-    //..registerFactory(() => BlogLocalDataSourceImpl(serviceLocator()))
+    /*..registerFactory(
+      <ProjectLocalDataSource>() =>
+          ProjectLocalDataSourceImpl(serviceLocator()),
+    )*/
     ..registerFactory<AuthRepository>(
       () => AuthRepositoryImpl(serviceLocator(), serviceLocator()),
     )
