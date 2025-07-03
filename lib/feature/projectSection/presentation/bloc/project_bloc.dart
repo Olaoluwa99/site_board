@@ -159,7 +159,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           isCurrentTaskModified: event.isCurrentTaskModified,
           currentTasks: event.currentTasks,
           startingTaskImageList: event.startingTaskImageList,
-          endingTaskImageList: event.startingTaskImageList,
+          endingTaskImageList: event.endingTaskImageList,
         ),
       );
 

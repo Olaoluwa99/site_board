@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/image_item.dart';
 
 import '../../../../../core/utils/format_date.dart';
 import '../../domain/entities/daily_log.dart';
@@ -112,55 +113,14 @@ class ViewLogPage extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children:
-                      log.startingImageUrl.map((imageUrl) {
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                            right: 8.0,
-                          ), // spacing between images
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              width: 120,
-                              height: 120,
-                              loadingBuilder: (
-                                context,
-                                child,
-                                loadingProgress,
-                              ) {
-                                if (loadingProgress == null) return child;
-                                return SizedBox(
-                                  width: 120,
-                                  height: 120,
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    width: 120, // same as your image
-                                    height: 120,
-                                    color:
-                                        Colors
-                                            .grey
-                                            .shade300, // fallback background
-                                    child: const Icon(
-                                      Icons
-                                          .broken_image, // or Icons.image, Icons.photo, etc.
-                                      size: 40,
-                                      color:
-                                          Colors
-                                              .grey, // or another color that suits your theme
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                      log.startingImageUrl.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final imageUrl = entry.value;
+                        return ImageItem(
+                          index: i,
+                          imageAsFile: null,
+                          imageAsLink: imageUrl,
+                          onSelect: () {},
                         );
                       }).toList(),
                 ),
@@ -182,55 +142,14 @@ class ViewLogPage extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children:
-                      log.endingImageUrl.map((imageUrl) {
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                            right: 8.0,
-                          ), // spacing between images
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              width: 120,
-                              height: 120,
-                              loadingBuilder: (
-                                context,
-                                child,
-                                loadingProgress,
-                              ) {
-                                if (loadingProgress == null) return child;
-                                return SizedBox(
-                                  width: 120,
-                                  height: 120,
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    width: 120, // same as your image
-                                    height: 120,
-                                    color:
-                                        Colors
-                                            .grey
-                                            .shade300, // fallback background
-                                    child: const Icon(
-                                      Icons
-                                          .broken_image, // or Icons.image, Icons.photo, etc.
-                                      size: 40,
-                                      color:
-                                          Colors
-                                              .grey, // or another color that suits your theme
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                      log.endingImageUrl.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final imageUrl = entry.value;
+                        return ImageItem(
+                          index: i,
+                          imageAsFile: null,
+                          imageAsLink: imageUrl,
+                          onSelect: () {},
                         );
                       }).toList(),
                 ),

@@ -174,21 +174,38 @@ class ProjectRepositoryImpl implements ProjectRepository {
         isConfirmed: dailyLog.isConfirmed,
       );
 
-      final modifiedStartingImageUrlList = await projectRemoteDataSource
-          .uploadDailyLogImages(
-            isEndingImages: false,
-            images: startingTaskImageList,
-            dailyLogModel: dailyLogModel,
-          );
+      if (hasAtLeastOneFile(startingTaskImageList)) {
+        final modifiedStartingImageUrlList = await projectRemoteDataSource
+            .uploadDailyLogImages(
+              isEndingImages: false,
+              images: startingTaskImageList,
+              dailyLogModel: dailyLogModel,
+            );
+        dailyLogModel.copyWith(
+          startingImageUrl: imageModifier(
+            dailyLog.startingImageUrl,
+            modifiedStartingImageUrlList,
+          ),
+        );
+      }
 
-      final modifiedEndingTaskImageUrlList = await projectRemoteDataSource
-          .uploadDailyLogImages(
-            isEndingImages: true,
-            images: endingTaskImageList,
-            dailyLogModel: dailyLogModel,
-          );
+      if (hasAtLeastOneFile(endingTaskImageList)) {
+        final modifiedEndingTaskImageUrlList = await projectRemoteDataSource
+            .uploadDailyLogImages(
+              isEndingImages: true,
+              images: endingTaskImageList,
+              dailyLogModel: dailyLogModel,
+            );
 
-      dailyLogModel.copyWith(
+        dailyLogModel.copyWith(
+          endingImageUrl: imageModifier(
+            dailyLog.endingImageUrl,
+            modifiedEndingTaskImageUrlList,
+          ),
+        );
+      }
+
+      /*dailyLogModel.copyWith(
         startingImageUrl: imageModifier(
           dailyLog.startingImageUrl,
           modifiedStartingImageUrlList,
@@ -197,7 +214,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
           dailyLog.endingImageUrl,
           modifiedEndingTaskImageUrlList,
         ),
-      );
+      );*/
 
       final setupCurrentTasks = taskConverter(currentTasks);
       await projectRemoteDataSource.syncLogTasks(
@@ -304,5 +321,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       }
     }
     return updatedStartingList;
+  }
+
+  bool hasAtLeastOneFile(List<File?> files) {
+    if (files.isEmpty) return false;
+    return files.any((file) => file != null);
   }
 }

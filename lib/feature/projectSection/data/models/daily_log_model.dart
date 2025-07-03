@@ -25,7 +25,7 @@ class DailyLogModel extends DailyLog {
       'number_of_workers': numberOfWorkers,
       'weather_condition': weatherCondition,
       'materials_available': materialsAvailable,
-      'planned_tasks':
+      'log_tasks':
           plannedTasks.map((task) => (task as LogTaskModel).toJson()).toList(),
       'starting_image_url': startingImageUrl,
       'ending_image_url': endingImageUrl,
@@ -82,7 +82,7 @@ class DailyLogModel extends DailyLog {
               .toList() ??
           [],*/
       plannedTasks:
-          (map['planned_tasks'] as List<dynamic>?)
+          (map['log_tasks'] as List<dynamic>?)
               ?.map(
                 (log) => LogTaskModel.fromJson(Map<String, dynamic>.from(log)),
               )

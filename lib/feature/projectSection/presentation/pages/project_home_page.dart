@@ -173,8 +173,6 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                                           projectId: widget.project.id,
                                           log: item,
                                           onCompleted: () {
-                                            /*dailyLogsList.add(retrievedLog);
-                              setState(() {});*/
                                             Navigator.pop(context);
                                           },
                                           onClose: () => Navigator.pop(context),
@@ -192,10 +190,9 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                                         height:
                                             MediaQuery.of(context).size.height,
                                         child: ConfirmLogPage(
+                                          projectId: widget.project.id,
                                           log: item,
                                           onCompleted: () {
-                                            /*dailyLogsList.add(retrievedLog);
-                              setState(() {});*/
                                             Navigator.pop(context);
                                           },
                                           onClose: () => Navigator.pop(context),
