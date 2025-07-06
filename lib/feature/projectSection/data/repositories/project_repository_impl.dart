@@ -115,6 +115,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
         endingImageUrl: dailyLog.endingImageUrl,
         observations: dailyLog.observations,
         isConfirmed: dailyLog.isConfirmed,
+        workScore: dailyLog.workScore,
+        generatedSummary: dailyLog.generatedSummary,
       );
       final modifiedStartingImageUrlList = await projectRemoteDataSource
           .uploadDailyLogImages(
@@ -172,6 +174,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
         endingImageUrl: dailyLog.endingImageUrl,
         observations: dailyLog.observations,
         isConfirmed: dailyLog.isConfirmed,
+        workScore: dailyLog.workScore,
+        generatedSummary: dailyLog.generatedSummary,
       );
 
       if (hasAtLeastOneFile(startingTaskImageList)) {
@@ -287,6 +291,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
           endingImageUrl: dLog.endingImageUrl,
           observations: dLog.observations,
           isConfirmed: dLog.isConfirmed,
+          workScore: dLog.workScore,
+          generatedSummary: dLog.generatedSummary,
         ),
       );
     }
