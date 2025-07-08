@@ -71,5 +71,14 @@ class ProjectRetrieveSuccessInit extends ProjectRetrieveSuccess {
   }) : super(projects);
 }
 
+class ProjectRetrieveSuccessSingle extends ProjectRetrieveSuccess {
+  final Project project;
+
+  ProjectRetrieveSuccessSingle({
+    required List<Project> projects,
+    required this.project,
+  }) : super(projects);
+}
+
 //EveryTime you Create/Update a DailyLog - Both the Create/Update and SyncTask is called
 //Sync would always be called from the DailyLog Create/Update call and never by itself

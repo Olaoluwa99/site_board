@@ -81,3 +81,13 @@ final class ProjectGetAllProjects extends ProjectEvent {
   final String userId;
   ProjectGetAllProjects({required this.userId});
 }
+
+final class ProjectGetProjectById extends ProjectEvent {
+  final String projectId;
+  ProjectGetProjectById({required this.projectId});
+}
+
+final class ProjectGetProjectByLink extends ProjectEvent {
+  final String projectLink;
+  ProjectGetProjectByLink({required this.projectLink});
+}

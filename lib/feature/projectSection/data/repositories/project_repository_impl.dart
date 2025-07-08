@@ -275,6 +275,55 @@ class ProjectRepositoryImpl implements ProjectRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, ProjectModel>> getProjectById({
+    required String projectId,
+  }) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        return left(
+          Failure(
+            'Can\'t fetch project right now. Connect to the internet and try again.',
+          ),
+        );
+      }
+      final remoteProject = await projectRemoteDataSource.getProjectById(
+        projectId: projectId,
+      );
+      projectLocalDataSource.uploadSingleProject(project: remoteProject);
+      return right(remoteProject);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProjectModel>> getProjectByLink({
+    required String projectLink,
+  }) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        return left(
+          Failure(
+            'Can\'t fetch project right now. Connect to the internet and try again.',
+          ),
+        );
+      }
+
+      final remoteProject = await projectRemoteDataSource.getProjectByLink(
+        projectLink: projectLink,
+      );
+      projectLocalDataSource.uploadSingleProject(project: remoteProject);
+      return right(remoteProject);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
   List<DailyLogModel> logConverter(List<DailyLog> logs) {
     List<DailyLogModel> updatedList = [];
     for (DailyLog dLog in logs) {

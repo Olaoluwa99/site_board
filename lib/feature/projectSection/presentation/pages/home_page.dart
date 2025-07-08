@@ -26,7 +26,6 @@ class _HomePageState extends State<HomePage> {
   final formKey = GlobalKey<FormState>();
   final TextEditingController linkController = TextEditingController();
   bool showExtra = false;
-  //String userId = '';
 
   void _showCustomDialog() {
     showDialog(
@@ -39,6 +38,19 @@ class _HomePageState extends State<HomePage> {
             },
           ),
     );
+  }
+
+  void _getProjectByLink() {
+    if (linkController.text.isNotEmpty) {
+      context.read<ProjectBloc>().add(
+        ProjectGetProjectByLink(projectLink: linkController.text),
+      );
+    } else {
+      showSnackBar(
+        context,
+        'The project link is not valid. Enter a correct link and try again.',
+      );
+    }
   }
 
   @override
@@ -80,12 +92,7 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ActivateFieldEditor(
-              onClick: () {
-                /*Navigator.push(
-                  context,
-                  ProjectHomePage.route(),
-                );*/
-              },
+              onClick: _getProjectByLink,
               hintText: 'Input a link',
               controller: linkController,
             ),
@@ -106,6 +113,15 @@ class _HomePageState extends State<HomePage> {
                 listener: (context, state) {
                   if (state is ProjectFailure) {
                     showSnackBar(context, state.error);
+                  }
+                  if (state is ProjectRetrieveSuccessSingle) {
+                    Navigator.push(
+                      context,
+                      ProjectHomePage.route(
+                        project: state.project,
+                        projectIndex: state.projects.indexOf(state.project),
+                      ),
+                    );
                   }
                   if (state is ProjectRetrieveSuccessInit) {
                     if (state.projects.isEmpty) {
@@ -137,7 +153,10 @@ class _HomePageState extends State<HomePage> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  ProjectHomePage.route(project, index),
+                                  ProjectHomePage.route(
+                                    project: project,
+                                    projectIndex: index,
+                                  ),
                                 );
                               },
                               child: Column(
