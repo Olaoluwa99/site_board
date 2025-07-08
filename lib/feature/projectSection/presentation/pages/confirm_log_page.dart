@@ -50,20 +50,42 @@ class _ConfirmLogPageState extends State<ConfirmLogPage> {
   void initState() {
     super.initState();
     dailyLog = widget.log;
-    updatedTaskList = dailyLog.plannedTasks;
+    //updatedTaskList = dailyLog.plannedTasks;
+    for (LogTask t in dailyLog.plannedTasks) {
+      updatedTaskList.add(
+        LogTask(
+          id: t.id,
+          dailyLogId: t.dailyLogId,
+          plannedTask: t.plannedTask,
+          percentCompleted: t.percentCompleted,
+        ),
+      );
+    }
     _observationsController.text = dailyLog.observations;
   }
 
   void uploadDailyLog() {
+    /*double sum = 0.0;
+    for (LogTask value in updatedTaskList) {
+      sum += value.percentCompleted;
+      debugPrint(value.percentCompleted.toString());
+    }*/
     double sum = 0.0;
     for (LogTask value in updatedTaskList) {
       sum += value.percentCompleted;
+      debugPrint(value.percentCompleted.toString());
     }
+
+    double average = (sum / updatedTaskList.length);
+    double roundedAverage = (average * 10).round() / 10;
+
     dailyLog = dailyLog.copyWith(
       isConfirmed: true,
-      workScore: sum / updatedTaskList.length,
+      workScore: roundedAverage,
       observations: _observationsController.text,
     );
+
+    debugPrint('Score: $roundedAverage');
 
     context.read<ProjectBloc>().add(
       DailyLogUpdate(
@@ -125,7 +147,7 @@ class _ConfirmLogPageState extends State<ConfirmLogPage> {
                       return ConfirmStatusListItem(
                         index: index,
                         task: selectedTask,
-                        onEditCompleted: (outputTask) {
+                        /*onEditCompleted: (outputTask) {
                           for (LogTask nTask in dailyLog.plannedTasks) {
                             if (nTask.id == selectedTask.id) {
                               updatedTaskList.add(outputTask);
@@ -136,6 +158,17 @@ class _ConfirmLogPageState extends State<ConfirmLogPage> {
                           dailyLog = dailyLog.copyWith(
                             plannedTasks: updatedTaskList,
                           );
+                        },*/
+                        onEditCompleted: (outputTask) {
+                          setState(() {
+                            updatedTaskList[index] = outputTask;
+                            /*updatedTaskList[index] = LogTask(
+                              id: outputTask.id,
+                              dailyLogId: outputTask.dailyLogId,
+                              plannedTask: outputTask.plannedTask,
+                              percentCompleted: outputTask.percentCompleted,
+                            );*/
+                          });
                         },
                       );
                     }),

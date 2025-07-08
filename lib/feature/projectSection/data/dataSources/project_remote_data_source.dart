@@ -18,6 +18,10 @@ abstract interface class ProjectRemoteDataSource {
     required List<LogTaskModel> currentTasks,
   });
 
+  Future<ProjectModel> getProjectByLink({required String projectLink});
+
+  Future<ProjectModel> getProjectById({required String projectId});
+
   Future<List<ProjectModel>> getAllProjects({required String userId});
 
   Future<String> uploadProjectCoverImage({
@@ -173,6 +177,48 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
       return (response as List<dynamic>)
           .map((project) => ProjectModel.fromJson(project))
           .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  Future<ProjectModel> getProjectById({required String projectId}) async {
+    try {
+      final response =
+          await supabaseClient
+              .from('projects')
+              .select('*, daily_logs(*, log_tasks(*))')
+              .eq('id', projectId)
+              .maybeSingle();
+
+      if (response == null) {
+        throw ServerException('Project not found for id: $projectId');
+      }
+
+      return ProjectModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  Future<ProjectModel> getProjectByLink({required String projectLink}) async {
+    try {
+      final response =
+          await supabaseClient
+              .from('projects')
+              .select('*, daily_logs(*, log_tasks(*))')
+              .eq('project_link', projectLink)
+              .maybeSingle();
+
+      if (response == null) {
+        throw ServerException('Project not found for link: $projectLink');
+      }
+
+      return ProjectModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/theme/app_palette.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/edit_project_detail.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/project_settings.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/project_summarizer.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/view_log_page.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/view_project_detail.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/about_project_card.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/show_bar_chart.dart';
 
@@ -17,11 +21,12 @@ import 'create_log_page.dart';
 class ProjectHomePage extends StatefulWidget {
   final Project project;
   final int projectIndex;
-  static route(Project project, int projectIndex) => MaterialPageRoute(
-    builder:
-        (context) =>
-            ProjectHomePage(project: project, projectIndex: projectIndex),
-  );
+  static route({required Project project, required int projectIndex}) =>
+      MaterialPageRoute(
+        builder:
+            (context) =>
+                ProjectHomePage(project: project, projectIndex: projectIndex),
+      );
   const ProjectHomePage({
     required this.project,
     required this.projectIndex,
@@ -46,7 +51,50 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.project.projectName),
-        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.settings))],
+        actions: [
+          IconButton(
+            onPressed: () {
+              showRoundedBottomSheet(
+                context: context,
+                backgroundColor: AppPalette.backgroundColor,
+                builder:
+                    (context) => SizedBox(
+                      height: MediaQuery.of(context).size.height,
+                      child: ProjectSummarizer(
+                        project: widget.project,
+                        onClose: () => Navigator.pop(context),
+                        onCompleted: () {
+                          //Do Something
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+              );
+            },
+            icon: Icon(Icons.note),
+          ),
+          IconButton(
+            onPressed: () {
+              showRoundedBottomSheet(
+                context: context,
+                backgroundColor: AppPalette.backgroundColor,
+                builder:
+                    (context) => SizedBox(
+                      height: MediaQuery.of(context).size.height,
+                      child: ProjectSettings(
+                        project: widget.project,
+                        onClose: () => Navigator.pop(context),
+                        onCompleted: () {
+                          //Do Something
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+              );
+            },
+            icon: Icon(Icons.settings),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -118,7 +166,45 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
-              AboutProjectCard(project: widget.project),
+              AboutProjectCard(
+                project: widget.project,
+                onViewClicked: () {
+                  showRoundedBottomSheet(
+                    context: context,
+                    backgroundColor: AppPalette.backgroundColor,
+                    builder:
+                        (context) => SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          child: ViewProjectDetail(
+                            project: widget.project,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              //Do Something
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
+                  );
+                },
+                onEditClicked: () {
+                  showRoundedBottomSheet(
+                    context: context,
+                    backgroundColor: AppPalette.backgroundColor,
+                    builder:
+                        (context) => SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          child: EditProjectDetail(
+                            project: widget.project,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              //Do Something
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
+                  );
+                },
+              ),
               const SizedBox(height: 20),
               Text(
                 'Previous Logs',

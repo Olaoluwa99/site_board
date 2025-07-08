@@ -40,4 +40,10 @@ abstract interface class ProjectRepository {
   Future<Either<Failure, RetrievedProjects>> getAllProjects({
     required String userId,
   });
+
+  Future<Either<Failure, Project>> getProjectById({required String projectId});
+
+  Future<Either<Failure, Project>> getProjectByLink({
+    required String projectLink,
+  });
 }

@@ -29,6 +29,7 @@ class _ConfirmStatusListItemState extends State<ConfirmStatusListItem> {
   void _updateTask(double value) {
     setState(() {
       task = task.copyWith(percentCompleted: value);
+      widget.onEditCompleted(task);
     });
   }
 
@@ -55,10 +56,7 @@ class _ConfirmStatusListItemState extends State<ConfirmStatusListItem> {
                     max: 100.0,
                     divisions: 20,
                     onChanged: _updateTask,
-                    onChangeEnd: (value) {
-                      _updateTask(value);
-                      widget.onEditCompleted(task);
-                    },
+                    onChangeEnd: _updateTask,
                   ),
                 ),
                 Text(

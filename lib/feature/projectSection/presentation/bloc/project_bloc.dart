@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_project.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_id.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_link.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/manage_log_task.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_project.dart';
@@ -22,6 +24,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
   final CreateDailyLog _createDailyLog;
   final UpdateDailyLog _updateDailyLog;
   final ManageLogTask _manageLogTask;
+  final GetProjectByLink _getProjectByLink;
+  final GetProjectById _getProjectById;
 
   ProjectBloc({
     required GetAllProjects getAllProjects,
@@ -30,12 +34,16 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     required CreateDailyLog createDailyLog,
     required UpdateDailyLog updateDailyLog,
     required ManageLogTask manageLogTask,
+    required GetProjectById getProjectById,
+    required GetProjectByLink getProjectByLink,
   }) : _createProject = createProject,
        _updateProject = updateProject,
        _createDailyLog = createDailyLog,
        _updateDailyLog = updateDailyLog,
        _manageLogTask = manageLogTask,
        _getAllProjects = getAllProjects,
+       _getProjectById = getProjectById,
+       _getProjectByLink = getProjectByLink,
        super(ProjectInitial()) {
     //on<ProjectEvent>((event, emit) => emit(ProjectLoading()));
     on<ProjectCreate>(_onProjectCreate);
@@ -44,6 +52,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<DailyLogUpdate>(_onDailyLogUpdate);
     on<ManageCurrentLogTask>(_onManageLogTask);
     on<ProjectGetAllProjects>(_onGetAllProjects);
+    on<ProjectGetProjectById>(_onGetProjectById);
+    on<ProjectGetProjectByLink>(_onGetProjectByLink);
   }
 
   bool isLocalMode = false;
@@ -254,6 +264,64 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         ProjectRetrieveSuccessInit(projects: r.projects, isLocal: r.isLocal),
       );
     });
+  }
+
+  void _onGetProjectById(
+    ProjectGetProjectById event,
+    Emitter<ProjectState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
+      emit(ProjectLoading());
+      final response = await _getProjectById(
+        GetProjectByIdParams(projectId: event.projectId),
+      );
+      response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
+        final updatedProjects =
+            currentState.projects.map((p) {
+              return p.id == event.projectId ? retrievedProject : p;
+            }).toList();
+        emit(
+          ProjectRetrieveSuccessSingle(
+            projects: updatedProjects,
+            project: retrievedProject,
+          ),
+        );
+      });
+    } else {
+      emit(
+        ProjectFailure('To retrieve a project by ID, switch to Normal Mode.'),
+      );
+    }
+  }
+
+  void _onGetProjectByLink(
+    ProjectGetProjectByLink event,
+    Emitter<ProjectState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
+      emit(ProjectLoading());
+      final response = await _getProjectByLink(
+        GetProjectByLinkParams(projectLink: event.projectLink),
+      );
+      response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
+        final updatedProjects =
+            currentState.projects.map((p) {
+              return p.projectLink == event.projectLink ? retrievedProject : p;
+            }).toList();
+        emit(
+          ProjectRetrieveSuccessSingle(
+            projects: updatedProjects,
+            project: retrievedProject,
+          ),
+        );
+      });
+    } else {
+      emit(
+        ProjectFailure('To retrieve a project by Link, switch to Normal Mode.'),
+      );
+    }
   }
 }
 

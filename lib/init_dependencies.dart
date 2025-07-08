@@ -23,6 +23,8 @@ import 'feature/projectSection/domain/repositories/project_repository.dart';
 import 'feature/projectSection/domain/useCases/create_daily_log.dart';
 import 'feature/projectSection/domain/useCases/create_project.dart';
 import 'feature/projectSection/domain/useCases/get_all_projects.dart';
+import 'feature/projectSection/domain/useCases/get_project_by_id.dart';
+import 'feature/projectSection/domain/useCases/get_project_by_link.dart';
 import 'feature/projectSection/domain/useCases/update_project.dart';
 import 'feature/projectSection/presentation/bloc/project_bloc.dart';
 
@@ -104,6 +106,8 @@ void _initProject() {
     ..registerFactory(() => UpdateDailyLog(serviceLocator()))
     ..registerFactory(() => ManageLogTask(serviceLocator()))
     ..registerFactory(() => GetAllProjects(serviceLocator()))
+    ..registerFactory(() => GetProjectById(serviceLocator()))
+    ..registerFactory(() => GetProjectByLink(serviceLocator()))
     //Bloc
     ..registerLazySingleton(
       () => ProjectBloc(
@@ -113,6 +117,8 @@ void _initProject() {
         updateDailyLog: serviceLocator(),
         manageLogTask: serviceLocator(),
         getAllProjects: serviceLocator(),
+        getProjectById: serviceLocator(),
+        getProjectByLink: serviceLocator(),
       ),
     );
 }

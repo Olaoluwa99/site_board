@@ -3,6 +3,7 @@ import 'package:site_board/feature/projectSection/data/models/project_model.dart
 
 abstract interface class ProjectLocalDataSource {
   void uploadLocalProjects({required List<ProjectModel> projects});
+  void uploadSingleProject({required ProjectModel project});
   List<ProjectModel> loadProjects();
 }
 
@@ -26,7 +27,14 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   void uploadLocalProjects({required List<ProjectModel> projects}) {
     box.clear();
     for (int i = 0; i < projects.length; i++) {
-      box.put(i.toString(), projects[i].toCompleteJson());
+      final key = projects[i].id;
+      box.put(key, projects[i].toCompleteJson());
     }
+  }
+
+  @override
+  void uploadSingleProject({required ProjectModel project}) {
+    final key = project.id;
+    box.put(key, project.toCompleteJson());
   }
 }
