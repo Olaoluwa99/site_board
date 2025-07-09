@@ -3,7 +3,13 @@ import 'package:flutter/material.dart';
 class TextWithPrefix extends StatelessWidget {
   final String prefix;
   final String text;
-  const TextWithPrefix({required this.prefix, required this.text, super.key});
+  final double textSize;
+  const TextWithPrefix({
+    required this.prefix,
+    required this.text,
+    required this.textSize,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -12,10 +18,10 @@ class TextWithPrefix extends StatelessWidget {
         //style: const TextStyle(fontSize: 16),
         children: [
           TextSpan(
-            text: prefix,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            text: '$prefix: ',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: textSize),
           ),
-          TextSpan(text: text),
+          TextSpan(text: text, style: TextStyle(fontSize: textSize)),
         ],
       ),
     );

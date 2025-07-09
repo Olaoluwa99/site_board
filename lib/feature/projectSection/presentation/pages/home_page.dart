@@ -149,7 +149,7 @@ class _HomePageState extends State<HomePage> {
                             final index = entry.key;
                             final project = entry.value;
 
-                            return InkWell(
+                            return GestureDetector(
                               onTap: () {
                                 Navigator.push(
                                   context,

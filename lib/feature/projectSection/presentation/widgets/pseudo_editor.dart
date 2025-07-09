@@ -24,7 +24,7 @@ class PseudoEditor extends StatelessWidget {
           border: Border.all(color: AppPalette.borderColor, width: 3),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(14),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
