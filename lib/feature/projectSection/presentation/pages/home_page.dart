@@ -114,15 +114,6 @@ class _HomePageState extends State<HomePage> {
                   if (state is ProjectFailure) {
                     showSnackBar(context, state.error);
                   }
-                  if (state is ProjectRetrieveSuccessSingle) {
-                    Navigator.push(
-                      context,
-                      ProjectHomePage.route(
-                        project: state.project,
-                        projectIndex: state.projects.indexOf(state.project),
-                      ),
-                    );
-                  }
                   if (state is ProjectRetrieveSuccessInit) {
                     if (state.projects.isEmpty) {
                       showExtra = false;
@@ -134,6 +125,15 @@ class _HomePageState extends State<HomePage> {
                       state.isLocal == true
                           ? 'Starting App in Offline mode'
                           : 'Starting App in Normal mode',
+                    );
+                  }
+                  if (state is ProjectRetrieveSuccessSingle) {
+                    Navigator.push(
+                      context,
+                      ProjectHomePage.route(
+                        project: state.project,
+                        projectIndex: state.projects.indexOf(state.project),
+                      ),
                     );
                   }
                 },

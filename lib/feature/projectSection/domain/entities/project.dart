@@ -16,6 +16,8 @@ class Project {
   final bool isActive;
   final DateTime lastUpdated;
   final String? coverPhotoUrl;
+  final String projectSecurityType;
+  final String projectPassword;
 
   Project({
     String? id,
@@ -31,6 +33,8 @@ class Project {
     this.isActive = true,
     DateTime? lastUpdated,
     this.coverPhotoUrl,
+    required this.projectSecurityType,
+    required this.projectPassword,
   }) : id = id ?? const Uuid().v4(),
        createdDate = createdDate ?? DateTime.now(),
        lastUpdated = lastUpdated ?? DateTime.now();
@@ -49,6 +53,8 @@ class Project {
     bool? isActive,
     DateTime? lastUpdated,
     String? coverPhotoUrl,
+    String? projectSecurityType,
+    String? projectPassword,
   }) {
     return Project(
       id: id ?? this.id,
@@ -64,6 +70,8 @@ class Project {
       isActive: isActive ?? this.isActive,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
+      projectSecurityType: projectSecurityType ?? this.projectSecurityType,
+      projectPassword: projectPassword ?? this.projectPassword,
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
 import 'package:site_board/core/utils/show_snackbar.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/project_security_item.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 import '../widgets/field_editor.dart';
@@ -16,12 +18,13 @@ class CreateProjectDialog extends StatefulWidget {
 }
 
 class _CreateProjectDialogState extends State<CreateProjectDialog> {
+  final TextEditingController _projectPasswordController =
+      TextEditingController();
   final TextEditingController _projectNameController = TextEditingController();
   final TextEditingController _projectDescriptionController =
       TextEditingController();
   String? selectedMode;
 
-  List<String> modes = ['None', 'Password', 'Approval by Admin'];
   bool dropdownOpen = false;
   late final String userId;
 
@@ -83,30 +86,33 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
           ),
           Divider(),
 
-          /// Dropdown (Visible only when dropdownOpen is true)
-          if (dropdownOpen)
-            Column(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children:
-                      modes.map((mode) {
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(mode),
-                          onTap: () {
-                            setState(() {
-                              selectedMode = mode;
-                              dropdownOpen = false;
-                            });
-                          },
-                          trailing: mode != 'None' ? Icon(Icons.lock) : null,
-                        );
-                      }).toList(),
-                ),
-                Divider(),
-              ],
-            ),
+          /*ProjectSecurityItem(
+            inputDropdownOpen: dropdownOpen,
+            onCompleted: (outputMode) {
+              selectedMode = outputMode;
+            },
+          ),*/
+          ProjectSecurityItem(
+            dropdownOpen: dropdownOpen,
+            onCompleted: (outputMode) {
+              setState(() {
+                selectedMode = outputMode;
+                dropdownOpen = false; // Close after selection
+              });
+            },
+          ),
+
+          selectedMode == 'Password'
+              ? Column(
+                children: [
+                  SizedBox(height: 16),
+                  FieldEditor(
+                    hintText: 'Input Password',
+                    controller: _projectNameController,
+                  ),
+                ],
+              )
+              : SizedBox.shrink(),
 
           SizedBox(height: 20),
 
@@ -137,7 +143,12 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                       teamMemberIds: [],
                       description: _projectDescriptionController.text,
                       projectLink:
-                          'https://site-board.com/$userId/${DateTime.now().toIso8601String()}/',
+                          'https://site-board.com/${const Uuid().v4()}/',
+                      projectSecurityType: selectedMode ?? 'None',
+                      projectPassword:
+                          selectedMode == 'Password'
+                              ? _projectPasswordController.text.trim()
+                              : '',
                     ),
                   );
                   Navigator.of(context).pop();

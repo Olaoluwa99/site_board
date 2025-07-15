@@ -48,6 +48,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
         isActive: project.isActive,
         lastUpdated: DateTime.now(),
         coverPhotoUrl: project.coverPhotoUrl,
+        projectSecurityType: project.projectSecurityType,
+        projectPassword: project.projectPassword,
       );
       final uploadedProject = await projectRemoteDataSource.createProject(
         projectModel,
@@ -81,6 +83,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
         isActive: project.isActive,
         lastUpdated: DateTime.now(),
         coverPhotoUrl: project.coverPhotoUrl,
+        projectSecurityType: project.projectSecurityType,
+        projectPassword: project.projectPassword,
       );
       final uploadedProject = await projectRemoteDataSource.updateProject(
         projectModel,

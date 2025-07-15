@@ -17,6 +17,8 @@ class ProjectModel extends Project {
     required super.isActive,
     required super.lastUpdated,
     super.coverPhotoUrl = '',
+    required super.projectSecurityType,
+    required super.projectPassword,
   });
 
   @override
@@ -36,7 +38,9 @@ class ProjectModel extends Project {
           location == other.location &&
           isActive == other.isActive &&
           lastUpdated == other.lastUpdated &&
-          coverPhotoUrl == other.coverPhotoUrl);
+          coverPhotoUrl == other.coverPhotoUrl &&
+          projectSecurityType == other.projectSecurityType &&
+          projectPassword == other.projectPassword);
 
   @override
   String toString() {
@@ -54,6 +58,8 @@ class ProjectModel extends Project {
         ' isActive: $isActive,' +
         ' lastUpdated: $lastUpdated,' +
         ' coverPhotoUrl: $coverPhotoUrl,' +
+        ' projectSecurityType: $projectSecurityType,' +
+        ' projectPassword: $projectPassword,' +
         '}';
   }
 
@@ -71,6 +77,8 @@ class ProjectModel extends Project {
     bool? isActive,
     DateTime? lastUpdated,
     String? coverPhotoUrl,
+    String? projectSecurityType,
+    String? projectPassword,
   }) {
     return ProjectModel(
       id: id ?? this.id,
@@ -86,6 +94,8 @@ class ProjectModel extends Project {
       isActive: isActive ?? this.isActive,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
+      projectSecurityType: projectSecurityType ?? this.projectSecurityType,
+      projectPassword: projectPassword ?? this.projectPassword,
     );
   }
 
@@ -107,6 +117,8 @@ class ProjectModel extends Project {
       'is_active': isActive,
       'last_updated': lastUpdated.toIso8601String(),
       'cover_photo_url': coverPhotoUrl,
+      'project_security_type': projectSecurityType,
+      'projectPassword': projectPassword,
     };
   }
 
@@ -124,39 +136,10 @@ class ProjectModel extends Project {
       'is_active': isActive,
       'last_updated': lastUpdated.toIso8601String(),
       'cover_photo_url': coverPhotoUrl,
+      'project_security_type': projectSecurityType,
+      'project_password': projectPassword,
     };
   }
-
-  /*factory ProjectModel.fromJson(Map<String, dynamic> map) {
-    return ProjectModel(
-      id: map['id'] as String,
-      projectName: map['project_name'] ?? '',
-      creatorId: map['creator_id'] ?? '',
-      projectLink: map['project_link'] ?? '',
-      description: map['description'] ?? '',
-      teamMemberIds: List<String>.from(map['team_member_ids'] ?? const []),
-      createdDate:
-          map['created_date'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(map['created_date'])
-              : DateTime.now(),
-      endDate:
-          map['end_date'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(map['end_date'])
-              : null,
-      dailyLogs:
-          (map['daily_logs'] as List<dynamic>?)?.map((log) {
-            return DailyLogModel.fromJson(log as Map<String, dynamic>);
-          }).toList() ??
-          [],
-      location: map['location'] ?? '',
-      isActive: map['is_active'] as bool,
-      lastUpdated:
-          map['last_updated'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(map['last_updated'])
-              : DateTime.now(),
-      coverPhotoUrl: map['cover_photo_url'] ?? '',
-    );
-  }*/
 
   factory ProjectModel.fromJson(Map<String, dynamic> map) {
     return ProjectModel(
@@ -188,6 +171,8 @@ class ProjectModel extends Project {
               ? DateTime.now()
               : DateTime.parse(map['last_updated']),
       coverPhotoUrl: map['cover_photo_url'] ?? '',
+      projectSecurityType: map['project_security_type'] ?? '',
+      projectPassword: map['project_password'] ?? '',
     );
   }
 }
