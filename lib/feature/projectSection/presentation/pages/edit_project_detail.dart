@@ -190,11 +190,6 @@ class _EditProjectDetailState extends State<EditProjectDetail> {
                 },
               ),
               SizedBox(height: 16),
-              Text(
-                'Pending access',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 16),
               Divider(),
               SizedBox(height: 16),
               GradientButton(onClick: updateDetails, text: 'Update'),
