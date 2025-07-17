@@ -140,7 +140,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                       dailyLogs: [],
                       location: '',
                       coverPhotoUrl: '',
-                      teamMemberIds: [],
+                      teamMembers: [],
                       description: _projectDescriptionController.text,
                       projectLink:
                           'https://site-board.com/${const Uuid().v4()}/',

@@ -1,4 +1,5 @@
 import 'package:site_board/feature/projectSection/data/models/daily_log_model.dart';
+import 'package:site_board/feature/projectSection/data/models/member_model.dart';
 
 import '../../domain/entities/project.dart';
 
@@ -9,7 +10,8 @@ class ProjectModel extends Project {
     required super.creatorId,
     super.projectLink,
     super.description,
-    required super.teamMemberIds,
+    required super.teamAdminIds,
+    required super.teamMembers,
     required super.createdDate,
     super.endDate,
     required super.dailyLogs,
@@ -31,7 +33,8 @@ class ProjectModel extends Project {
           creatorId == other.creatorId &&
           projectLink == other.projectLink &&
           description == other.description &&
-          teamMemberIds == other.teamMemberIds &&
+          teamAdminIds == other.teamAdminIds &&
+          teamMembers == other.teamMembers &&
           createdDate == other.createdDate &&
           endDate == other.endDate &&
           dailyLogs == other.dailyLogs &&
@@ -50,7 +53,8 @@ class ProjectModel extends Project {
         ' creatorId: $creatorId,' +
         ' projectLink: $projectLink,' +
         ' description: $description,' +
-        ' teamMemberIds: $teamMemberIds,' +
+        ' teamAdminIds: $teamAdminIds,' +
+        ' teamMembers: $teamMembers,' +
         ' createdDate: $createdDate,' +
         ' endDate: $endDate,' +
         ' dailyLogs: $dailyLogs,' +
@@ -69,7 +73,8 @@ class ProjectModel extends Project {
     String? creatorId,
     String? projectLink,
     String? description,
-    List<String>? teamMemberIds,
+    List<String>? teamAdminIds,
+    List<MemberModel>? teamMembers,
     DateTime? createdDate,
     DateTime? endDate,
     List<DailyLogModel>? dailyLogs,
@@ -86,7 +91,8 @@ class ProjectModel extends Project {
       creatorId: creatorId ?? this.creatorId,
       projectLink: projectLink ?? this.projectLink,
       description: description ?? this.description,
-      teamMemberIds: teamMemberIds ?? this.teamMemberIds,
+      teamAdminIds: teamAdminIds ?? this.teamAdminIds,
+      teamMembers: teamMembers ?? this.teamMembers,
       createdDate: createdDate ?? this.createdDate,
       endDate: endDate ?? this.endDate,
       dailyLogs: dailyLogs ?? this.dailyLogs,
@@ -106,7 +112,9 @@ class ProjectModel extends Project {
       'creator_id': creatorId,
       'project_link': projectLink,
       'description': description,
-      'team_member_ids': teamMemberIds,
+      'team_admin_ids': teamAdminIds,
+      'team_members':
+          dailyLogs.map((member) => (member as MemberModel).toJson()).toList(),
       'created_date': createdDate.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'daily_logs':
@@ -129,7 +137,8 @@ class ProjectModel extends Project {
       'creator_id': creatorId,
       'project_link': projectLink,
       'description': description,
-      'team_member_ids': teamMemberIds,
+      'team_admin_ids': teamAdminIds,
+      'team_members': teamMembers,
       'created_date': createdDate.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'location': location,
@@ -148,7 +157,15 @@ class ProjectModel extends Project {
       creatorId: map['creator_id'] ?? '',
       projectLink: map['project_link'] ?? '',
       description: map['description'] ?? '',
-      teamMemberIds: List<String>.from(map['team_member_ids'] ?? const []),
+      teamAdminIds: List<String>.from(map['team_admin_ids'] ?? const []),
+      teamMembers:
+          (map['team_members'] as List<dynamic>?)
+              ?.map(
+                (member) =>
+                    MemberModel.fromJson(Map<String, dynamic>.from(member)),
+              )
+              .toList() ??
+          [],
       createdDate:
           map['created_date'] == null
               ? DateTime.now()
