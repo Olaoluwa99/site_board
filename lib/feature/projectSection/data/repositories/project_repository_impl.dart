@@ -362,7 +362,48 @@ class ProjectRepositoryImpl implements ProjectRepository {
       final remoteProject = await projectRemoteDataSource.getProjectById(
         projectId: projectId,
       );
+
+      bool isOldUser = false;
+      Member? soughtMember;
       projectLocalDataSource.uploadSingleProject(project: remoteProject);
+      remoteProject.teamMembers.map((member) {
+        if (member.id == user.id) {
+          isOldUser = true;
+          soughtMember = member;
+        }
+      });
+      if (isOldUser) {
+        projectRemoteDataSource.updateMember(
+          //soughtMember.copyWith(lastViewed: DateTime.now())
+          MemberModel(
+            id: soughtMember!.id,
+            projectId: soughtMember!.projectId,
+            name: soughtMember!.name,
+            email: soughtMember!.email,
+            userId: soughtMember!.userId,
+            isAccepted: false,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          ),
+        );
+      } else {
+        projectRemoteDataSource.createMember(
+          MemberModel(
+            id: Uuid().v4(),
+            projectId: remoteProject.id,
+            name: user.name,
+            email: user.email,
+            userId: user.id,
+            isAccepted: false,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          ),
+        );
+      }
       return right(remoteProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));
@@ -376,11 +417,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required String projectLink,
     required User user,
   }) async {
-    final user = User(
-      id: '11223344',
-      name: 'Sammy Dane',
-      email: 'sammydoe@mail.com',
-    );
     try {
       if (!await connectionChecker.isConnected) {
         return left(

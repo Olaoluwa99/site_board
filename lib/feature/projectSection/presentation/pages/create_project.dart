@@ -7,6 +7,7 @@ import 'package:site_board/feature/projectSection/presentation/widgets/project_s
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
+import '../../../../core/constants/constants.dart';
 import '../widgets/field_editor.dart';
 
 class CreateProjectDialog extends StatefulWidget {
@@ -38,6 +39,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
   void dispose() {
     _projectNameController.dispose();
     _projectDescriptionController.dispose();
+    _projectPasswordController.dispose();
     super.dispose();
   }
 
@@ -102,13 +104,13 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
             },
           ),
 
-          selectedMode == 'Password'
+          selectedMode == Constants.securityPassword
               ? Column(
                 children: [
                   SizedBox(height: 16),
                   FieldEditor(
                     hintText: 'Input Password',
-                    controller: _projectNameController,
+                    controller: _projectPasswordController,
                   ),
                 ],
               )
@@ -144,9 +146,10 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                       description: _projectDescriptionController.text,
                       projectLink:
                           'https://site-board.com/${const Uuid().v4()}/',
-                      projectSecurityType: selectedMode ?? 'None',
+                      projectSecurityType:
+                          selectedMode ?? Constants.securityNone,
                       projectPassword:
-                          selectedMode == 'Password'
+                          selectedMode == Constants.securityPassword
                               ? _projectPasswordController.text.trim()
                               : '',
                     ),

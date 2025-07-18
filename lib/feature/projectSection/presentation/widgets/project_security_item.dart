@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:site_board/core/constants/constants.dart';
 
 class ProjectSecurityItem extends StatelessWidget {
   final bool dropdownOpen;
@@ -12,22 +13,23 @@ class ProjectSecurityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<String> modes = ['None', 'Password', 'Approval by Admin'];
-
     return dropdownOpen
         ? Column(
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children:
-                  modes.map((mode) {
+                  Constants.securityModes.map((mode) {
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(mode),
                       onTap: () {
                         onCompleted(mode);
                       },
-                      trailing: mode != 'None' ? Icon(Icons.lock) : null,
+                      trailing:
+                          mode != Constants.securityNone
+                              ? Icon(Icons.lock)
+                              : null,
                     );
                   }).toList(),
             ),

@@ -10,6 +10,7 @@ import 'package:site_board/feature/projectSection/domain/useCases/manage_log_tas
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_project.dart';
 
+import '../../../../core/common/entities/user.dart';
 import '../../domain/entities/Member.dart';
 import '../../domain/entities/daily_log.dart';
 import '../../domain/entities/project.dart';
@@ -320,7 +321,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectById(
-        GetProjectByIdParams(projectId: event.projectId),
+        GetProjectByIdParams(projectId: event.projectId, user: event.user),
       );
       response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
         final updatedProjects =
@@ -349,7 +350,10 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectByLink(
-        GetProjectByLinkParams(projectLink: event.projectLink),
+        GetProjectByLinkParams(
+          projectLink: event.projectLink,
+          user: event.user,
+        ),
       );
       response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
         final updatedProjects =
