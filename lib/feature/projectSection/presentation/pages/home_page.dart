@@ -124,6 +124,8 @@ class _HomePageState extends State<HomePage> {
               child: BlocConsumer<ProjectBloc, ProjectState>(
                 listener: (context, state) {
                   if (state is ProjectFailure) {
+                    debugPrint('Retrieved user: ${retrievedUser!.id}');
+                    debugPrint(state.error);
                     showSnackBar(context, state.error);
                   }
                   if (state is ProjectRetrieveSuccessInit) {
@@ -176,7 +178,7 @@ class _HomePageState extends State<HomePage> {
                                     bool isOldUser = false;
                                     Member? soughtMember;
                                     project.teamMembers.map((member) {
-                                      if (member.id == retrievedUser!.id) {
+                                      if (member.userId == retrievedUser!.id) {
                                         isOldUser = true;
                                         soughtMember = member;
                                       }

@@ -126,7 +126,7 @@ class ProjectModel extends Project {
       'last_updated': lastUpdated.toIso8601String(),
       'cover_photo_url': coverPhotoUrl,
       'project_security_type': projectSecurityType,
-      'projectPassword': projectPassword,
+      'project_password': projectPassword,
     };
   }
 
@@ -138,7 +138,6 @@ class ProjectModel extends Project {
       'project_link': projectLink,
       'description': description,
       'team_admin_ids': teamAdminIds,
-      'team_members': teamMembers,
       'created_date': createdDate.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'location': location,

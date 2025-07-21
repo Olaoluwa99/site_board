@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:site_board/feature/projectSection/data/models/member_model.dart';
 import 'package:site_board/feature/projectSection/data/models/project_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -45,12 +46,15 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
 
   @override
   Future<ProjectModel> createProject(ProjectModel project) async {
+    debugPrint(project.toJson().toString());
+    debugPrint('-----------------------------------------------------');
     try {
       final projectData =
           await supabaseClient
               .from('projects')
               .insert(project.toJson())
               .select();
+      debugPrint(project.toJson().toString());
       return ProjectModel.fromJson(projectData.first);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);

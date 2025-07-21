@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:site_board/core/common/entities/user.dart';
 import 'package:site_board/feature/projectSection/data/models/daily_log_model.dart';
@@ -54,6 +55,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
         coverPhotoUrl: project.coverPhotoUrl,
         projectSecurityType: project.projectSecurityType,
         projectPassword: project.projectPassword,
+      );
+      debugPrint(
+        '-------------------------------------------------------------------------------------------------',
       );
       final uploadedProject = await projectRemoteDataSource.createProject(
         projectModel,
@@ -434,11 +438,12 @@ class ProjectRepositoryImpl implements ProjectRepository {
       Member? soughtMember;
       projectLocalDataSource.uploadSingleProject(project: remoteProject);
       remoteProject.teamMembers.map((member) {
-        if (member.id == user.id) {
+        if (member.userId == user.id) {
           isOldUser = true;
           soughtMember = member;
         }
       });
+      debugPrint('Status: $isOldUser');
       if (isOldUser) {
         projectRemoteDataSource.updateMember(
           //soughtMember.copyWith(lastViewed: DateTime.now())
