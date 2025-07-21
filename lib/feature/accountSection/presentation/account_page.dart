@@ -12,3 +12,11 @@ class AccountPage extends StatelessWidget {
     );
   }
 }
+
+/**
+ * 1. View My Created Projects in Profile
+ * 2. What is added to recent and Why it should be added
+ * 3. What should be added to Offline and what should not
+ * 4. Setting up everything to work well
+ * 5. ---
+ * **/

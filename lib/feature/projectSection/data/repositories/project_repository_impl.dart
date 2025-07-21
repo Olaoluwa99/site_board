@@ -369,7 +369,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
       bool isOldUser = false;
       Member? soughtMember;
-      projectLocalDataSource.uploadSingleProject(project: remoteProject);
+      projectLocalDataSource.uploadRecentProject(project: remoteProject);
       remoteProject.teamMembers.map((member) {
         if (member.id == user.id) {
           isOldUser = true;
@@ -436,7 +436,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
       bool isOldUser = false;
       Member? soughtMember;
-      projectLocalDataSource.uploadSingleProject(project: remoteProject);
+      projectLocalDataSource.uploadRecentProject(project: remoteProject);
       remoteProject.teamMembers.map((member) {
         if (member.userId == user.id) {
           isOldUser = true;

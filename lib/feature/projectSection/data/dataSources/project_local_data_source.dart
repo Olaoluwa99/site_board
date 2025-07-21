@@ -3,7 +3,8 @@ import 'package:site_board/feature/projectSection/data/models/project_model.dart
 
 abstract interface class ProjectLocalDataSource {
   void uploadLocalProjects({required List<ProjectModel> projects});
-  void uploadSingleProject({required ProjectModel project});
+  //void uploadSingleProject({required ProjectModel project});
+  void uploadRecentProject({required ProjectModel project});
   List<ProjectModel> loadProjects();
 }
 
@@ -32,9 +33,27 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
     }
   }
 
-  @override
+  /*@override
   void uploadSingleProject({required ProjectModel project}) {
     final key = project.id;
     box.put(key, project.toCompleteJson());
+  }*/
+
+  @override
+  void uploadRecentProject({required ProjectModel project}) {
+    final key = project.id;
+
+    // Add or update the project
+    box.put(key, project.toCompleteJson());
+
+    // Check if the box exceeds 5 items
+    if (box.length > 5) {
+      // Get all keys sorted by insertion order (Hive preserves order)
+      final keys = box.keys.toList();
+
+      // Delete the oldest key (first inserted)
+      final oldestKey = keys.first;
+      box.delete(oldestKey);
+    }
   }
 }

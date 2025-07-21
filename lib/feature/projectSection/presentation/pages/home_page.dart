@@ -4,6 +4,7 @@ import 'package:site_board/feature/accountSection/presentation/account_page.dart
 import 'package:site_board/feature/auth/presentation/pages/login_page.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/project_home_page.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/admin_permission_notifier.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/project_password.dart';
 import 'package:uuid/uuid.dart';
 
@@ -15,6 +16,7 @@ import '../../../../core/utils/show_snackbar.dart';
 import '../../domain/entities/Member.dart';
 import '../../domain/entities/project.dart';
 import '../widgets/activate_field_editor.dart';
+import '../widgets/blocked_notifier.dart';
 import 'create_project.dart';
 
 class HomePage extends StatefulWidget {
@@ -64,6 +66,120 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _uploadCreatorStatus(Project currentProject, bool isLocal, int index) {
+    Member? uploadMember = Member(
+      id: const Uuid().v4(),
+      projectId: currentProject.id,
+      name: retrievedUser!.name,
+      email: retrievedUser!.email,
+      userId: retrievedUser!.id,
+      isAccepted: true,
+      isBlocked: false,
+      isAdmin: true,
+      hasLeft: false,
+      lastViewed: DateTime.now(),
+    );
+
+    context.read<ProjectBloc>().add(
+      UpdateMemberEvent(
+        projectId: currentProject.id,
+        member: uploadMember,
+        isCreateMember: true,
+      ),
+    );
+    Navigator.pop(context);
+  }
+
+  void _uploadMemberStatus(Project currentProject, bool isLocal, int index) {
+    if (!isLocal) {
+      bool isOldUser = false;
+      Member? soughtMember;
+      currentProject.teamMembers.map((member) {
+        if (member.userId == retrievedUser!.id) {
+          isOldUser = true;
+          soughtMember = member;
+        }
+      });
+
+      Member? uploadMember;
+      if (isOldUser) {
+        uploadMember = soughtMember!.copyWith(lastViewed: DateTime.now());
+      } else {
+        if (currentProject.projectSecurityType == Constants.securityApproval) {
+          uploadMember = Member(
+            id: const Uuid().v4(),
+            projectId: currentProject.id,
+            name: retrievedUser!.name,
+            email: retrievedUser!.email,
+            userId: retrievedUser!.id,
+            isAccepted: false,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          );
+        } else if (currentProject.projectSecurityType ==
+            Constants.securityPassword) {
+          showDialog(
+            context: context,
+            builder:
+                (context) => ProjectPasswordDialog(
+                  onCompleted: (String passwordText) {
+                    debugPrint('------------------------------------------');
+                    debugPrint(passwordText);
+                    debugPrint(currentProject.projectPassword);
+                    if (passwordText == currentProject.projectPassword) {
+                      uploadMember = Member(
+                        id: const Uuid().v4(),
+                        projectId: currentProject.id,
+                        name: retrievedUser!.name,
+                        email: retrievedUser!.email,
+                        userId: retrievedUser!.id,
+                        isAccepted: true,
+                        isBlocked: false,
+                        isAdmin: false,
+                        hasLeft: false,
+                        lastViewed: DateTime.now(),
+                      );
+
+                      Navigator.pop(context);
+                    } else {
+                      showSnackBar(
+                        context,
+                        'The password you entered is incorrect. Please check with the project administrator and try again.',
+                      );
+                    }
+                  },
+                ),
+          );
+        } else {
+          uploadMember = Member(
+            id: const Uuid().v4(),
+            projectId: currentProject.id,
+            name: retrievedUser!.name,
+            email: retrievedUser!.email,
+            userId: retrievedUser!.id,
+            isAccepted: true,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          );
+        }
+      }
+
+      if (uploadMember != null) {
+        context.read<ProjectBloc>().add(
+          UpdateMemberEvent(
+            projectId: currentProject.id,
+            member: uploadMember!,
+            isCreateMember: !isOldUser,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     linkController.dispose();
@@ -92,11 +208,14 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCustomDialog,
-        label: const Text('Create Project'),
-        icon: const Icon(Icons.add),
-      ),
+      floatingActionButton:
+          widget.isLoggedIn
+              ? FloatingActionButton.extended(
+                onPressed: _showCustomDialog,
+                label: const Text('Create Project'),
+                icon: const Icon(Icons.add),
+              )
+              : SizedBox.shrink(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -124,7 +243,10 @@ class _HomePageState extends State<HomePage> {
               child: BlocConsumer<ProjectBloc, ProjectState>(
                 listener: (context, state) {
                   if (state is ProjectFailure) {
-                    debugPrint('Retrieved user: ${retrievedUser!.id}');
+                    debugPrint(state.error);
+                    showSnackBar(context, state.error);
+                  }
+                  if (state is ProjectMemberUpdateFailure) {
                     debugPrint(state.error);
                     showSnackBar(context, state.error);
                   }
@@ -141,13 +263,57 @@ class _HomePageState extends State<HomePage> {
                           : 'Starting App in Normal mode',
                     );
                   }
+                  if (state is ProjectMemberUpdateSuccess) {
+                    if (state.member.isBlocked) {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => BlockedNotifier(
+                              onCompleted: () {
+                                Navigator.pop(context);
+                              },
+                            ),
+                      );
+                    } else if (!state.member.isAccepted) {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AdminPermissionNotifier(
+                              onCompleted: () {
+                                Navigator.pop(context);
+                              },
+                            ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        ProjectHomePage.route(
+                          project: state.project,
+                          projectIndex: state.projects.indexOf(state.project),
+                        ),
+                      );
+                    }
+                  }
                   if (state is ProjectRetrieveSuccessSingle) {
-                    Navigator.push(
+                    /*Navigator.push(
                       context,
                       ProjectHomePage.route(
                         project: state.project,
                         projectIndex: state.projects.indexOf(state.project),
                       ),
+                    );*/
+                    //TODO CLICK 1 - Retrieved from Link
+                    _uploadMemberStatus(
+                      state.project,
+                      false,
+                      state.projects.indexOf(state.project),
+                    );
+                  }
+                  if (state is ProjectCreateSuccess) {
+                    _uploadCreatorStatus(
+                      state.project,
+                      false,
+                      state.projects.indexOf(state.project),
                     );
                   }
                 },
@@ -165,7 +331,8 @@ class _HomePageState extends State<HomePage> {
 
                             return GestureDetector(
                               onTap: () {
-                                if (retrievedUser!.id == project.creatorId) {
+                                //TODO CLICK 2 - Retrieved from Local or Remote - (Previously Viewed)
+                                if (state.isLocal) {
                                   Navigator.push(
                                     context,
                                     ProjectHomePage.route(
@@ -174,98 +341,11 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   );
                                 } else {
-                                  if (!state.isLocal) {
-                                    bool isOldUser = false;
-                                    Member? soughtMember;
-                                    project.teamMembers.map((member) {
-                                      if (member.userId == retrievedUser!.id) {
-                                        isOldUser = true;
-                                        soughtMember = member;
-                                      }
-                                    });
-
-                                    Member? uploadMember;
-                                    if (isOldUser) {
-                                      uploadMember = soughtMember!.copyWith(
-                                        lastViewed: DateTime.now(),
-                                      );
-                                    } else {
-                                      if (project.projectSecurityType ==
-                                          Constants.securityApproval) {
-                                        uploadMember = Member(
-                                          id: const Uuid().v4(),
-                                          projectId: project.id,
-                                          name: retrievedUser!.name,
-                                          email: retrievedUser!.email,
-                                          userId: retrievedUser!.id,
-                                          isAccepted: false,
-                                          isBlocked: false,
-                                          isAdmin: false,
-                                          hasLeft: false,
-                                          lastViewed: DateTime.now(),
-                                        );
-                                      } else if (project.projectSecurityType ==
-                                          Constants.securityPassword) {
-                                        showDialog(
-                                          context: context,
-                                          builder:
-                                              (
-                                                context,
-                                              ) => ProjectPasswordDialog(
-                                                onCompleted: (
-                                                  String passwordText,
-                                                ) {
-                                                  if (passwordText ==
-                                                      project.projectPassword) {
-                                                    uploadMember = Member(
-                                                      id: const Uuid().v4(),
-                                                      projectId: project.id,
-                                                      name: retrievedUser!.name,
-                                                      email:
-                                                          retrievedUser!.email,
-                                                      userId: retrievedUser!.id,
-                                                      isAccepted: true,
-                                                      isBlocked: false,
-                                                      isAdmin: false,
-                                                      hasLeft: false,
-                                                      lastViewed:
-                                                          DateTime.now(),
-                                                    );
-                                                  } else {
-                                                    showSnackBar(
-                                                      context,
-                                                      'The password you entered is incorrect. Please check with the project administrator and try again.',
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                        );
-                                      } else {
-                                        uploadMember = Member(
-                                          id: const Uuid().v4(),
-                                          projectId: project.id,
-                                          name: retrievedUser!.name,
-                                          email: retrievedUser!.email,
-                                          userId: retrievedUser!.id,
-                                          isAccepted: true,
-                                          isBlocked: false,
-                                          isAdmin: false,
-                                          hasLeft: false,
-                                          lastViewed: DateTime.now(),
-                                        );
-                                      }
-                                    }
-
-                                    if (uploadMember != null) {
-                                      context.read<ProjectBloc>().add(
-                                        UpdateMemberEvent(
-                                          projectId: project.id,
-                                          member: uploadMember!,
-                                          isCreateMember: !isOldUser,
-                                        ),
-                                      );
-                                    }
-                                  }
+                                  _uploadMemberStatus(
+                                    project,
+                                    state.isLocal,
+                                    index,
+                                  );
                                 }
                               },
                               child: Column(

@@ -79,11 +79,18 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         },
         (r) {
           // Replace updated project in list
+          Project? outputProject;
           final updatedProjects =
-              currentState.projects.map((p) {
-                return p.id == event.project.id ? event.project : p;
+              currentState.projects.map((project) {
+                outputProject = project;
+                return project.id == event.project.id ? event.project : project;
               }).toList();
-          emit(ProjectRetrieveSuccess(updatedProjects));
+          emit(
+            ProjectCreateSuccess(
+              projects: updatedProjects,
+              project: outputProject!,
+            ),
+          );
         },
       );
     }
@@ -231,23 +238,31 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       response.fold(
         (l) {
           emit(
-            DailyLogUploadFailure(
+            ProjectMemberUpdateFailure(
               error: l.message,
               projects: currentState.projects,
             ),
           );
         },
         (r) {
+          Project? outputProject;
           final updatedProjects =
               currentState.projects.map((project) {
                 if (project.id == event.projectId) {
                   final updatedMembers = [...project.teamMembers, event.member];
-                  return project.copyWith(teamMembers: updatedMembers);
+                  outputProject = project.copyWith(teamMembers: updatedMembers);
+                  return outputProject!;
                 }
                 return project;
               }).toList();
 
-          emit(DailyLogUploadSuccess(updatedProjects));
+          emit(
+            ProjectMemberUpdateSuccess(
+              projects: updatedProjects,
+              project: outputProject!,
+              member: event.member,
+            ),
+          );
         },
       );
     }
