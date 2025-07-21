@@ -10,9 +10,12 @@ import 'package:site_board/feature/projectSection/domain/useCases/manage_log_tas
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_project.dart';
 
+import '../../../../core/common/entities/user.dart';
+import '../../domain/entities/Member.dart';
 import '../../domain/entities/daily_log.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/useCases/get_all_projects.dart';
+import '../../domain/useCases/update_member.dart';
 
 part 'project_event.dart';
 part 'project_state.dart';
@@ -26,6 +29,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
   final ManageLogTask _manageLogTask;
   final GetProjectByLink _getProjectByLink;
   final GetProjectById _getProjectById;
+  final UpdateMember _updateMember;
 
   ProjectBloc({
     required GetAllProjects getAllProjects,
@@ -36,6 +40,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     required ManageLogTask manageLogTask,
     required GetProjectById getProjectById,
     required GetProjectByLink getProjectByLink,
+    required UpdateMember updateMember,
   }) : _createProject = createProject,
        _updateProject = updateProject,
        _createDailyLog = createDailyLog,
@@ -44,6 +49,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
        _getAllProjects = getAllProjects,
        _getProjectById = getProjectById,
        _getProjectByLink = getProjectByLink,
+       _updateMember = updateMember,
        super(ProjectInitial()) {
     //on<ProjectEvent>((event, emit) => emit(ProjectLoading()));
     on<ProjectCreate>(_onProjectCreate);
@@ -54,6 +60,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<ProjectGetAllProjects>(_onGetAllProjects);
     on<ProjectGetProjectById>(_onGetProjectById);
     on<ProjectGetProjectByLink>(_onGetProjectByLink);
+    on<UpdateMemberEvent>(_onUpdateMember);
   }
 
   bool isLocalMode = false;
@@ -206,6 +213,46 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     }
   }
 
+  void _onUpdateMember(
+    UpdateMemberEvent event,
+    Emitter<ProjectState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      emit(ProjectLoading());
+      final response = await _updateMember(
+        UpdateMemberParams(
+          projectId: event.projectId,
+          member: event.member,
+          isCreateMember: event.isCreateMember,
+        ),
+      );
+
+      response.fold(
+        (l) {
+          emit(
+            DailyLogUploadFailure(
+              error: l.message,
+              projects: currentState.projects,
+            ),
+          );
+        },
+        (r) {
+          final updatedProjects =
+              currentState.projects.map((project) {
+                if (project.id == event.projectId) {
+                  final updatedMembers = [...project.teamMembers, event.member];
+                  return project.copyWith(teamMembers: updatedMembers);
+                }
+                return project;
+              }).toList();
+
+          emit(DailyLogUploadSuccess(updatedProjects));
+        },
+      );
+    }
+  }
+
   void _onManageLogTask(
     ManageCurrentLogTask event,
     Emitter<ProjectState> emit,
@@ -274,7 +321,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectById(
-        GetProjectByIdParams(projectId: event.projectId),
+        GetProjectByIdParams(projectId: event.projectId, user: event.user),
       );
       response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
         final updatedProjects =
@@ -303,7 +350,10 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectByLink(
-        GetProjectByLinkParams(projectLink: event.projectLink),
+        GetProjectByLinkParams(
+          projectLink: event.projectLink,
+          user: event.user,
+        ),
       );
       response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
         final updatedProjects =

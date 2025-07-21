@@ -39,12 +39,12 @@ class ActivateFieldEditor extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         SizedBox(
-          height: 70,
+          height: 60,
           child: ElevatedButton(
             onPressed: onClick,
             style: ElevatedButton.styleFrom(
               shape: RoundedRectangleBorder(borderRadius: borderRadius),
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 0),
               backgroundColor: AppPalette.gradient1,
             ),
             child: const Icon(Icons.check),

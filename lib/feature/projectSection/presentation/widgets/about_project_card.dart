@@ -39,16 +39,19 @@ class AboutProjectCard extends StatelessWidget {
                   TextWithPrefix(
                     prefix: 'Project name: ',
                     text: project.projectName,
+                    textSize: 14,
                   ),
                   SizedBox(height: 6),
                   TextWithPrefix(
                     prefix: 'Location: ',
                     text: project.location ?? '',
+                    textSize: 14,
                   ),
                   SizedBox(height: 6),
                   TextWithPrefix(
                     prefix: 'Start date: ',
                     text: formatDateDDMMYYYYHHMM(project.createdDate),
+                    textSize: 14,
                   ),
                   SizedBox(height: 6),
                   Text(

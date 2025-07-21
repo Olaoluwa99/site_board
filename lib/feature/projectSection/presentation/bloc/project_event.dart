@@ -84,10 +84,23 @@ final class ProjectGetAllProjects extends ProjectEvent {
 
 final class ProjectGetProjectById extends ProjectEvent {
   final String projectId;
-  ProjectGetProjectById({required this.projectId});
+  final User user;
+  ProjectGetProjectById({required this.projectId, required this.user});
 }
 
 final class ProjectGetProjectByLink extends ProjectEvent {
   final String projectLink;
-  ProjectGetProjectByLink({required this.projectLink});
+  final User user;
+  ProjectGetProjectByLink({required this.projectLink, required this.user});
+}
+
+final class UpdateMemberEvent extends ProjectEvent {
+  final String projectId;
+  final Member member;
+  final bool isCreateMember;
+  UpdateMemberEvent({
+    required this.projectId,
+    required this.member,
+    required this.isCreateMember,
+  });
 }

@@ -1,8 +1,12 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:site_board/core/common/entities/user.dart';
 import 'package:site_board/feature/projectSection/data/models/daily_log_model.dart';
+import 'package:site_board/feature/projectSection/data/models/member_model.dart';
 import 'package:site_board/feature/projectSection/data/models/project_model.dart';
+import 'package:site_board/feature/projectSection/domain/entities/Member.dart';
 import 'package:site_board/feature/projectSection/domain/entities/daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 import 'package:site_board/feature/projectSection/domain/entities/retrieved_projects.dart';
@@ -40,7 +44,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
         creatorId: project.creatorId,
         projectLink: project.projectLink,
         description: project.description,
-        teamMemberIds: project.teamMemberIds,
+        teamAdminIds: project.teamAdminIds,
+        teamMembers: project.teamMembers,
         createdDate: DateTime.now(),
         endDate: project.endDate,
         dailyLogs: [],
@@ -48,6 +53,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
         isActive: project.isActive,
         lastUpdated: DateTime.now(),
         coverPhotoUrl: project.coverPhotoUrl,
+        projectSecurityType: project.projectSecurityType,
+        projectPassword: project.projectPassword,
+      );
+      debugPrint(
+        '-------------------------------------------------------------------------------------------------',
       );
       final uploadedProject = await projectRemoteDataSource.createProject(
         projectModel,
@@ -73,7 +83,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
         creatorId: project.creatorId,
         projectLink: project.projectLink,
         description: project.description,
-        teamMemberIds: project.teamMemberIds,
+        teamAdminIds: project.teamAdminIds,
+        teamMembers: project.teamMembers,
         createdDate: project.createdDate,
         endDate: project.endDate,
         dailyLogs: [],
@@ -81,6 +92,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
         isActive: project.isActive,
         lastUpdated: DateTime.now(),
         coverPhotoUrl: project.coverPhotoUrl,
+        projectSecurityType: project.projectSecurityType,
+        projectPassword: project.projectPassword,
       );
       final uploadedProject = await projectRemoteDataSource.updateProject(
         projectModel,
@@ -236,6 +249,68 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
+  Future<Either<Failure, Member>> createMember({
+    required String projectId,
+    required Member member,
+  }) async {
+    try {
+      if (!await (connectionChecker.isConnected)) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      MemberModel memberModel = MemberModel(
+        id: member.id,
+        projectId: member.projectId,
+        name: member.name,
+        email: member.email,
+        userId: member.userId,
+        isAccepted: member.isAccepted,
+        isBlocked: member.isBlocked,
+        isAdmin: member.isAdmin,
+        hasLeft: member.hasLeft,
+        lastViewed: member.lastViewed,
+      );
+
+      final uploadedMember = await projectRemoteDataSource.createMember(
+        memberModel,
+      );
+      return right(uploadedMember);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Member>> updateMember({
+    required String projectId,
+    required Member member,
+  }) async {
+    try {
+      if (!await (connectionChecker.isConnected)) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      MemberModel memberModel = MemberModel(
+        id: member.id,
+        projectId: member.projectId,
+        name: member.name,
+        email: member.email,
+        userId: member.userId,
+        isAccepted: member.isAccepted,
+        isBlocked: member.isBlocked,
+        isAdmin: member.isAdmin,
+        hasLeft: member.hasLeft,
+        lastViewed: member.lastViewed,
+      );
+
+      final uploadedMember = await projectRemoteDataSource.updateMember(
+        memberModel,
+      );
+      return right(uploadedMember);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<LogTask>>> manageLogTasks({
     required String dailyLogId,
     required List<LogTask> currentTasks,
@@ -278,6 +353,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Either<Failure, ProjectModel>> getProjectById({
     required String projectId,
+    required User user,
   }) async {
     try {
       if (!await connectionChecker.isConnected) {
@@ -290,7 +366,48 @@ class ProjectRepositoryImpl implements ProjectRepository {
       final remoteProject = await projectRemoteDataSource.getProjectById(
         projectId: projectId,
       );
+
+      bool isOldUser = false;
+      Member? soughtMember;
       projectLocalDataSource.uploadSingleProject(project: remoteProject);
+      remoteProject.teamMembers.map((member) {
+        if (member.id == user.id) {
+          isOldUser = true;
+          soughtMember = member;
+        }
+      });
+      if (isOldUser) {
+        projectRemoteDataSource.updateMember(
+          //soughtMember.copyWith(lastViewed: DateTime.now())
+          MemberModel(
+            id: soughtMember!.id,
+            projectId: soughtMember!.projectId,
+            name: soughtMember!.name,
+            email: soughtMember!.email,
+            userId: soughtMember!.userId,
+            isAccepted: false,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          ),
+        );
+      } else {
+        projectRemoteDataSource.createMember(
+          MemberModel(
+            id: Uuid().v4(),
+            projectId: remoteProject.id,
+            name: user.name,
+            email: user.email,
+            userId: user.id,
+            isAccepted: false,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          ),
+        );
+      }
       return right(remoteProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));
@@ -302,6 +419,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Either<Failure, ProjectModel>> getProjectByLink({
     required String projectLink,
+    required User user,
   }) async {
     try {
       if (!await connectionChecker.isConnected) {
@@ -315,7 +433,49 @@ class ProjectRepositoryImpl implements ProjectRepository {
       final remoteProject = await projectRemoteDataSource.getProjectByLink(
         projectLink: projectLink,
       );
+
+      bool isOldUser = false;
+      Member? soughtMember;
       projectLocalDataSource.uploadSingleProject(project: remoteProject);
+      remoteProject.teamMembers.map((member) {
+        if (member.userId == user.id) {
+          isOldUser = true;
+          soughtMember = member;
+        }
+      });
+      debugPrint('Status: $isOldUser');
+      if (isOldUser) {
+        projectRemoteDataSource.updateMember(
+          //soughtMember.copyWith(lastViewed: DateTime.now())
+          MemberModel(
+            id: soughtMember!.id,
+            projectId: soughtMember!.projectId,
+            name: soughtMember!.name,
+            email: soughtMember!.email,
+            userId: soughtMember!.userId,
+            isAccepted: false,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          ),
+        );
+      } else {
+        projectRemoteDataSource.createMember(
+          MemberModel(
+            id: Uuid().v4(),
+            projectId: remoteProject.id,
+            name: user.name,
+            email: user.email,
+            userId: user.id,
+            isAccepted: false,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          ),
+        );
+      }
       return right(remoteProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));

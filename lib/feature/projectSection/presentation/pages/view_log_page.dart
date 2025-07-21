@@ -5,6 +5,7 @@ import '../../../../../core/utils/format_date.dart';
 import '../../domain/entities/daily_log.dart';
 import '../widgets/task_view_list_item.dart';
 import '../widgets/text_list_item.dart';
+import '../widgets/text_with_prefix.dart';
 
 class ViewLogPage extends StatelessWidget {
   final DailyLog log;
@@ -25,45 +26,22 @@ class ViewLogPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 16),
-                      children: [
-                        const TextSpan(
-                          text: 'Date/Time: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text: formatDateDDMMYYYYHHMM(log.dateTimeList[0]),
-                        ),
-                      ],
-                    ),
+                  TextWithPrefix(
+                    prefix: 'Date/Time',
+                    text: formatDateDDMMYYYYHHMM(log.dateTimeList[0]),
+                    textSize: 16,
                   ),
                   SizedBox(height: 16),
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 16),
-                      children: [
-                        const TextSpan(
-                          text: 'Number of Workers: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(text: '${log.numberOfWorkers}'),
-                      ],
-                    ),
+                  TextWithPrefix(
+                    prefix: 'Number of Workers',
+                    text: '${log.numberOfWorkers}',
+                    textSize: 16,
                   ),
                   SizedBox(height: 16),
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 16),
-                      children: [
-                        const TextSpan(
-                          text: 'Weather Condition: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(text: log.weatherCondition),
-                      ],
-                    ),
+                  TextWithPrefix(
+                    prefix: 'Weather Condition',
+                    text: log.weatherCondition,
+                    textSize: 16,
                   ),
                   SizedBox(height: 16),
                   Divider(),

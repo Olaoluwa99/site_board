@@ -4,10 +4,15 @@ import 'package:site_board/feature/accountSection/presentation/account_page.dart
 import 'package:site_board/feature/auth/presentation/pages/login_page.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/project_home_page.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/project_password.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
+import '../../../../core/common/entities/user.dart';
 import '../../../../core/common/widgets/loader.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/utils/show_snackbar.dart';
+import '../../domain/entities/Member.dart';
 import '../../domain/entities/project.dart';
 import '../widgets/activate_field_editor.dart';
 import 'create_project.dart';
@@ -26,6 +31,7 @@ class _HomePageState extends State<HomePage> {
   final formKey = GlobalKey<FormState>();
   final TextEditingController linkController = TextEditingController();
   bool showExtra = false;
+  User? retrievedUser;
 
   void _showCustomDialog() {
     showDialog(
@@ -42,9 +48,14 @@ class _HomePageState extends State<HomePage> {
 
   void _getProjectByLink() {
     if (linkController.text.isNotEmpty) {
-      context.read<ProjectBloc>().add(
-        ProjectGetProjectByLink(projectLink: linkController.text),
-      );
+      if (retrievedUser != null) {
+        context.read<ProjectBloc>().add(
+          ProjectGetProjectByLink(
+            projectLink: linkController.text,
+            user: retrievedUser!,
+          ),
+        );
+      }
     } else {
       showSnackBar(
         context,
@@ -104,6 +115,7 @@ class _HomePageState extends State<HomePage> {
             BlocListener<AppUserCubit, AppUserState>(
               listener: (context, state) {
                 if (state is AppUserLoggedIn) {
+                  retrievedUser = state.user;
                   context.read<ProjectBloc>().add(
                     ProjectGetAllProjects(userId: state.user.id),
                   );
@@ -112,16 +124,9 @@ class _HomePageState extends State<HomePage> {
               child: BlocConsumer<ProjectBloc, ProjectState>(
                 listener: (context, state) {
                   if (state is ProjectFailure) {
+                    debugPrint('Retrieved user: ${retrievedUser!.id}');
+                    debugPrint(state.error);
                     showSnackBar(context, state.error);
-                  }
-                  if (state is ProjectRetrieveSuccessSingle) {
-                    Navigator.push(
-                      context,
-                      ProjectHomePage.route(
-                        project: state.project,
-                        projectIndex: state.projects.indexOf(state.project),
-                      ),
-                    );
                   }
                   if (state is ProjectRetrieveSuccessInit) {
                     if (state.projects.isEmpty) {
@@ -134,6 +139,15 @@ class _HomePageState extends State<HomePage> {
                       state.isLocal == true
                           ? 'Starting App in Offline mode'
                           : 'Starting App in Normal mode',
+                    );
+                  }
+                  if (state is ProjectRetrieveSuccessSingle) {
+                    Navigator.push(
+                      context,
+                      ProjectHomePage.route(
+                        project: state.project,
+                        projectIndex: state.projects.indexOf(state.project),
+                      ),
                     );
                   }
                 },
@@ -149,15 +163,110 @@ class _HomePageState extends State<HomePage> {
                             final index = entry.key;
                             final project = entry.value;
 
-                            return InkWell(
+                            return GestureDetector(
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  ProjectHomePage.route(
-                                    project: project,
-                                    projectIndex: index,
-                                  ),
-                                );
+                                if (retrievedUser!.id == project.creatorId) {
+                                  Navigator.push(
+                                    context,
+                                    ProjectHomePage.route(
+                                      project: project,
+                                      projectIndex: index,
+                                    ),
+                                  );
+                                } else {
+                                  if (!state.isLocal) {
+                                    bool isOldUser = false;
+                                    Member? soughtMember;
+                                    project.teamMembers.map((member) {
+                                      if (member.userId == retrievedUser!.id) {
+                                        isOldUser = true;
+                                        soughtMember = member;
+                                      }
+                                    });
+
+                                    Member? uploadMember;
+                                    if (isOldUser) {
+                                      uploadMember = soughtMember!.copyWith(
+                                        lastViewed: DateTime.now(),
+                                      );
+                                    } else {
+                                      if (project.projectSecurityType ==
+                                          Constants.securityApproval) {
+                                        uploadMember = Member(
+                                          id: const Uuid().v4(),
+                                          projectId: project.id,
+                                          name: retrievedUser!.name,
+                                          email: retrievedUser!.email,
+                                          userId: retrievedUser!.id,
+                                          isAccepted: false,
+                                          isBlocked: false,
+                                          isAdmin: false,
+                                          hasLeft: false,
+                                          lastViewed: DateTime.now(),
+                                        );
+                                      } else if (project.projectSecurityType ==
+                                          Constants.securityPassword) {
+                                        showDialog(
+                                          context: context,
+                                          builder:
+                                              (
+                                                context,
+                                              ) => ProjectPasswordDialog(
+                                                onCompleted: (
+                                                  String passwordText,
+                                                ) {
+                                                  if (passwordText ==
+                                                      project.projectPassword) {
+                                                    uploadMember = Member(
+                                                      id: const Uuid().v4(),
+                                                      projectId: project.id,
+                                                      name: retrievedUser!.name,
+                                                      email:
+                                                          retrievedUser!.email,
+                                                      userId: retrievedUser!.id,
+                                                      isAccepted: true,
+                                                      isBlocked: false,
+                                                      isAdmin: false,
+                                                      hasLeft: false,
+                                                      lastViewed:
+                                                          DateTime.now(),
+                                                    );
+                                                  } else {
+                                                    showSnackBar(
+                                                      context,
+                                                      'The password you entered is incorrect. Please check with the project administrator and try again.',
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                        );
+                                      } else {
+                                        uploadMember = Member(
+                                          id: const Uuid().v4(),
+                                          projectId: project.id,
+                                          name: retrievedUser!.name,
+                                          email: retrievedUser!.email,
+                                          userId: retrievedUser!.id,
+                                          isAccepted: true,
+                                          isBlocked: false,
+                                          isAdmin: false,
+                                          hasLeft: false,
+                                          lastViewed: DateTime.now(),
+                                        );
+                                      }
+                                    }
+
+                                    if (uploadMember != null) {
+                                      context.read<ProjectBloc>().add(
+                                        UpdateMemberEvent(
+                                          projectId: project.id,
+                                          member: uploadMember!,
+                                          isCreateMember: !isOldUser,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
                               },
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

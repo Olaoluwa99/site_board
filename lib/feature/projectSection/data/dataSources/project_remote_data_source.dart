@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
+import 'package:site_board/feature/projectSection/data/models/member_model.dart';
 import 'package:site_board/feature/projectSection/data/models/project_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,6 +14,9 @@ abstract interface class ProjectRemoteDataSource {
 
   Future<DailyLogModel> createDailyLog(DailyLogModel dailyLog);
   Future<DailyLogModel> updateDailyLog(DailyLogModel dailyLog);
+
+  Future<MemberModel> createMember(MemberModel member);
+  Future<MemberModel> updateMember(MemberModel member);
 
   Future<void> syncLogTasks({
     required String dailyLogId,
@@ -41,12 +46,15 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
 
   @override
   Future<ProjectModel> createProject(ProjectModel project) async {
+    debugPrint(project.toJson().toString());
+    debugPrint('-----------------------------------------------------');
     try {
       final projectData =
           await supabaseClient
               .from('projects')
               .insert(project.toJson())
               .select();
+      debugPrint(project.toJson().toString());
       return ProjectModel.fromJson(projectData.first);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
@@ -100,6 +108,37 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
               .select();
 
       return DailyLogModel.fromJson(updatedDailyLogData.first);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<MemberModel> createMember(MemberModel member) async {
+    try {
+      final memberData =
+          await supabaseClient.from('members').insert(member.toJson()).select();
+      return MemberModel.fromJson(memberData.first);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<MemberModel> updateMember(MemberModel member) async {
+    try {
+      final updatedMemberData =
+          await supabaseClient
+              .from('members')
+              .update(member.toJson())
+              .eq('id', member.id)
+              .select();
+
+      return MemberModel.fromJson(updatedMemberData.first);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {
@@ -170,7 +209,8 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     try {
       final response = await supabaseClient
           .from('projects')
-          .select('*, daily_logs(*, log_tasks(*))')
+          //.select('*, daily_logs(*, log_tasks(*))')
+          .select('*, daily_logs(*, log_tasks(*)), members(*)')
           .eq('creator_id', userId);
 
       // Parse into ProjectModel
@@ -184,6 +224,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     }
   }
 
+  @override
   Future<ProjectModel> getProjectById({required String projectId}) async {
     try {
       final response =
@@ -205,6 +246,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     }
   }
 
+  @override
   Future<ProjectModel> getProjectByLink({required String projectLink}) async {
     try {
       final response =

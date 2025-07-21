@@ -4,6 +4,7 @@ import 'package:internet_connection_checker_plus/internet_connection_checker_plu
 import 'package:path_provider/path_provider.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/manage_log_task.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/update_member.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/common/cubits/app_user/app_user_cubit.dart';
@@ -108,6 +109,7 @@ void _initProject() {
     ..registerFactory(() => GetAllProjects(serviceLocator()))
     ..registerFactory(() => GetProjectById(serviceLocator()))
     ..registerFactory(() => GetProjectByLink(serviceLocator()))
+    ..registerFactory(() => UpdateMember(serviceLocator()))
     //Bloc
     ..registerLazySingleton(
       () => ProjectBloc(
@@ -119,6 +121,7 @@ void _initProject() {
         getAllProjects: serviceLocator(),
         getProjectById: serviceLocator(),
         getProjectByLink: serviceLocator(),
+        updateMember: serviceLocator(),
       ),
     );
 }

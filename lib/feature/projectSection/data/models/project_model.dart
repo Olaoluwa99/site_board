@@ -1,4 +1,5 @@
 import 'package:site_board/feature/projectSection/data/models/daily_log_model.dart';
+import 'package:site_board/feature/projectSection/data/models/member_model.dart';
 
 import '../../domain/entities/project.dart';
 
@@ -9,7 +10,8 @@ class ProjectModel extends Project {
     required super.creatorId,
     super.projectLink,
     super.description,
-    required super.teamMemberIds,
+    required super.teamAdminIds,
+    required super.teamMembers,
     required super.createdDate,
     super.endDate,
     required super.dailyLogs,
@@ -17,6 +19,8 @@ class ProjectModel extends Project {
     required super.isActive,
     required super.lastUpdated,
     super.coverPhotoUrl = '',
+    required super.projectSecurityType,
+    required super.projectPassword,
   });
 
   @override
@@ -29,14 +33,17 @@ class ProjectModel extends Project {
           creatorId == other.creatorId &&
           projectLink == other.projectLink &&
           description == other.description &&
-          teamMemberIds == other.teamMemberIds &&
+          teamAdminIds == other.teamAdminIds &&
+          teamMembers == other.teamMembers &&
           createdDate == other.createdDate &&
           endDate == other.endDate &&
           dailyLogs == other.dailyLogs &&
           location == other.location &&
           isActive == other.isActive &&
           lastUpdated == other.lastUpdated &&
-          coverPhotoUrl == other.coverPhotoUrl);
+          coverPhotoUrl == other.coverPhotoUrl &&
+          projectSecurityType == other.projectSecurityType &&
+          projectPassword == other.projectPassword);
 
   @override
   String toString() {
@@ -46,7 +53,8 @@ class ProjectModel extends Project {
         ' creatorId: $creatorId,' +
         ' projectLink: $projectLink,' +
         ' description: $description,' +
-        ' teamMemberIds: $teamMemberIds,' +
+        ' teamAdminIds: $teamAdminIds,' +
+        ' teamMembers: $teamMembers,' +
         ' createdDate: $createdDate,' +
         ' endDate: $endDate,' +
         ' dailyLogs: $dailyLogs,' +
@@ -54,6 +62,8 @@ class ProjectModel extends Project {
         ' isActive: $isActive,' +
         ' lastUpdated: $lastUpdated,' +
         ' coverPhotoUrl: $coverPhotoUrl,' +
+        ' projectSecurityType: $projectSecurityType,' +
+        ' projectPassword: $projectPassword,' +
         '}';
   }
 
@@ -63,7 +73,8 @@ class ProjectModel extends Project {
     String? creatorId,
     String? projectLink,
     String? description,
-    List<String>? teamMemberIds,
+    List<String>? teamAdminIds,
+    List<MemberModel>? teamMembers,
     DateTime? createdDate,
     DateTime? endDate,
     List<DailyLogModel>? dailyLogs,
@@ -71,6 +82,8 @@ class ProjectModel extends Project {
     bool? isActive,
     DateTime? lastUpdated,
     String? coverPhotoUrl,
+    String? projectSecurityType,
+    String? projectPassword,
   }) {
     return ProjectModel(
       id: id ?? this.id,
@@ -78,7 +91,8 @@ class ProjectModel extends Project {
       creatorId: creatorId ?? this.creatorId,
       projectLink: projectLink ?? this.projectLink,
       description: description ?? this.description,
-      teamMemberIds: teamMemberIds ?? this.teamMemberIds,
+      teamAdminIds: teamAdminIds ?? this.teamAdminIds,
+      teamMembers: teamMembers ?? this.teamMembers,
       createdDate: createdDate ?? this.createdDate,
       endDate: endDate ?? this.endDate,
       dailyLogs: dailyLogs ?? this.dailyLogs,
@@ -86,6 +100,8 @@ class ProjectModel extends Project {
       isActive: isActive ?? this.isActive,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
+      projectSecurityType: projectSecurityType ?? this.projectSecurityType,
+      projectPassword: projectPassword ?? this.projectPassword,
     );
   }
 
@@ -96,7 +112,9 @@ class ProjectModel extends Project {
       'creator_id': creatorId,
       'project_link': projectLink,
       'description': description,
-      'team_member_ids': teamMemberIds,
+      'team_admin_ids': teamAdminIds,
+      'team_members':
+          dailyLogs.map((member) => (member as MemberModel).toJson()).toList(),
       'created_date': createdDate.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'daily_logs':
@@ -107,6 +125,8 @@ class ProjectModel extends Project {
       'is_active': isActive,
       'last_updated': lastUpdated.toIso8601String(),
       'cover_photo_url': coverPhotoUrl,
+      'project_security_type': projectSecurityType,
+      'project_password': projectPassword,
     };
   }
 
@@ -117,46 +137,17 @@ class ProjectModel extends Project {
       'creator_id': creatorId,
       'project_link': projectLink,
       'description': description,
-      'team_member_ids': teamMemberIds,
+      'team_admin_ids': teamAdminIds,
       'created_date': createdDate.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'location': location,
       'is_active': isActive,
       'last_updated': lastUpdated.toIso8601String(),
       'cover_photo_url': coverPhotoUrl,
+      'project_security_type': projectSecurityType,
+      'project_password': projectPassword,
     };
   }
-
-  /*factory ProjectModel.fromJson(Map<String, dynamic> map) {
-    return ProjectModel(
-      id: map['id'] as String,
-      projectName: map['project_name'] ?? '',
-      creatorId: map['creator_id'] ?? '',
-      projectLink: map['project_link'] ?? '',
-      description: map['description'] ?? '',
-      teamMemberIds: List<String>.from(map['team_member_ids'] ?? const []),
-      createdDate:
-          map['created_date'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(map['created_date'])
-              : DateTime.now(),
-      endDate:
-          map['end_date'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(map['end_date'])
-              : null,
-      dailyLogs:
-          (map['daily_logs'] as List<dynamic>?)?.map((log) {
-            return DailyLogModel.fromJson(log as Map<String, dynamic>);
-          }).toList() ??
-          [],
-      location: map['location'] ?? '',
-      isActive: map['is_active'] as bool,
-      lastUpdated:
-          map['last_updated'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(map['last_updated'])
-              : DateTime.now(),
-      coverPhotoUrl: map['cover_photo_url'] ?? '',
-    );
-  }*/
 
   factory ProjectModel.fromJson(Map<String, dynamic> map) {
     return ProjectModel(
@@ -165,7 +156,15 @@ class ProjectModel extends Project {
       creatorId: map['creator_id'] ?? '',
       projectLink: map['project_link'] ?? '',
       description: map['description'] ?? '',
-      teamMemberIds: List<String>.from(map['team_member_ids'] ?? const []),
+      teamAdminIds: List<String>.from(map['team_admin_ids'] ?? const []),
+      teamMembers:
+          (map['team_members'] as List<dynamic>?)
+              ?.map(
+                (member) =>
+                    MemberModel.fromJson(Map<String, dynamic>.from(member)),
+              )
+              .toList() ??
+          [],
       createdDate:
           map['created_date'] == null
               ? DateTime.now()
@@ -188,6 +187,8 @@ class ProjectModel extends Project {
               ? DateTime.now()
               : DateTime.parse(map['last_updated']),
       coverPhotoUrl: map['cover_photo_url'] ?? '',
+      projectSecurityType: map['project_security_type'] ?? '',
+      projectPassword: map['project_password'] ?? '',
     );
   }
 }
