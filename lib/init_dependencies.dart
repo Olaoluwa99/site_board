@@ -43,16 +43,25 @@ Future<void> initDependencies() async {
   final appDocsDir = await getApplicationDocumentsDirectory();
   Hive.init(appDocsDir.path);
 
-  final projectBox = await Hive.openBox('projects');
+  final recentProjectBox = await Hive.openBox('recent_projects');
+  final offlineProjectBox = await Hive.openBox('offline_projects');
   /*debugPrint('-------------------------------------------------');
   for (var key in projectBox.keys) {
     debugPrint('-------------------------------------------------');
     debugPrint('Key: $key => Value: ${projectBox.get(key)}');
   }
   debugPrint('-------------------------------------------------');*/
-
   serviceLocator.registerLazySingleton(() => supabase.client);
-  serviceLocator.registerLazySingleton(() => projectBox);
+  serviceLocator.registerLazySingleton<Box>(
+    () => recentProjectBox,
+    instanceName: 'recent',
+  );
+  serviceLocator.registerLazySingleton<Box>(
+    () => offlineProjectBox,
+    instanceName: 'offline',
+  );
+  /*serviceLocator.registerLazySingleton(() => recentProjectBox);
+  serviceLocator.registerLazySingleton(() => offlineProjectBox);*/
   serviceLocator.registerLazySingleton(() => AppUserCubit());
   serviceLocator.registerFactory(() => InternetConnection());
   serviceLocator.registerFactory<ConnectionChecker>(
@@ -91,9 +100,15 @@ void _initProject() {
     ..registerFactory<ProjectRemoteDataSource>(
       () => ProjectRemoteDataSourceImpl(serviceLocator()),
     )
-    ..registerFactory<ProjectLocalDataSource>(
+    /*..registerFactory<ProjectLocalDataSource>(
       () => ProjectLocalDataSourceImpl(serviceLocator()),
-    ) //Repository
+    )*/
+    ..registerLazySingleton<ProjectLocalDataSource>(
+      () => ProjectLocalDataSourceImpl(
+        serviceLocator<Box>(instanceName: 'recent'),
+        serviceLocator<Box>(instanceName: 'offline'),
+      ),
+    )
     ..registerFactory<ProjectRepository>(
       () => ProjectRepositoryImpl(
         serviceLocator(),
@@ -119,6 +134,7 @@ void _initProject() {
         updateDailyLog: serviceLocator(),
         manageLogTask: serviceLocator(),
         getAllProjects: serviceLocator(),
+        getRecentProjects: serviceLocator(),
         getProjectById: serviceLocator(),
         getProjectByLink: serviceLocator(),
         updateMember: serviceLocator(),

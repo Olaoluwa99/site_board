@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 
-import '../../../../core/common/entities/user.dart';
 import '../../../../core/error/failure.dart';
 import '../entities/Member.dart';
 import '../entities/daily_log.dart';
@@ -53,13 +52,11 @@ abstract interface class ProjectRepository {
     required String userId,
   });
 
-  Future<Either<Failure, Project>> getProjectById({
-    required String projectId,
-    required User user,
-  });
+  Future<Either<Failure, List<Project>>> getRecentProjects();
+
+  Future<Either<Failure, Project>> getProjectById({required String projectId});
 
   Future<Either<Failure, Project>> getProjectByLink({
     required String projectLink,
-    required User user,
   });
 }

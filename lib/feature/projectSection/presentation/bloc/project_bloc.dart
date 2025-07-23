@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:site_board/core/usecases/usecase.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_id.dart';
@@ -10,11 +11,11 @@ import 'package:site_board/feature/projectSection/domain/useCases/manage_log_tas
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_project.dart';
 
-import '../../../../core/common/entities/user.dart';
 import '../../domain/entities/Member.dart';
 import '../../domain/entities/daily_log.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/useCases/get_all_projects.dart';
+import '../../domain/useCases/get_recent_projects.dart';
 import '../../domain/useCases/update_member.dart';
 
 part 'project_event.dart';
@@ -22,6 +23,7 @@ part 'project_state.dart';
 
 class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
   final GetAllProjects _getAllProjects;
+  final GetRecentProjects _getRecentProjects;
   final CreateProject _createProject;
   final UpdateProject _updateProject;
   final CreateDailyLog _createDailyLog;
@@ -33,6 +35,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
 
   ProjectBloc({
     required GetAllProjects getAllProjects,
+    required GetRecentProjects getRecentProjects,
     required CreateProject createProject,
     required UpdateProject updateProject,
     required CreateDailyLog createDailyLog,
@@ -47,6 +50,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
        _updateDailyLog = updateDailyLog,
        _manageLogTask = manageLogTask,
        _getAllProjects = getAllProjects,
+       _getRecentProjects = getRecentProjects,
        _getProjectById = getProjectById,
        _getProjectByLink = getProjectByLink,
        _updateMember = updateMember,
@@ -58,6 +62,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<DailyLogUpdate>(_onDailyLogUpdate);
     on<ManageCurrentLogTask>(_onManageLogTask);
     on<ProjectGetAllProjects>(_onGetAllProjects);
+    on<ProjectGetRecentProjects>(_onGetRecentProjects);
     on<ProjectGetProjectById>(_onGetProjectById);
     on<ProjectGetProjectByLink>(_onGetProjectByLink);
     on<UpdateMemberEvent>(_onUpdateMember);
@@ -328,6 +333,17 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     });
   }
 
+  void _onGetRecentProjects(
+    ProjectGetRecentProjects event,
+    Emitter<ProjectState> emit,
+  ) async {
+    emit(ProjectLoading());
+    final response = await _getRecentProjects(NoParams());
+    response.fold((l) => emit(ProjectFailure(l.message)), (r) {
+      emit(ProjectRetrieveRecentSuccess(projects: r));
+    });
+  }
+
   void _onGetProjectById(
     ProjectGetProjectById event,
     Emitter<ProjectState> emit,
@@ -336,7 +352,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectById(
-        GetProjectByIdParams(projectId: event.projectId, user: event.user),
+        GetProjectByIdParams(projectId: event.projectId),
       );
       response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
         final updatedProjects =
@@ -365,10 +381,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectByLink(
-        GetProjectByLinkParams(
-          projectLink: event.projectLink,
-          user: event.user,
-        ),
+        GetProjectByLinkParams(projectLink: event.projectLink),
       );
       response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
         final updatedProjects =

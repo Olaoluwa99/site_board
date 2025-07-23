@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:site_board/core/common/entities/user.dart';
 import 'package:site_board/feature/projectSection/data/models/daily_log_model.dart';
 import 'package:site_board/feature/projectSection/data/models/member_model.dart';
 import 'package:site_board/feature/projectSection/data/models/project_model.dart';
@@ -337,8 +336,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }) async {
     try {
       if (!await (connectionChecker.isConnected)) {
-        final projects = projectLocalDataSource.loadProjects();
-        return right(RetrievedProjects(isLocal: true, projects: projects));
+        /*final projects = projectLocalDataSource.loadProjects();
+        return right(RetrievedProjects(isLocal: true, projects: projects));*/
+        return left(Failure('Not connected to the internet. Try again later.'));
       }
       final projects = await projectRemoteDataSource.getAllProjects(
         userId: userId,
@@ -351,9 +351,18 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
+  Future<Either<Failure, List<Project>>> getRecentProjects() async {
+    try {
+      final projects = projectLocalDataSource.loadRecentProjects();
+      return right(projects);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, ProjectModel>> getProjectById({
     required String projectId,
-    required User user,
   }) async {
     try {
       if (!await connectionChecker.isConnected) {
@@ -366,48 +375,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
       final remoteProject = await projectRemoteDataSource.getProjectById(
         projectId: projectId,
       );
-
-      bool isOldUser = false;
-      Member? soughtMember;
       projectLocalDataSource.uploadRecentProject(project: remoteProject);
-      remoteProject.teamMembers.map((member) {
-        if (member.id == user.id) {
-          isOldUser = true;
-          soughtMember = member;
-        }
-      });
-      if (isOldUser) {
-        projectRemoteDataSource.updateMember(
-          //soughtMember.copyWith(lastViewed: DateTime.now())
-          MemberModel(
-            id: soughtMember!.id,
-            projectId: soughtMember!.projectId,
-            name: soughtMember!.name,
-            email: soughtMember!.email,
-            userId: soughtMember!.userId,
-            isAccepted: false,
-            isBlocked: false,
-            isAdmin: false,
-            hasLeft: false,
-            lastViewed: DateTime.now(),
-          ),
-        );
-      } else {
-        projectRemoteDataSource.createMember(
-          MemberModel(
-            id: Uuid().v4(),
-            projectId: remoteProject.id,
-            name: user.name,
-            email: user.email,
-            userId: user.id,
-            isAccepted: false,
-            isBlocked: false,
-            isAdmin: false,
-            hasLeft: false,
-            lastViewed: DateTime.now(),
-          ),
-        );
-      }
       return right(remoteProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));
@@ -419,7 +387,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Either<Failure, ProjectModel>> getProjectByLink({
     required String projectLink,
-    required User user,
   }) async {
     try {
       if (!await connectionChecker.isConnected) {
@@ -429,53 +396,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
           ),
         );
       }
-
       final remoteProject = await projectRemoteDataSource.getProjectByLink(
         projectLink: projectLink,
       );
-
-      bool isOldUser = false;
-      Member? soughtMember;
       projectLocalDataSource.uploadRecentProject(project: remoteProject);
-      remoteProject.teamMembers.map((member) {
-        if (member.userId == user.id) {
-          isOldUser = true;
-          soughtMember = member;
-        }
-      });
-      debugPrint('Status: $isOldUser');
-      if (isOldUser) {
-        projectRemoteDataSource.updateMember(
-          //soughtMember.copyWith(lastViewed: DateTime.now())
-          MemberModel(
-            id: soughtMember!.id,
-            projectId: soughtMember!.projectId,
-            name: soughtMember!.name,
-            email: soughtMember!.email,
-            userId: soughtMember!.userId,
-            isAccepted: false,
-            isBlocked: false,
-            isAdmin: false,
-            hasLeft: false,
-            lastViewed: DateTime.now(),
-          ),
-        );
-      } else {
-        projectRemoteDataSource.createMember(
-          MemberModel(
-            id: Uuid().v4(),
-            projectId: remoteProject.id,
-            name: user.name,
-            email: user.email,
-            userId: user.id,
-            isAccepted: false,
-            isBlocked: false,
-            isAdmin: false,
-            hasLeft: false,
-            lastViewed: DateTime.now(),
-          ),
-        );
-      }
       return right(remoteProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));

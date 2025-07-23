@@ -99,6 +99,11 @@ class ProjectMemberUpdateFailure extends ProjectRetrieveSuccess {
   }) : super(projects);
 }
 
+class ProjectRetrieveRecentSuccess extends ProjectRetrieveSuccess {
+  ProjectRetrieveRecentSuccess({required List<Project> projects})
+    : super(projects);
+}
+
 class ProjectCreateSuccess extends ProjectRetrieveSuccess {
   final Project project;
 

@@ -52,10 +52,7 @@ class _HomePageState extends State<HomePage> {
     if (linkController.text.isNotEmpty) {
       if (retrievedUser != null) {
         context.read<ProjectBloc>().add(
-          ProjectGetProjectByLink(
-            projectLink: linkController.text,
-            user: retrievedUser!,
-          ),
+          ProjectGetProjectByLink(projectLink: linkController.text),
         );
       }
     } else {
@@ -191,14 +188,17 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Home', style: TextStyle(fontWeight: FontWeight.bold)),
-        shadowColor: Colors.grey,
-        elevation: 10,
+        // shadowColor: Colors.grey,
+        // elevation: 10,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             onPressed: () {
               widget.isLoggedIn
-                  ? Navigator.push(context, AccountPage.route())
+                  ? Navigator.push(
+                    context,
+                    AccountPage.route(user: retrievedUser!),
+                  )
                   : Navigator.push(context, LoginPage.route());
             },
             icon:
@@ -235,9 +235,7 @@ class _HomePageState extends State<HomePage> {
               listener: (context, state) {
                 if (state is AppUserLoggedIn) {
                   retrievedUser = state.user;
-                  context.read<ProjectBloc>().add(
-                    ProjectGetAllProjects(userId: state.user.id),
-                  );
+                  context.read<ProjectBloc>().add(ProjectGetRecentProjects());
                 }
               },
               child: BlocConsumer<ProjectBloc, ProjectState>(
@@ -250,7 +248,7 @@ class _HomePageState extends State<HomePage> {
                     debugPrint(state.error);
                     showSnackBar(context, state.error);
                   }
-                  if (state is ProjectRetrieveSuccessInit) {
+                  /*if (state is ProjectRetrieveSuccessInit---) {
                     if (state.projects.isEmpty) {
                       showExtra = false;
                     } else {
@@ -262,6 +260,13 @@ class _HomePageState extends State<HomePage> {
                           ? 'Starting App in Offline mode'
                           : 'Starting App in Normal mode',
                     );
+                  }*/
+                  if (state is ProjectRetrieveRecentSuccess) {
+                    if (state.projects.isEmpty) {
+                      showExtra = false;
+                    } else {
+                      showExtra = true;
+                    }
                   }
                   if (state is ProjectMemberUpdateSuccess) {
                     if (state.member.isBlocked) {
@@ -290,19 +295,12 @@ class _HomePageState extends State<HomePage> {
                         ProjectHomePage.route(
                           project: state.project,
                           projectIndex: state.projects.indexOf(state.project),
+                          isLocal: false,
                         ),
                       );
                     }
                   }
                   if (state is ProjectRetrieveSuccessSingle) {
-                    /*Navigator.push(
-                      context,
-                      ProjectHomePage.route(
-                        project: state.project,
-                        projectIndex: state.projects.indexOf(state.project),
-                      ),
-                    );*/
-                    //TODO CLICK 1 - Retrieved from Link
                     _uploadMemberStatus(
                       state.project,
                       false,
@@ -322,7 +320,7 @@ class _HomePageState extends State<HomePage> {
                     return const Loader();
                   }
 
-                  if (state is ProjectRetrieveSuccessInit) {
+                  if (state is ProjectRetrieveRecentSuccess) {
                     return Column(
                       children:
                           state.projects.asMap().entries.map((entry) {
@@ -331,22 +329,9 @@ class _HomePageState extends State<HomePage> {
 
                             return GestureDetector(
                               onTap: () {
-                                //TODO CLICK 2 - Retrieved from Local or Remote - (Previously Viewed)
-                                if (state.isLocal) {
-                                  Navigator.push(
-                                    context,
-                                    ProjectHomePage.route(
-                                      project: project,
-                                      projectIndex: index,
-                                    ),
-                                  );
-                                } else {
-                                  _uploadMemberStatus(
-                                    project,
-                                    state.isLocal,
-                                    index,
-                                  );
-                                }
+                                context.read<ProjectBloc>().add(
+                                  ProjectGetProjectById(projectId: project.id),
+                                );
                               },
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
