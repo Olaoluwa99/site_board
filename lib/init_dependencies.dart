@@ -26,6 +26,7 @@ import 'feature/projectSection/domain/useCases/create_project.dart';
 import 'feature/projectSection/domain/useCases/get_all_projects.dart';
 import 'feature/projectSection/domain/useCases/get_project_by_id.dart';
 import 'feature/projectSection/domain/useCases/get_project_by_link.dart';
+import 'feature/projectSection/domain/useCases/get_recent_projects.dart';
 import 'feature/projectSection/domain/useCases/update_project.dart';
 import 'feature/projectSection/presentation/bloc/project_bloc.dart';
 
@@ -43,16 +44,27 @@ Future<void> initDependencies() async {
   final appDocsDir = await getApplicationDocumentsDirectory();
   Hive.init(appDocsDir.path);
 
-  final projectBox = await Hive.openBox('projects');
-  /*debugPrint('-------------------------------------------------');
-  for (var key in projectBox.keys) {
+  final recentProjectBox = await Hive.openBox('recent_projects');
+  final offlineProjectBox = await Hive.openBox('offline_projects');
+
+  /*debugPrint('----------------------Azure---------------------------');
+  for (var key in recentProjectBox.keys) {
     debugPrint('-------------------------------------------------');
-    debugPrint('Key: $key => Value: ${projectBox.get(key)}');
+    debugPrint('Key: $key => Value: ${recentProjectBox.get(key)}');
   }
-  debugPrint('-------------------------------------------------');*/
+  debugPrint('-----------------------Azure--------------------------');*/
 
   serviceLocator.registerLazySingleton(() => supabase.client);
-  serviceLocator.registerLazySingleton(() => projectBox);
+  serviceLocator.registerLazySingleton<Box>(
+    () => recentProjectBox,
+    instanceName: 'recent',
+  );
+  serviceLocator.registerLazySingleton<Box>(
+    () => offlineProjectBox,
+    instanceName: 'offline',
+  );
+  /*serviceLocator.registerLazySingleton(() => recentProjectBox);
+  serviceLocator.registerLazySingleton(() => offlineProjectBox);*/
   serviceLocator.registerLazySingleton(() => AppUserCubit());
   serviceLocator.registerFactory(() => InternetConnection());
   serviceLocator.registerFactory<ConnectionChecker>(
@@ -91,9 +103,15 @@ void _initProject() {
     ..registerFactory<ProjectRemoteDataSource>(
       () => ProjectRemoteDataSourceImpl(serviceLocator()),
     )
-    ..registerFactory<ProjectLocalDataSource>(
+    /*..registerFactory<ProjectLocalDataSource>(
       () => ProjectLocalDataSourceImpl(serviceLocator()),
-    ) //Repository
+    )*/
+    ..registerLazySingleton<ProjectLocalDataSource>(
+      () => ProjectLocalDataSourceImpl(
+        serviceLocator<Box>(instanceName: 'recent'),
+        serviceLocator<Box>(instanceName: 'offline'),
+      ),
+    )
     ..registerFactory<ProjectRepository>(
       () => ProjectRepositoryImpl(
         serviceLocator(),
@@ -107,6 +125,7 @@ void _initProject() {
     ..registerFactory(() => UpdateDailyLog(serviceLocator()))
     ..registerFactory(() => ManageLogTask(serviceLocator()))
     ..registerFactory(() => GetAllProjects(serviceLocator()))
+    ..registerFactory(() => GetRecentProjects(serviceLocator()))
     ..registerFactory(() => GetProjectById(serviceLocator()))
     ..registerFactory(() => GetProjectByLink(serviceLocator()))
     ..registerFactory(() => UpdateMember(serviceLocator()))
@@ -119,6 +138,7 @@ void _initProject() {
         updateDailyLog: serviceLocator(),
         manageLogTask: serviceLocator(),
         getAllProjects: serviceLocator(),
+        getRecentProjects: serviceLocator(),
         getProjectById: serviceLocator(),
         getProjectByLink: serviceLocator(),
         updateMember: serviceLocator(),

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:site_board/core/usecases/usecase.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_id.dart';
@@ -10,11 +11,11 @@ import 'package:site_board/feature/projectSection/domain/useCases/manage_log_tas
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_project.dart';
 
-import '../../../../core/common/entities/user.dart';
 import '../../domain/entities/Member.dart';
 import '../../domain/entities/daily_log.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/useCases/get_all_projects.dart';
+import '../../domain/useCases/get_recent_projects.dart';
 import '../../domain/useCases/update_member.dart';
 
 part 'project_event.dart';
@@ -22,6 +23,7 @@ part 'project_state.dart';
 
 class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
   final GetAllProjects _getAllProjects;
+  final GetRecentProjects _getRecentProjects;
   final CreateProject _createProject;
   final UpdateProject _updateProject;
   final CreateDailyLog _createDailyLog;
@@ -33,6 +35,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
 
   ProjectBloc({
     required GetAllProjects getAllProjects,
+    required GetRecentProjects getRecentProjects,
     required CreateProject createProject,
     required UpdateProject updateProject,
     required CreateDailyLog createDailyLog,
@@ -47,6 +50,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
        _updateDailyLog = updateDailyLog,
        _manageLogTask = manageLogTask,
        _getAllProjects = getAllProjects,
+       _getRecentProjects = getRecentProjects,
        _getProjectById = getProjectById,
        _getProjectByLink = getProjectByLink,
        _updateMember = updateMember,
@@ -58,6 +62,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<DailyLogUpdate>(_onDailyLogUpdate);
     on<ManageCurrentLogTask>(_onManageLogTask);
     on<ProjectGetAllProjects>(_onGetAllProjects);
+    on<ProjectGetRecentProjects>(_onGetRecentProjects);
     on<ProjectGetProjectById>(_onGetProjectById);
     on<ProjectGetProjectByLink>(_onGetProjectByLink);
     on<UpdateMemberEvent>(_onUpdateMember);
@@ -79,11 +84,18 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         },
         (r) {
           // Replace updated project in list
+          Project? outputProject;
           final updatedProjects =
-              currentState.projects.map((p) {
-                return p.id == event.project.id ? event.project : p;
+              currentState.projects.map((project) {
+                outputProject = project;
+                return project.id == event.project.id ? event.project : project;
               }).toList();
-          emit(ProjectRetrieveSuccess(updatedProjects));
+          emit(
+            ProjectCreateSuccess(
+              projects: updatedProjects,
+              project: outputProject!,
+            ),
+          );
         },
       );
     }
@@ -222,7 +234,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       emit(ProjectLoading());
       final response = await _updateMember(
         UpdateMemberParams(
-          projectId: event.projectId,
+          projectId: event.project.id,
           member: event.member,
           isCreateMember: event.isCreateMember,
         ),
@@ -231,23 +243,31 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       response.fold(
         (l) {
           emit(
-            DailyLogUploadFailure(
+            ProjectMemberUpdateFailure(
               error: l.message,
               projects: currentState.projects,
             ),
           );
         },
         (r) {
-          final updatedProjects =
-              currentState.projects.map((project) {
-                if (project.id == event.projectId) {
-                  final updatedMembers = [...project.teamMembers, event.member];
-                  return project.copyWith(teamMembers: updatedMembers);
-                }
-                return project;
-              }).toList();
+          Project outputProject = event.project;
+          final updatedMembers = [
+            for (final m in outputProject.teamMembers)
+              if (m.id != event.member.id) m,
+            event.member,
+          ];
+          outputProject.copyWith(teamMembers: updatedMembers);
 
-          emit(DailyLogUploadSuccess(updatedProjects));
+          emit(
+            ProjectMemberUpdateSuccess(
+              projects: updateProjectInList(
+                currentState.projects,
+                outputProject,
+              ),
+              project: outputProject,
+              member: event.member,
+            ),
+          );
         },
       );
     }
@@ -313,6 +333,17 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     });
   }
 
+  void _onGetRecentProjects(
+    ProjectGetRecentProjects event,
+    Emitter<ProjectState> emit,
+  ) async {
+    emit(ProjectLoading());
+    final response = await _getRecentProjects(NoParams());
+    response.fold((l) => emit(ProjectFailure(l.message)), (r) {
+      emit(ProjectRetrieveRecentSuccess(projects: r));
+    });
+  }
+
   void _onGetProjectById(
     ProjectGetProjectById event,
     Emitter<ProjectState> emit,
@@ -321,20 +352,29 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectById(
-        GetProjectByIdParams(projectId: event.projectId, user: event.user),
+        GetProjectByIdParams(projectId: event.project.id),
       );
-      response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
-        final updatedProjects =
-            currentState.projects.map((p) {
-              return p.id == event.projectId ? retrievedProject : p;
-            }).toList();
-        emit(
-          ProjectRetrieveSuccessSingle(
-            projects: updatedProjects,
-            project: retrievedProject,
+      response.fold(
+        (l) => emit(
+          ProjectRetrieveByIdFailure(
+            error: l.message,
+            projects: currentState.projects,
+            oldProject: event.project,
           ),
-        );
-      });
+        ),
+        (retrievedProject) {
+          final updatedProjects =
+              currentState.projects.map((p) {
+                return p.id == event.project.id ? retrievedProject : p;
+              }).toList();
+          emit(
+            ProjectRetrieveSuccessId(
+              projects: updatedProjects,
+              project: retrievedProject,
+            ),
+          );
+        },
+      );
     } else {
       emit(
         ProjectFailure('To retrieve a project by ID, switch to Normal Mode.'),
@@ -350,28 +390,39 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectByLink(
-        GetProjectByLinkParams(
-          projectLink: event.projectLink,
-          user: event.user,
-        ),
+        GetProjectByLinkParams(projectLink: event.projectLink),
       );
-      response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
-        final updatedProjects =
-            currentState.projects.map((p) {
-              return p.projectLink == event.projectLink ? retrievedProject : p;
-            }).toList();
-        emit(
-          ProjectRetrieveSuccessSingle(
-            projects: updatedProjects,
-            project: retrievedProject,
+      response.fold(
+        (l) => emit(
+          ProjectRetrieveByLinkFailure(
+            error: l.message,
+            projects: currentState.projects,
           ),
-        );
-      });
+        ),
+        (retrievedProject) {
+          final updatedProjects =
+              currentState.projects.map((p) {
+                return p.projectLink == event.projectLink
+                    ? retrievedProject
+                    : p;
+              }).toList();
+          emit(
+            ProjectRetrieveSuccessLink(
+              projects: updatedProjects,
+              project: retrievedProject,
+            ),
+          );
+        },
+      );
     } else {
       emit(
         ProjectFailure('To retrieve a project by Link, switch to Normal Mode.'),
       );
     }
+  }
+
+  List<Project> updateProjectInList(List<Project> projects, Project updated) {
+    return projects.map((p) => p.id == updated.id ? updated : p).toList();
   }
 }
 

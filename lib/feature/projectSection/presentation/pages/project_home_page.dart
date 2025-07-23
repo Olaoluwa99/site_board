@@ -21,15 +21,23 @@ import 'create_log_page.dart';
 class ProjectHomePage extends StatefulWidget {
   final Project project;
   final int projectIndex;
-  static route({required Project project, required int projectIndex}) =>
-      MaterialPageRoute(
-        builder:
-            (context) =>
-                ProjectHomePage(project: project, projectIndex: projectIndex),
-      );
+  final bool isLocal;
+  static route({
+    required Project project,
+    required int projectIndex,
+    required bool isLocal,
+  }) => MaterialPageRoute(
+    builder:
+        (context) => ProjectHomePage(
+          project: project,
+          projectIndex: projectIndex,
+          isLocal: isLocal,
+        ),
+  );
   const ProjectHomePage({
     required this.project,
     required this.projectIndex,
+    required this.isLocal,
     super.key,
   });
 
