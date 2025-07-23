@@ -354,6 +354,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
   Future<Either<Failure, List<Project>>> getRecentProjects() async {
     try {
       final projects = projectLocalDataSource.loadRecentProjects();
+      debugPrint('-------------------Getter- ------------------');
+      debugPrint(projects.toString());
       return right(projects);
     } on ServerException catch (e) {
       return left(Failure(e.message));

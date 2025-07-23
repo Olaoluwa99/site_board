@@ -13,7 +13,7 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   final Box offlineBox;
   ProjectLocalDataSourceImpl(this.recentBox, this.offlineBox);
 
-  @override
+  /*@override //--
   List<ProjectModel> loadRecentProjects() {
     List<ProjectModel> projects = [];
     for (int i = 0; i < recentBox.length; i++) {
@@ -22,6 +22,20 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
         projects.add(ProjectModel.fromJson(Map<String, dynamic>.from(data)));
       } else {}
     }
+    return projects;
+  }*/
+
+  @override
+  List<ProjectModel> loadRecentProjects() {
+    List<ProjectModel> projects = [];
+
+    for (var key in recentBox.keys) {
+      final data = recentBox.get(key);
+      if (data != null) {
+        projects.add(ProjectModel.fromJson(Map<String, dynamic>.from(data)));
+      }
+    }
+
     return projects;
   }
 

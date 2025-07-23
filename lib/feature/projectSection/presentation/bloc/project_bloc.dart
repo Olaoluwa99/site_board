@@ -234,7 +234,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       emit(ProjectLoading());
       final response = await _updateMember(
         UpdateMemberParams(
-          projectId: event.projectId,
+          projectId: event.project.id,
           member: event.member,
           isCreateMember: event.isCreateMember,
         ),
@@ -250,21 +250,21 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           );
         },
         (r) {
-          Project? outputProject;
-          final updatedProjects =
-              currentState.projects.map((project) {
-                if (project.id == event.projectId) {
-                  final updatedMembers = [...project.teamMembers, event.member];
-                  outputProject = project.copyWith(teamMembers: updatedMembers);
-                  return outputProject!;
-                }
-                return project;
-              }).toList();
+          Project outputProject = event.project;
+          final updatedMembers = [
+            for (final m in outputProject.teamMembers)
+              if (m.id != event.member.id) m,
+            event.member,
+          ];
+          outputProject.copyWith(teamMembers: updatedMembers);
 
           emit(
             ProjectMemberUpdateSuccess(
-              projects: updatedProjects,
-              project: outputProject!,
+              projects: updateProjectInList(
+                currentState.projects,
+                outputProject,
+              ),
+              project: outputProject,
               member: event.member,
             ),
           );
@@ -352,20 +352,29 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess && !isLocalMode) {
       emit(ProjectLoading());
       final response = await _getProjectById(
-        GetProjectByIdParams(projectId: event.projectId),
+        GetProjectByIdParams(projectId: event.project.id),
       );
-      response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
-        final updatedProjects =
-            currentState.projects.map((p) {
-              return p.id == event.projectId ? retrievedProject : p;
-            }).toList();
-        emit(
-          ProjectRetrieveSuccessSingle(
-            projects: updatedProjects,
-            project: retrievedProject,
+      response.fold(
+        (l) => emit(
+          ProjectRetrieveByIdFailure(
+            error: l.message,
+            projects: currentState.projects,
+            oldProject: event.project,
           ),
-        );
-      });
+        ),
+        (retrievedProject) {
+          final updatedProjects =
+              currentState.projects.map((p) {
+                return p.id == event.project.id ? retrievedProject : p;
+              }).toList();
+          emit(
+            ProjectRetrieveSuccessId(
+              projects: updatedProjects,
+              project: retrievedProject,
+            ),
+          );
+        },
+      );
     } else {
       emit(
         ProjectFailure('To retrieve a project by ID, switch to Normal Mode.'),
@@ -383,23 +392,37 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       final response = await _getProjectByLink(
         GetProjectByLinkParams(projectLink: event.projectLink),
       );
-      response.fold((l) => emit(ProjectFailure(l.message)), (retrievedProject) {
-        final updatedProjects =
-            currentState.projects.map((p) {
-              return p.projectLink == event.projectLink ? retrievedProject : p;
-            }).toList();
-        emit(
-          ProjectRetrieveSuccessSingle(
-            projects: updatedProjects,
-            project: retrievedProject,
+      response.fold(
+        (l) => emit(
+          ProjectRetrieveByLinkFailure(
+            error: l.message,
+            projects: currentState.projects,
           ),
-        );
-      });
+        ),
+        (retrievedProject) {
+          final updatedProjects =
+              currentState.projects.map((p) {
+                return p.projectLink == event.projectLink
+                    ? retrievedProject
+                    : p;
+              }).toList();
+          emit(
+            ProjectRetrieveSuccessLink(
+              projects: updatedProjects,
+              project: retrievedProject,
+            ),
+          );
+        },
+      );
     } else {
       emit(
         ProjectFailure('To retrieve a project by Link, switch to Normal Mode.'),
       );
     }
+  }
+
+  List<Project> updateProjectInList(List<Project> projects, Project updated) {
+    return projects.map((p) => p.id == updated.id ? updated : p).toList();
   }
 }
 

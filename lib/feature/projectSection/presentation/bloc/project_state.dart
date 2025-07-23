@@ -15,11 +15,6 @@ final class ProjectFailure extends ProjectState {
 //
 final class ProjectUploadSuccess extends ProjectState {}
 
-/*final class ProjectRetrieveSuccess extends ProjectState {
-  final List<Project> projects;
-  ProjectRetrieveSuccess(this.projects);
-}*/
-
 //
 
 /*final class DailyLogUploadFailure extends ProjectState {
@@ -71,10 +66,19 @@ class ProjectRetrieveSuccessInit extends ProjectRetrieveSuccess {
   }) : super(projects);
 }
 
-class ProjectRetrieveSuccessSingle extends ProjectRetrieveSuccess {
+class ProjectRetrieveSuccessLink extends ProjectRetrieveSuccess {
   final Project project;
 
-  ProjectRetrieveSuccessSingle({
+  ProjectRetrieveSuccessLink({
+    required List<Project> projects,
+    required this.project,
+  }) : super(projects);
+}
+
+class ProjectRetrieveSuccessId extends ProjectRetrieveSuccess {
+  final Project project;
+
+  ProjectRetrieveSuccessId({
     required List<Project> projects,
     required this.project,
   }) : super(projects);
@@ -94,6 +98,24 @@ class ProjectMemberUpdateSuccess extends ProjectRetrieveSuccess {
 class ProjectMemberUpdateFailure extends ProjectRetrieveSuccess {
   final String error;
   ProjectMemberUpdateFailure({
+    required this.error,
+    required List<Project> projects,
+  }) : super(projects);
+}
+
+class ProjectRetrieveByIdFailure extends ProjectRetrieveSuccess {
+  final String error;
+  final Project oldProject;
+  ProjectRetrieveByIdFailure({
+    required this.error,
+    required this.oldProject,
+    required List<Project> projects,
+  }) : super(projects);
+}
+
+class ProjectRetrieveByLinkFailure extends ProjectRetrieveSuccess {
+  final String error;
+  ProjectRetrieveByLinkFailure({
     required this.error,
     required List<Project> projects,
   }) : super(projects);

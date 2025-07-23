@@ -5,6 +5,8 @@ import 'package:site_board/feature/auth/presentation/pages/login_page.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/project_home_page.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/admin_permission_notifier.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/main_alert_dialog.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/offline_dialog.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/project_password.dart';
 import 'package:uuid/uuid.dart';
 
@@ -79,7 +81,7 @@ class _HomePageState extends State<HomePage> {
 
     context.read<ProjectBloc>().add(
       UpdateMemberEvent(
-        projectId: currentProject.id,
+        project: currentProject,
         member: uploadMember,
         isCreateMember: true,
       ),
@@ -87,7 +89,7 @@ class _HomePageState extends State<HomePage> {
     Navigator.pop(context);
   }
 
-  void _uploadMemberStatus(Project currentProject, bool isLocal, int index) {
+  /*void _uploadMemberStatusOld(Project currentProject, bool isLocal, int index) {
     if (!isLocal) {
       bool isOldUser = false;
       Member? soughtMember;
@@ -122,9 +124,6 @@ class _HomePageState extends State<HomePage> {
             builder:
                 (context) => ProjectPasswordDialog(
                   onCompleted: (String passwordText) {
-                    debugPrint('------------------------------------------');
-                    debugPrint(passwordText);
-                    debugPrint(currentProject.projectPassword);
                     if (passwordText == currentProject.projectPassword) {
                       uploadMember = Member(
                         id: const Uuid().v4(),
@@ -168,12 +167,108 @@ class _HomePageState extends State<HomePage> {
       if (uploadMember != null) {
         context.read<ProjectBloc>().add(
           UpdateMemberEvent(
-            projectId: currentProject.id,
+            project: currentProject,
             member: uploadMember!,
             isCreateMember: !isOldUser,
           ),
         );
       }
+    }
+  }*/
+
+  Future<void> _uploadMemberStatus(
+    Project currentProject,
+    bool isLocal,
+    int index,
+  ) async {
+    if (!isLocal) {
+      bool isOldUser = false;
+      Member? soughtMember;
+      for (final member in currentProject.teamMembers) {
+        if (member.userId == retrievedUser!.id) {
+          isOldUser = true;
+          soughtMember = member;
+          break;
+        }
+      }
+
+      Member? uploadMember;
+      if (isOldUser) {
+        uploadMember = soughtMember!.copyWith(lastViewed: DateTime.now());
+      } else {
+        if (currentProject.projectSecurityType == Constants.securityApproval) {
+          uploadMember = Member(
+            id: const Uuid().v4(),
+            projectId: currentProject.id,
+            name: retrievedUser!.name,
+            email: retrievedUser!.email,
+            userId: retrievedUser!.id,
+            isAccepted: false,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          );
+        } else if (currentProject.projectSecurityType ==
+            Constants.securityPassword) {
+          final String? passwordText = await showDialog<String>(
+            context: context,
+            builder:
+                (context) => ProjectPasswordDialog(
+                  onCompleted: (passwordText) {
+                    Navigator.pop(context, passwordText);
+                  },
+                ),
+          );
+
+          if (passwordText == null) {
+            // User cancelled the dialog
+            return;
+          }
+
+          if (passwordText == currentProject.projectPassword) {
+            uploadMember = Member(
+              id: const Uuid().v4(),
+              projectId: currentProject.id,
+              name: retrievedUser!.name,
+              email: retrievedUser!.email,
+              userId: retrievedUser!.id,
+              isAccepted: true,
+              isBlocked: false,
+              isAdmin: false,
+              hasLeft: false,
+              lastViewed: DateTime.now(),
+            );
+          } else {
+            showSnackBar(
+              context,
+              'The password you entered is incorrect. Please check with the project administrator and try again.',
+            );
+            return;
+          }
+        } else {
+          uploadMember = Member(
+            id: const Uuid().v4(),
+            projectId: currentProject.id,
+            name: retrievedUser!.name,
+            email: retrievedUser!.email,
+            userId: retrievedUser!.id,
+            isAccepted: true,
+            isBlocked: false,
+            isAdmin: false,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          );
+        }
+      }
+
+      context.read<ProjectBloc>().add(
+        UpdateMemberEvent(
+          project: currentProject,
+          member: uploadMember,
+          isCreateMember: !isOldUser,
+        ),
+      );
     }
   }
 
@@ -244,29 +339,63 @@ class _HomePageState extends State<HomePage> {
                     debugPrint(state.error);
                     showSnackBar(context, state.error);
                   }
-                  if (state is ProjectMemberUpdateFailure) {
-                    debugPrint(state.error);
-                    showSnackBar(context, state.error);
-                  }
-                  /*if (state is ProjectRetrieveSuccessInit---) {
-                    if (state.projects.isEmpty) {
-                      showExtra = false;
-                    } else {
-                      showExtra = true;
-                    }
-                    showSnackBar(
-                      context,
-                      state.isLocal == true
-                          ? 'Starting App in Offline mode'
-                          : 'Starting App in Normal mode',
+                  if (state is ProjectRetrieveByIdFailure) {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => OfflineDialog(
+                            onCompleted: () {
+                              Navigator.push(
+                                context,
+                                ProjectHomePage.route(
+                                  project: state.oldProject,
+                                  projectIndex: state.projects.indexOf(
+                                    state.oldProject,
+                                  ),
+                                  isLocal: true,
+                                ),
+                              );
+                            },
+                            onDismiss: () {
+                              Navigator.pop(context);
+                            },
+                          ),
                     );
-                  }*/
+                  }
+                  if (state is ProjectRetrieveByLinkFailure) {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => MainAlertDialog(
+                            title: 'Error Loading Project',
+                            text:
+                                '${state.error}\n\nWe encountered an error while trying to retrieve data from this project link. Please verify that the link is correct and check your internet connection. If the issue continues, contact the project administrator for assistance.',
+                            onDismiss: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                    );
+                  }
                   if (state is ProjectRetrieveRecentSuccess) {
                     if (state.projects.isEmpty) {
                       showExtra = false;
                     } else {
                       showExtra = true;
                     }
+                  }
+                  if (state is ProjectMemberUpdateFailure) {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => MainAlertDialog(
+                            title: 'Error Loading Project',
+                            text:
+                                '${state.error}\n\nWe encountered an error while trying to retrieve data from this project link. Please verify that the link is correct and check your internet connection. If the issue continues, contact the project administrator for assistance.',
+                            onDismiss: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                    );
                   }
                   if (state is ProjectMemberUpdateSuccess) {
                     if (state.member.isBlocked) {
@@ -300,7 +429,14 @@ class _HomePageState extends State<HomePage> {
                       );
                     }
                   }
-                  if (state is ProjectRetrieveSuccessSingle) {
+                  if (state is ProjectRetrieveSuccessLink) {
+                    _uploadMemberStatus(
+                      state.project,
+                      false,
+                      state.projects.indexOf(state.project),
+                    );
+                  }
+                  if (state is ProjectRetrieveSuccessId) {
                     _uploadMemberStatus(
                       state.project,
                       false,
@@ -330,7 +466,7 @@ class _HomePageState extends State<HomePage> {
                             return GestureDetector(
                               onTap: () {
                                 context.read<ProjectBloc>().add(
-                                  ProjectGetProjectById(projectId: project.id),
+                                  ProjectGetProjectById(project: project),
                                 );
                               },
                               child: Column(

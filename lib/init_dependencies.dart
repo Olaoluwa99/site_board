@@ -26,6 +26,7 @@ import 'feature/projectSection/domain/useCases/create_project.dart';
 import 'feature/projectSection/domain/useCases/get_all_projects.dart';
 import 'feature/projectSection/domain/useCases/get_project_by_id.dart';
 import 'feature/projectSection/domain/useCases/get_project_by_link.dart';
+import 'feature/projectSection/domain/useCases/get_recent_projects.dart';
 import 'feature/projectSection/domain/useCases/update_project.dart';
 import 'feature/projectSection/presentation/bloc/project_bloc.dart';
 
@@ -45,12 +46,14 @@ Future<void> initDependencies() async {
 
   final recentProjectBox = await Hive.openBox('recent_projects');
   final offlineProjectBox = await Hive.openBox('offline_projects');
-  /*debugPrint('-------------------------------------------------');
-  for (var key in projectBox.keys) {
+
+  /*debugPrint('----------------------Azure---------------------------');
+  for (var key in recentProjectBox.keys) {
     debugPrint('-------------------------------------------------');
-    debugPrint('Key: $key => Value: ${projectBox.get(key)}');
+    debugPrint('Key: $key => Value: ${recentProjectBox.get(key)}');
   }
-  debugPrint('-------------------------------------------------');*/
+  debugPrint('-----------------------Azure--------------------------');*/
+
   serviceLocator.registerLazySingleton(() => supabase.client);
   serviceLocator.registerLazySingleton<Box>(
     () => recentProjectBox,
@@ -122,6 +125,7 @@ void _initProject() {
     ..registerFactory(() => UpdateDailyLog(serviceLocator()))
     ..registerFactory(() => ManageLogTask(serviceLocator()))
     ..registerFactory(() => GetAllProjects(serviceLocator()))
+    ..registerFactory(() => GetRecentProjects(serviceLocator()))
     ..registerFactory(() => GetProjectById(serviceLocator()))
     ..registerFactory(() => GetProjectByLink(serviceLocator()))
     ..registerFactory(() => UpdateMember(serviceLocator()))
