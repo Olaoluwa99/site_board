@@ -150,18 +150,11 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
               projects: currentState.projects,
             ),
           );
-          //emit(ProjectRetrieveSuccess(currentState.projects));
         },
         (r) {
           final updatedProjects =
               currentState.projects.map((project) {
                 if (project.id == event.projectId) {
-                  /*final updatedLogs = [
-                  ...project.dailyLogs.where(
-                    (log) => log.id != event.dailyLog.id,
-                  ),
-                  event.dailyLog,
-                ];*/
                   final updatedLogs = [...project.dailyLogs, event.dailyLog];
                   return project.copyWith(dailyLogs: updatedLogs);
                 }
@@ -200,8 +193,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
               projects: currentState.projects,
             ),
           );
-          //Changed so that when second click of upload, it still shows popup
-          //emit(ProjectRetrieveSuccess(currentState.projects));
         },
         (r) {
           final updatedProjects =
@@ -295,7 +286,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
               projects: currentState.projects,
             ),
           );
-          //emit(ProjectRetrieveSuccess(currentState.projects));
         },
         (r) {
           final updatedProjects =

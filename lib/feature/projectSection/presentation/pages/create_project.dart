@@ -87,13 +87,6 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
             ),
           ),
           Divider(),
-
-          /*ProjectSecurityItem(
-            inputDropdownOpen: dropdownOpen,
-            onCompleted: (outputMode) {
-              selectedMode = outputMode;
-            },
-          ),*/
           ProjectSecurityItem(
             dropdownOpen: dropdownOpen,
             onCompleted: (outputMode) {
@@ -131,8 +124,10 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 if (_projectNameController.text.isNotEmpty &&
                     _projectDescriptionController.text.isNotEmpty &&
                     selectedMode != null) {
+                  final projectId = const Uuid().v4();
                   widget.onCompleted(
                     Project(
+                      id: projectId,
                       projectName: _projectNameController.text,
                       creatorId: userId,
                       createdDate: DateTime.now(),
@@ -142,10 +137,10 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                       dailyLogs: [],
                       location: '',
                       coverPhotoUrl: '',
+                      teamAdminIds: [projectId],
                       teamMembers: [],
                       description: _projectDescriptionController.text,
-                      projectLink:
-                          'https://site-board.com/${const Uuid().v4()}/',
+                      projectLink: 'https://site-board.com/$projectId/',
                       projectSecurityType:
                           selectedMode ?? Constants.securityNone,
                       projectPassword:

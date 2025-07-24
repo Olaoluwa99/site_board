@@ -221,17 +221,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
         );
       }
 
-      /*dailyLogModel.copyWith(
-        startingImageUrl: imageModifier(
-          dailyLog.startingImageUrl,
-          modifiedStartingImageUrlList,
-        ),
-        endingImageUrl: imageModifier(
-          dailyLog.endingImageUrl,
-          modifiedEndingTaskImageUrlList,
-        ),
-      );*/
-
       final setupCurrentTasks = taskConverter(currentTasks);
       await projectRemoteDataSource.syncLogTasks(
         dailyLogId: dailyLog.id,
@@ -336,8 +325,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }) async {
     try {
       if (!await (connectionChecker.isConnected)) {
-        /*final projects = projectLocalDataSource.loadProjects();
-        return right(RetrievedProjects(isLocal: true, projects: projects));*/
         return left(Failure('Not connected to the internet. Try again later.'));
       }
       final projects = await projectRemoteDataSource.getAllProjects(
@@ -354,8 +341,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
   Future<Either<Failure, List<Project>>> getRecentProjects() async {
     try {
       final projects = projectLocalDataSource.loadRecentProjects();
-      debugPrint('-------------------Getter- ------------------');
-      debugPrint(projects.toString());
       return right(projects);
     } on ServerException catch (e) {
       return left(Failure(e.message));

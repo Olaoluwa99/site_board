@@ -60,73 +60,80 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
       appBar: AppBar(
         title: Text(widget.project.projectName),
         actions: [
-          IconButton(
-            onPressed: () {
-              showRoundedBottomSheet(
-                context: context,
-                backgroundColor: AppPalette.backgroundColor,
-                builder:
-                    (context) => SizedBox(
-                      height: MediaQuery.of(context).size.height,
-                      child: ProjectSummarizer(
-                        project: widget.project,
-                        onClose: () => Navigator.pop(context),
-                        onCompleted: () {
-                          //Do Something
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-              );
-            },
-            icon: Icon(Icons.note),
-          ),
-          IconButton(
-            onPressed: () {
-              showRoundedBottomSheet(
-                context: context,
-                backgroundColor: AppPalette.backgroundColor,
-                builder:
-                    (context) => SizedBox(
-                      height: MediaQuery.of(context).size.height,
-                      child: ProjectSettings(
-                        project: widget.project,
-                        onClose: () => Navigator.pop(context),
-                        onCompleted: () {
-                          //Do Something
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-              );
-            },
-            icon: Icon(Icons.settings),
-          ),
+          widget.isLocal
+              ? SizedBox.shrink()
+              : IconButton(
+                onPressed: () {
+                  showRoundedBottomSheet(
+                    context: context,
+                    backgroundColor: AppPalette.backgroundColor,
+                    builder:
+                        (context) => SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          child: ProjectSummarizer(
+                            project: widget.project,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              //Do Something
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
+                  );
+                },
+                icon: Icon(Icons.note),
+              ),
+          widget.isLocal
+              ? SizedBox.shrink()
+              : IconButton(
+                onPressed: () {
+                  showRoundedBottomSheet(
+                    context: context,
+                    backgroundColor: AppPalette.backgroundColor,
+                    builder:
+                        (context) => SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          child: ProjectSettings(
+                            project: widget.project,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              //Do Something
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
+                  );
+                },
+                icon: Icon(Icons.settings),
+              ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showRoundedBottomSheet(
-            context: context,
-            backgroundColor: AppPalette.backgroundColor,
-            builder:
-                (context) => SizedBox(
-                  height: MediaQuery.of(context).size.height,
-                  child: CreateLogPage(
-                    projectId: widget.project.id,
-                    onClose: () => Navigator.pop(context),
-                    onCompleted: () {
-                      //dailyLogsList.add(retrievedLog);
-                      Navigator.pop(context);
-                      //setState(() {});
-                    },
-                  ),
-                ),
-          );
-        },
-        label: const Text('Create Log'),
-        icon: const Icon(Icons.add),
-      ),
+      floatingActionButton:
+          widget.isLocal
+              ? SizedBox.shrink()
+              : FloatingActionButton.extended(
+                onPressed: () {
+                  showRoundedBottomSheet(
+                    context: context,
+                    backgroundColor: AppPalette.backgroundColor,
+                    builder:
+                        (context) => SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          child: CreateLogPage(
+                            projectId: widget.project.id,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              //dailyLogsList.add(retrievedLog);
+                              Navigator.pop(context);
+                              //setState(() {});
+                            },
+                          ),
+                        ),
+                  );
+                },
+                label: const Text('Create Log'),
+                icon: const Icon(Icons.add),
+              ),
       body: BlocListener<ProjectBloc, ProjectState>(
         listener: (context, state) {
           if (state is ProjectLoading) {
@@ -176,6 +183,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
               const SizedBox(height: 16),
               AboutProjectCard(
                 project: widget.project,
+                isLocal: widget.isLocal,
                 onViewClicked: () {
                   showRoundedBottomSheet(
                     context: context,
@@ -254,7 +262,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                             }
                             return LogListItem(
                               log: item,
-                              isEditable: !item.isConfirmed,
+                              isEditable: !item.isConfirmed || !widget.isLocal,
                               onEdit: () {
                                 showRoundedBottomSheet(
                                   context: context,

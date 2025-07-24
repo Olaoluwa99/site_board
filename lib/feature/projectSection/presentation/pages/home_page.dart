@@ -176,6 +176,8 @@ class _HomePageState extends State<HomePage> {
     }
   }*/
 
+  //  TODO - First fix - Not retrieving members issue
+
   Future<void> _uploadMemberStatus(
     Project currentProject,
     bool isLocal,
@@ -345,6 +347,7 @@ class _HomePageState extends State<HomePage> {
                       builder:
                           (context) => OfflineDialog(
                             onCompleted: () {
+                              Navigator.pop(context);
                               Navigator.push(
                                 context,
                                 ProjectHomePage.route(
@@ -457,6 +460,33 @@ class _HomePageState extends State<HomePage> {
                   }
 
                   if (state is ProjectRetrieveRecentSuccess) {
+                    return Column(
+                      children:
+                          state.projects.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final project = entry.value;
+
+                            return GestureDetector(
+                              onTap: () {
+                                context.read<ProjectBloc>().add(
+                                  ProjectGetProjectById(project: project),
+                                );
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 8),
+                                  Text(project.projectName),
+                                  SizedBox(height: 8),
+                                  Divider(),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                    );
+                  }
+
+                  if (state is ProjectRetrieveByIdFailure) {
                     return Column(
                       children:
                           state.projects.asMap().entries.map((entry) {

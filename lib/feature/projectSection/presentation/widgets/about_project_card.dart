@@ -7,10 +7,12 @@ import '../../../../core/utils/format_date.dart';
 
 class AboutProjectCard extends StatelessWidget {
   final Project project;
+  final bool isLocal;
   final VoidCallback onEditClicked;
   final VoidCallback onViewClicked;
   const AboutProjectCard({
     required this.project,
+    required this.isLocal,
     required this.onEditClicked,
     required this.onViewClicked,
     super.key,
@@ -70,25 +72,27 @@ class AboutProjectCard extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(
-          child: InkWell(
-            onTap: onEditClicked,
-            borderRadius: BorderRadius.circular(30),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color:
-                      AppPalette
-                          .backgroundColor, //Colors.black.withOpacity(0.6),
-                  shape: BoxShape.circle,
+        isLocal
+            ? SizedBox.shrink()
+            : SizedBox(
+              child: InkWell(
+                onTap: onEditClicked,
+                borderRadius: BorderRadius.circular(30),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color:
+                          AppPalette
+                              .backgroundColor, //Colors.black.withOpacity(0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    padding: EdgeInsets.all(12), // space around the icon
+                    child: Icon(Icons.edit, size: 20),
+                  ),
                 ),
-                padding: EdgeInsets.all(12), // space around the icon
-                child: Icon(Icons.edit, size: 20),
               ),
             ),
-          ),
-        ),
       ],
     );
   }

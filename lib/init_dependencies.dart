@@ -49,10 +49,9 @@ Future<void> initDependencies() async {
 
   /*debugPrint('----------------------Azure---------------------------');
   for (var key in recentProjectBox.keys) {
-    debugPrint('-------------------------------------------------');
     debugPrint('Key: $key => Value: ${recentProjectBox.get(key)}');
   }
-  debugPrint('-----------------------Azure--------------------------');*/
+  debugPrint('----------------------Azure--------------------------');*/
 
   serviceLocator.registerLazySingleton(() => supabase.client);
   serviceLocator.registerLazySingleton<Box>(

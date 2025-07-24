@@ -54,7 +54,7 @@ class ProjectModel extends Project {
         ' projectLink: $projectLink,' +
         ' description: $description,' +
         ' teamAdminIds: $teamAdminIds,' +
-        ' teamMembers: $teamMembers,' +
+        ' members: $teamMembers,' +
         ' createdDate: $createdDate,' +
         ' endDate: $endDate,' +
         ' dailyLogs: $dailyLogs,' +
@@ -113,8 +113,10 @@ class ProjectModel extends Project {
       'project_link': projectLink,
       'description': description,
       'team_admin_ids': teamAdminIds,
-      'team_members':
-          dailyLogs.map((member) => (member as MemberModel).toJson()).toList(),
+      'members':
+          teamMembers
+              .map((member) => (member as MemberModel).toJson())
+              .toList(),
       'created_date': createdDate.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'daily_logs':
@@ -158,7 +160,7 @@ class ProjectModel extends Project {
       description: map['description'] ?? '',
       teamAdminIds: List<String>.from(map['team_admin_ids'] ?? const []),
       teamMembers:
-          (map['team_members'] as List<dynamic>?)
+          (map['members'] as List<dynamic>?)
               ?.map(
                 (member) =>
                     MemberModel.fromJson(Map<String, dynamic>.from(member)),
