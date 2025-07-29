@@ -66,6 +66,15 @@ class ProjectRetrieveSuccessInit extends ProjectRetrieveSuccess {
   }) : super(projects);
 }
 
+class ProjectRetrieveAddRecent extends ProjectRetrieveSuccess {
+  final Project project;
+
+  ProjectRetrieveAddRecent({
+    required List<Project> projects,
+    required this.project,
+  }) : super(projects);
+}
+
 class ProjectRetrieveSuccessLink extends ProjectRetrieveSuccess {
   final Project project;
 

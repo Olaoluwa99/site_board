@@ -7,6 +7,7 @@ import 'package:site_board/feature/projectSection/presentation/pages/project_hom
 import 'package:site_board/feature/projectSection/presentation/widgets/admin_permission_notifier.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/main_alert_dialog.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/offline_dialog.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/project_list_item.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/project_password.dart';
 import 'package:uuid/uuid.dart';
 
@@ -175,6 +176,8 @@ class _HomePageState extends State<HomePage> {
       }
     }
   }*/
+
+  //  TODO - First fix - Not retrieving members issue
 
   Future<void> _uploadMemberStatus(
     Project currentProject,
@@ -345,6 +348,7 @@ class _HomePageState extends State<HomePage> {
                       builder:
                           (context) => OfflineDialog(
                             onCompleted: () {
+                              Navigator.pop(context);
                               Navigator.push(
                                 context,
                                 ProjectHomePage.route(
@@ -437,6 +441,14 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
                   if (state is ProjectRetrieveSuccessId) {
+                    debugPrint(
+                      '---------------zzzzzzzzzzzzzzzzzzzzzzz----------------------',
+                    );
+                    debugPrint(state.project.toString());
+                    debugPrint(
+                      '---------------zzzzzzzzzzzzzzzzzzzzzzz----------------------',
+                    );
+
                     _uploadMemberStatus(
                       state.project,
                       false,
@@ -478,6 +490,25 @@ class _HomePageState extends State<HomePage> {
                                   Divider(),
                                 ],
                               ),
+                            );
+                          }).toList(),
+                    );
+                  }
+
+                  if (state is ProjectRetrieveByIdFailure) {
+                    return Column(
+                      children:
+                          state.projects.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final project = entry.value;
+
+                            return ProjectListItem(
+                              projectName: project.projectName,
+                              onClicked: () {
+                                context.read<ProjectBloc>().add(
+                                  ProjectGetProjectById(project: project),
+                                );
+                              },
                             );
                           }).toList(),
                     );

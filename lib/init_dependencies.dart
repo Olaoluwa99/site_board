@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/add_recent_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/manage_log_task.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_member.dart';
@@ -15,6 +16,7 @@ import 'feature/auth/data/repositories/auth_repository_impl.dart';
 import 'feature/auth/domain/repository/auth_repository.dart';
 import 'feature/auth/domain/usecases/current_user.dart';
 import 'feature/auth/domain/usecases/user_login.dart';
+import 'feature/auth/domain/usecases/user_logout.dart';
 import 'feature/auth/domain/usecases/user_sign_up.dart';
 import 'feature/auth/presentation/bloc/auth_bloc.dart';
 import 'feature/projectSection/data/dataSources/project_local_data_source.dart';
@@ -49,10 +51,9 @@ Future<void> initDependencies() async {
 
   /*debugPrint('----------------------Azure---------------------------');
   for (var key in recentProjectBox.keys) {
-    debugPrint('-------------------------------------------------');
     debugPrint('Key: $key => Value: ${recentProjectBox.get(key)}');
   }
-  debugPrint('-----------------------Azure--------------------------');*/
+  debugPrint('----------------------Azure--------------------------');*/
 
   serviceLocator.registerLazySingleton(() => supabase.client);
   serviceLocator.registerLazySingleton<Box>(
@@ -87,12 +88,14 @@ void _initAuth() {
     ..registerFactory(() => UserSignUp(serviceLocator()))
     ..registerFactory(() => UserLogin(serviceLocator()))
     ..registerFactory(() => CurrentUser(serviceLocator()))
+    ..registerFactory(() => UserLogout(serviceLocator()))
     ..registerLazySingleton(
       () => AuthBloc(
         userSignUp: serviceLocator(),
         userLogin: serviceLocator(),
         currentUser: serviceLocator(),
         appUserCubit: serviceLocator(),
+        userLogout: serviceLocator(),
       ),
     );
 }
@@ -129,6 +132,7 @@ void _initProject() {
     ..registerFactory(() => GetProjectById(serviceLocator()))
     ..registerFactory(() => GetProjectByLink(serviceLocator()))
     ..registerFactory(() => UpdateMember(serviceLocator()))
+    ..registerFactory(() => AddRecentProject(serviceLocator()))
     //Bloc
     ..registerLazySingleton(
       () => ProjectBloc(
@@ -142,6 +146,7 @@ void _initProject() {
         getProjectById: serviceLocator(),
         getProjectByLink: serviceLocator(),
         updateMember: serviceLocator(),
+        addRecentProject: serviceLocator(),
       ),
     );
 }

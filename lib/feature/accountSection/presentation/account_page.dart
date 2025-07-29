@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:site_board/core/common/widgets/default_button.dart';
+import 'package:site_board/core/common/widgets/loader.dart';
+import 'package:site_board/core/utils/show_snackbar.dart';
+import 'package:site_board/feature/auth/presentation/bloc/auth_bloc.dart';
 
 import '../../../core/common/entities/user.dart';
+import '../../../core/common/widgets/default_button.dart';
+import '../../projectSection/domain/entities/Member.dart';
+import '../../projectSection/domain/entities/project.dart';
 import '../../projectSection/presentation/bloc/project_bloc.dart';
+import '../../projectSection/presentation/pages/project_home_page.dart';
+import '../../projectSection/presentation/widgets/main_alert_dialog.dart';
+import '../../projectSection/presentation/widgets/project_list_item.dart';
 import '../../projectSection/presentation/widgets/text_with_prefix.dart';
 
 class AccountPage extends StatefulWidget {
@@ -17,125 +25,215 @@ class AccountPage extends StatefulWidget {
 }
 
 class _AccountPageState extends State<AccountPage> {
-  //bool isEditMode = false;
+  @override
+  void initState() {
+    context.read<ProjectBloc>().add(
+      ProjectGetAllProjects(userId: widget.user.id),
+    );
+    super.initState();
+  }
+
+  void _updateCreatorStatus(Project project) {
+    Member? soughtMember;
+    debugPrint('---------------xxxxxxx----------------------');
+    debugPrint('Sizze: ${project.teamMembers.length}');
+    debugPrint(widget.user.id);
+    debugPrint('---------------xxxxxxx----------------------');
+
+    project.teamMembers.map((member) {
+      debugPrint('---------------000000----------------------');
+      debugPrint(member.toString());
+      debugPrint(widget.user.id);
+      debugPrint('---------------000000----------------------');
+      if (member.userId == widget.user.id) {
+        soughtMember = member;
+      }
+    }).toList();
+
+    debugPrint('---------------yyyyyyyyyyyyyyyyyyyyyyy----------------------');
+    debugPrint(soughtMember.toString());
+    debugPrint(project.toString());
+    debugPrint('---------------yyyyyyyyyyyyyyyyyyyyyyy----------------------');
+
+    context.read<ProjectBloc>().add(
+      UpdateMemberEvent(
+        project: project,
+        member: soughtMember!.copyWith(lastViewed: DateTime.now()),
+        isCreateMember: false,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          /*IconButton(
-            onPressed: () {
-              if (isEditMode) {
-              } else {}
-            },
-            icon: isEditMode ? Icon(Icons.done) : Icon(Icons.edit),
-          ),*/
-        ],
+        actions: [],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('This is account page', style: TextStyle(fontSize: 16)),
-            SizedBox(height: 16),
-            TextWithPrefix(
-              prefix: 'Name',
-              text: widget.user.name,
-              textSize: 16,
-            ),
-            SizedBox(height: 16),
-            TextWithPrefix(
-              prefix: 'Email',
-              text: widget.user.email,
-              textSize: 16,
-            ),
+        child: BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is AuthFailure) {
+              showSnackBar(context, state.message);
+              Navigator.pop(context);
+            }
+          },
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 20),
+              TextWithPrefix(
+                prefix: 'Name',
+                text: widget.user.name,
+                textSize: 16,
+              ),
+              SizedBox(height: 16),
+              TextWithPrefix(
+                prefix: 'Email',
+                text: widget.user.email,
+                textSize: 16,
+              ),
 
-            SizedBox(height: 16),
-            Divider(),
-            SizedBox(height: 8),
-            Text(
-              'Created Projects',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            BlocBuilder<ProjectBloc, ProjectState>(
-              builder: (context, state) {
-                if (state is ProjectFailure) {
-                  debugPrint(state.error);
-                  return Text(
-                    state.error,
-                    style: TextStyle(fontSize: 16),
-                    textAlign: TextAlign.center,
-                  );
-                }
-                if (state is ProjectLoading) {
-                  return SizedBox(
-                    height: 120,
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                if (state is ProjectRetrieveSuccess) {
-                  return state.projects.isEmpty
-                      ? SizedBox(
-                        height: 120,
-                        child: Center(child: Text("No projects found.")),
-                      )
-                      : Column(
-                        children:
-                            state.projects.map((project) {
-                              return Text(project.projectName);
-                            }).toList(),
-                      );
-                }
-                /*if (state is ProjectRetrieveSuccessInit) {
-                    return Column(
-                      children:
-                          state.projects.map((project) {
-                            return Text(project.projectName);
-                          }).toList(),
+              SizedBox(height: 16),
+              Divider(),
+              SizedBox(height: 8),
+              Text(
+                'Created Projects',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              BlocConsumer<ProjectBloc, ProjectState>(
+                listener: (context, state) {
+                  if (state is ProjectLoading) {
+                    showLoaderDialog(context);
+                  }
+                  if (state is ProjectRetrieveSuccess ||
+                      state is ProjectFailure) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                  }
+                  if (state is ProjectMemberUpdateFailure) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => MainAlertDialog(
+                            title: 'Error Loading Project',
+                            text:
+                                '${state.error}\n\nWe encountered an error while trying to retrieve data from this project link. Please verify that the link is correct and check your internet connection. If the issue continues, contact the project administrator for assistance.',
+                            onDismiss: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                    );
+                  }
+                  if (state is ProjectMemberUpdateSuccess) {
+                    context.read<ProjectBloc>().add(
+                      ProjectAddToRecent(project: state.project),
+                    );
+                  }
+                  if (state is ProjectRetrieveAddRecent) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    Navigator.push(
+                      context,
+                      ProjectHomePage.route(
+                        project: state.project,
+                        projectIndex: state.projects.indexOf(state.project),
+                        isLocal: false,
+                      ),
+                    );
+                  }
+                },
+                builder: (context, state) {
+                  if (state is ProjectFailure) {
+                    return GestureDetector(
+                      onTap: () {
+                        context.read<ProjectBloc>().add(
+                          ProjectGetAllProjects(userId: widget.user.id),
+                        );
+                      },
+                      child: Text(
+                        'Not connected to the internet. Click to retry.',
+                        style: TextStyle(fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+                  /*if (state is ProjectLoading) {
+                    return SizedBox(
+                      height: 120,
+                      child: Center(child: CircularProgressIndicator()),
                     );
                   }*/
-                return SizedBox.shrink();
-              },
-            ),
+                  if (state is ProjectRetrieveSuccess) {
+                    return state.projects.isEmpty
+                        ? SizedBox(
+                          height: 120,
+                          child: Center(child: Text("No projects found.")),
+                        )
+                        : Column(
+                          children:
+                              state.projects.map((project) {
+                                return ProjectListItem(
+                                  projectName: project.projectName,
+                                  onClicked: () {
+                                    _updateCreatorStatus(project);
+                                  },
+                                );
+                              }).toList(),
+                        );
+                  }
+                  /*if (state is ProjectRetrieveSuccessInit) {
+                        return Column(
+                          children:
+                              state.projects.map((project) {
+                                return Text(project.projectName);
+                              }).toList(),
+                        );
+                      }*/
+                  return SizedBox.shrink();
+                },
+              ),
 
-            SizedBox(height: 16),
-            Divider(),
-            SizedBox(height: 16),
-            Text(
-              'Sign Out',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Text('To sign-out ...', style: TextStyle(fontSize: 16)),
-            SizedBox(height: 16),
-            DefaultButton(onClick: () {}, text: 'Sign out'),
-            SizedBox(height: 16),
-            Divider(),
-            SizedBox(height: 16),
-            Text(
-              'Delete Account',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Text('Deleting this account ...', style: TextStyle(fontSize: 16)),
-            SizedBox(height: 16),
-            DefaultButton(onClick: () {}, text: 'Delete'),
-          ],
+              /* SizedBox(height: 16),
+              Divider(),*/
+              SizedBox(height: 16),
+              Text(
+                'Sign Out',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Signing out will remove your data from this device. You can access your account again on this or any other device by logging back in.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 16),
+              DefaultButton(
+                onClick: () {
+                  context.read<AuthBloc>().add(AuthLogout());
+                },
+                text: 'Sign out',
+              ),
+              SizedBox(height: 16),
+              Divider(),
+              SizedBox(height: 16),
+              Text(
+                'Delete Account',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Deleting your account will permanently remove your personal data, including your name and email. You will lose access to all connected projects. Projects you created will remain if they have other participants. You may choose to delete them before proceeding.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 16),
+              DefaultButton(onClick: () {}, text: 'Delete'),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-/**
- * 1. View My Created Projects in Profile
- * 2. What is added to recent and Why it should be added
- * 3. What should be added to Offline and what should not
- * 4. Setting up everything to work well
- * 5. ---
- * **/

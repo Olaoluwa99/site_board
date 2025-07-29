@@ -13,18 +13,6 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   final Box offlineBox;
   ProjectLocalDataSourceImpl(this.recentBox, this.offlineBox);
 
-  /*@override //--
-  List<ProjectModel> loadRecentProjects() {
-    List<ProjectModel> projects = [];
-    for (int i = 0; i < recentBox.length; i++) {
-      final data = recentBox.get(i.toString());
-      if (data != null) {
-        projects.add(ProjectModel.fromJson(Map<String, dynamic>.from(data)));
-      } else {}
-    }
-    return projects;
-  }*/
-
   @override
   List<ProjectModel> loadRecentProjects() {
     List<ProjectModel> projects = [];

@@ -92,6 +92,11 @@ final class ProjectGetProjectByLink extends ProjectEvent {
   ProjectGetProjectByLink({required this.projectLink});
 }
 
+final class ProjectAddToRecent extends ProjectEvent {
+  final Project project;
+  ProjectAddToRecent({required this.project});
+}
+
 final class ProjectGetRecentProjects extends ProjectEvent {}
 
 final class UpdateMemberEvent extends ProjectEvent {

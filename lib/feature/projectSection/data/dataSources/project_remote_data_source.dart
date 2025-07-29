@@ -230,7 +230,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
       final response =
           await supabaseClient
               .from('projects')
-              .select('*, daily_logs(*, log_tasks(*))')
+              .select('*, daily_logs(*, log_tasks(*)), members(*)')
               .eq('id', projectId)
               .maybeSingle();
 
@@ -252,7 +252,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
       final response =
           await supabaseClient
               .from('projects')
-              .select('*, daily_logs(*, log_tasks(*))')
+              .select('*, daily_logs(*, log_tasks(*)), members(*)')
               .eq('project_link', projectLink)
               .maybeSingle();
 

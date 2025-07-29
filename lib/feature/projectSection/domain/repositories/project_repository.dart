@@ -59,4 +59,6 @@ abstract interface class ProjectRepository {
   Future<Either<Failure, Project>> getProjectByLink({
     required String projectLink,
   });
+
+  Future<Either<Failure, void>> addRecentProject({required Project project});
 }
