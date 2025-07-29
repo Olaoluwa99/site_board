@@ -82,8 +82,11 @@ class ViewProjectDetail extends StatelessWidget {
               Divider(),
               SizedBox(height: 16),
               TextWithPrefix(prefix: 'Team members', text: '', textSize: 16),
-              Text('   * Aaron'),
-              SizedBox(height: 4),
+              ...project.teamMembers.map((member) {
+                return Column(
+                  children: [Text('   * ${member.name}'), SizedBox(height: 4)],
+                );
+              }),
               Text('   * Shamgar'),
               SizedBox(height: 4),
               Text('   * Dancer'),

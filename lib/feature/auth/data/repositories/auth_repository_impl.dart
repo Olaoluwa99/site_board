@@ -68,7 +68,7 @@ class AuthRepositoryImpl implements AuthRepository {
           UserModel(
             id: session.user.id,
             email: session.user.email ?? '',
-            name: '',
+            name: session.user.userMetadata?['name'],
           ),
         );
       }
@@ -77,6 +77,23 @@ class AuthRepositoryImpl implements AuthRepository {
         return left(Failure('User not logged in!'));
       }
       return right(user);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> logoutUser() async {
+    try {
+      if (!await (connectionChecker.isConnected)) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      final response = await remoteDataSource.logout();
+      if (response == true) {
+        return right(true);
+      } else {
+        return left(Failure('Unable to logout user'));
+      }
     } on ServerException catch (e) {
       return left(Failure(e.message));
     }

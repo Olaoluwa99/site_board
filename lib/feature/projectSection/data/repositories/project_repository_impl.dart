@@ -320,6 +320,37 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
+  Future<Either<Failure, void>> addRecentProject({
+    required Project project,
+  }) async {
+    try {
+      projectLocalDataSource.uploadRecentProject(
+        project: ProjectModel(
+          id: project.id,
+          projectName: project.projectName,
+          creatorId: project.creatorId,
+          projectLink: project.projectLink,
+          description: project.description,
+          teamAdminIds: project.teamAdminIds,
+          teamMembers: project.teamMembers,
+          createdDate: project.createdDate,
+          endDate: project.endDate,
+          dailyLogs: [],
+          location: project.location,
+          isActive: project.isActive,
+          lastUpdated: DateTime.now(),
+          coverPhotoUrl: project.coverPhotoUrl,
+          projectSecurityType: project.projectSecurityType,
+          projectPassword: project.projectPassword,
+        ),
+      );
+      return Right(null);
+    } on ServerException catch (e) {
+      return left(Failure(e.message)); // or a specific Failure subclass
+    }
+  }
+
+  @override
   Future<Either<Failure, RetrievedProjects>> getAllProjects({
     required String userId,
   }) async {

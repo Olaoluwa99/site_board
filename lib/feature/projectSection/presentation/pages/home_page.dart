@@ -7,6 +7,7 @@ import 'package:site_board/feature/projectSection/presentation/pages/project_hom
 import 'package:site_board/feature/projectSection/presentation/widgets/admin_permission_notifier.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/main_alert_dialog.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/offline_dialog.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/project_list_item.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/project_password.dart';
 import 'package:uuid/uuid.dart';
 
@@ -440,6 +441,14 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
                   if (state is ProjectRetrieveSuccessId) {
+                    debugPrint(
+                      '---------------zzzzzzzzzzzzzzzzzzzzzzz----------------------',
+                    );
+                    debugPrint(state.project.toString());
+                    debugPrint(
+                      '---------------zzzzzzzzzzzzzzzzzzzzzzz----------------------',
+                    );
+
                     _uploadMemberStatus(
                       state.project,
                       false,
@@ -493,21 +502,13 @@ class _HomePageState extends State<HomePage> {
                             final index = entry.key;
                             final project = entry.value;
 
-                            return GestureDetector(
-                              onTap: () {
+                            return ProjectListItem(
+                              projectName: project.projectName,
+                              onClicked: () {
                                 context.read<ProjectBloc>().add(
                                   ProjectGetProjectById(project: project),
                                 );
                               },
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: 8),
-                                  Text(project.projectName),
-                                  SizedBox(height: 8),
-                                  Divider(),
-                                ],
-                              ),
                             );
                           }).toList(),
                     );

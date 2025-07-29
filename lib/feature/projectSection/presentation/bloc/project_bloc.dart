@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/usecases/usecase.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/add_recent_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_id.dart';
@@ -32,6 +33,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
   final GetProjectByLink _getProjectByLink;
   final GetProjectById _getProjectById;
   final UpdateMember _updateMember;
+  final AddRecentProject _addRecentProject;
 
   ProjectBloc({
     required GetAllProjects getAllProjects,
@@ -44,6 +46,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     required GetProjectById getProjectById,
     required GetProjectByLink getProjectByLink,
     required UpdateMember updateMember,
+    required AddRecentProject addRecentProject,
   }) : _createProject = createProject,
        _updateProject = updateProject,
        _createDailyLog = createDailyLog,
@@ -54,6 +57,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
        _getProjectById = getProjectById,
        _getProjectByLink = getProjectByLink,
        _updateMember = updateMember,
+       _addRecentProject = addRecentProject,
        super(ProjectInitial()) {
     //on<ProjectEvent>((event, emit) => emit(ProjectLoading()));
     on<ProjectCreate>(_onProjectCreate);
@@ -66,6 +70,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<ProjectGetProjectById>(_onGetProjectById);
     on<ProjectGetProjectByLink>(_onGetProjectByLink);
     on<UpdateMemberEvent>(_onUpdateMember);
+    on<ProjectAddToRecent>(_onAddRecentProject);
   }
 
   bool isLocalMode = false;
@@ -405,6 +410,31 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         },
       );
     } else {
+      emit(
+        ProjectFailure('To retrieve a project by Link, switch to Normal Mode.'),
+      );
+    }
+  }
+
+  void _onAddRecentProject(
+    ProjectAddToRecent event,
+    Emitter<ProjectState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      emit(ProjectLoading());
+      await _addRecentProject(AddToRecentParams(project: event.project));
+
+      emit(
+        ProjectRetrieveAddRecent(
+          project: event.project,
+          projects: currentState.projects,
+        ),
+      );
+    } else {
+      debugPrint(
+        'Kagan -------------------------------------------------------------',
+      );
       emit(
         ProjectFailure('To retrieve a project by Link, switch to Normal Mode.'),
       );
