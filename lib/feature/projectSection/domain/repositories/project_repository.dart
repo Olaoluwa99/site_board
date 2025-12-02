@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fpdart/fpdart.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
+import 'package:site_board/feature/projectSection/domain/entities/project_summary.dart';
 
 import '../../../../core/error/failure.dart';
 import '../entities/Member.dart';
@@ -61,4 +62,8 @@ abstract interface class ProjectRepository {
   });
 
   Future<Either<Failure, void>> addRecentProject({required Project project});
+
+  Future<Either<Failure, ProjectSummary>> generateProjectSummary({
+    required String promptText,
+  });
 }

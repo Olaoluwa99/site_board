@@ -8,6 +8,7 @@ import 'package:site_board/feature/projectSection/data/models/project_model.dart
 import 'package:site_board/feature/projectSection/domain/entities/Member.dart';
 import 'package:site_board/feature/projectSection/domain/entities/daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
+import 'package:site_board/feature/projectSection/domain/entities/project_summary.dart';
 import 'package:site_board/feature/projectSection/domain/entities/retrieved_projects.dart';
 import 'package:uuid/uuid.dart';
 
@@ -16,18 +17,22 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/connection_checker.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../dataSources/gemini_remote_data_source.dart';
 import '../dataSources/project_local_data_source.dart';
 import '../dataSources/project_remote_data_source.dart';
 
 class ProjectRepositoryImpl implements ProjectRepository {
   final ProjectRemoteDataSource projectRemoteDataSource;
   final ProjectLocalDataSource projectLocalDataSource;
+  final GeminiRemoteDataSource geminiRemoteDataSource;
   final ConnectionChecker connectionChecker;
+
   ProjectRepositoryImpl(
-    this.projectRemoteDataSource,
-    this.projectLocalDataSource,
-    this.connectionChecker,
-  );
+      this.projectRemoteDataSource,
+      this.projectLocalDataSource,
+      this.geminiRemoteDataSource,
+      this.connectionChecker,
+      );
 
   @override
   Future<Either<Failure, Project>> createProject({
@@ -54,9 +59,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
         coverPhotoUrl: project.coverPhotoUrl,
         projectSecurityType: project.projectSecurityType,
         projectPassword: project.projectPassword,
-      );
-      debugPrint(
-        '-------------------------------------------------------------------------------------------------',
       );
       final uploadedProject = await projectRemoteDataSource.createProject(
         projectModel,
@@ -132,10 +134,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       );
       final modifiedStartingImageUrlList = await projectRemoteDataSource
           .uploadDailyLogImages(
-            isEndingImages: false,
-            images: startingTaskImageList,
-            dailyLogModel: dailyLogModel,
-          );
+        isEndingImages: false,
+        images: startingTaskImageList,
+        dailyLogModel: dailyLogModel,
+      );
       dailyLogModel.copyWith(
         startingImageUrl: imageModifier(
           dailyLog.startingImageUrl,
@@ -193,10 +195,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       if (hasAtLeastOneFile(startingTaskImageList)) {
         final modifiedStartingImageUrlList = await projectRemoteDataSource
             .uploadDailyLogImages(
-              isEndingImages: false,
-              images: startingTaskImageList,
-              dailyLogModel: dailyLogModel,
-            );
+          isEndingImages: false,
+          images: startingTaskImageList,
+          dailyLogModel: dailyLogModel,
+        );
         dailyLogModel.copyWith(
           startingImageUrl: imageModifier(
             dailyLog.startingImageUrl,
@@ -208,10 +210,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       if (hasAtLeastOneFile(endingTaskImageList)) {
         final modifiedEndingTaskImageUrlList = await projectRemoteDataSource
             .uploadDailyLogImages(
-              isEndingImages: true,
-              images: endingTaskImageList,
-              dailyLogModel: dailyLogModel,
-            );
+          isEndingImages: true,
+          images: endingTaskImageList,
+          dailyLogModel: dailyLogModel,
+        );
 
         dailyLogModel.copyWith(
           endingImageUrl: imageModifier(
@@ -346,7 +348,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
       );
       return Right(null);
     } on ServerException catch (e) {
-      return left(Failure(e.message)); // or a specific Failure subclass
+      return left(Failure(e.message));
     }
   }
 
@@ -426,6 +428,27 @@ class ProjectRepositoryImpl implements ProjectRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, ProjectSummary>> generateProjectSummary({
+    required String promptText,
+  }) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        return left(
+          Failure(
+            'AI generation requires an internet connection. Please connect and try again.',
+          ),
+        );
+      }
+      final summary = await geminiRemoteDataSource.generateSummary(
+        promptText: promptText,
+      );
+      return right(summary);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
   List<DailyLogModel> logConverter(List<DailyLog> logs) {
     List<DailyLogModel> updatedList = [];
     for (DailyLog dLog in logs) {
@@ -467,9 +490,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   List<String> imageModifier(
-    List<String> currentImageUrls,
-    List<String> newImageUrls,
-  ) {
+      List<String> currentImageUrls,
+      List<String> newImageUrls,
+      ) {
     List<String> updatedStartingList = currentImageUrls;
     for (int index = 0; index < newImageUrls.length; index++) {
       final selectedUrl = newImageUrls[index];
