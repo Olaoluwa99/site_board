@@ -8,12 +8,14 @@ import 'package:site_board/feature/projectSection/presentation/pages/view_log_pa
 import 'package:site_board/feature/projectSection/presentation/pages/view_project_detail.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/about_project_card.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/show_bar_chart.dart';
+import 'package:site_board/init_dependencies.dart'; // Import serviceLocator
 
 import '../../../../../core/utils/show_rounded_bottom_sheet.dart';
 import '../../../../core/common/widgets/loader.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../domain/entities/project.dart';
 import '../bloc/project_bloc.dart';
+import '../bloc/summary_bloc.dart'; // Import SummaryBloc
 import '../widgets/log_list_item.dart';
 import 'confirm_log_page.dart';
 import 'create_log_page.dart';
@@ -29,10 +31,10 @@ class ProjectHomePage extends StatefulWidget {
   }) => MaterialPageRoute(
     builder:
         (context) => ProjectHomePage(
-          project: project,
-          projectIndex: projectIndex,
-          isLocal: isLocal,
-        ),
+      project: project,
+      projectIndex: projectIndex,
+      isLocal: isLocal,
+    ),
   );
   const ProjectHomePage({
     required this.project,
@@ -46,12 +48,19 @@ class ProjectHomePage extends StatefulWidget {
 }
 
 class _ProjectHomePageState extends State<ProjectHomePage> {
-  //List<DailyLog> updatedDailyLogsList = [];
-
-  @override
-  void initState() {
-    super.initState();
-    //updatedDailyLogsList.addAll(widget.project.dailyLogs);
+  // Helper to get the most up-to-date project data
+  Project _getCurrentProject() {
+    final state = context.read<ProjectBloc>().state;
+    if (state is ProjectRetrieveSuccess) {
+      // Try to find the project in the list
+      try {
+        return state.projects.firstWhere((p) => p.id == widget.project.id);
+      } catch (e) {
+        // Fallback if not found (unlikely)
+        return widget.project;
+      }
+    }
+    return widget.project;
   }
 
   @override
@@ -63,77 +72,80 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
           widget.isLocal
               ? SizedBox.shrink()
               : IconButton(
-                onPressed: () {
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: ProjectSummarizer(
-                            project: widget.project,
-                            onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              //Do Something
-                              Navigator.pop(context);
-                            },
-                          ),
-                        ),
-                  );
-                },
-                icon: Icon(Icons.note),
-              ),
+            onPressed: () {
+              final currentProject = _getCurrentProject();
+
+              showRoundedBottomSheet(
+                context: context,
+                backgroundColor: AppPalette.backgroundColor,
+                builder:
+                    (context) => BlocProvider( // Inject Bloc locally here
+                  create: (context) => serviceLocator<SummaryBloc>(),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height,
+                    child: ProjectSummarizer(
+                      project: currentProject, // Pass updated project
+                      onClose: () => Navigator.pop(context),
+                      onCompleted: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+            icon: Icon(Icons.note),
+          ),
           widget.isLocal
               ? SizedBox.shrink()
               : IconButton(
-                onPressed: () {
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: ProjectSettings(
-                            project: widget.project,
-                            onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              //Do Something
-                              Navigator.pop(context);
-                            },
-                          ),
-                        ),
-                  );
-                },
-                icon: Icon(Icons.settings),
-              ),
+            onPressed: () {
+              final currentProject = _getCurrentProject();
+
+              showRoundedBottomSheet(
+                context: context,
+                backgroundColor: AppPalette.backgroundColor,
+                builder:
+                    (context) => SizedBox(
+                  height: MediaQuery.of(context).size.height,
+                  child: ProjectSettings(
+                    project: currentProject,
+                    onClose: () => Navigator.pop(context),
+                    onCompleted: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              );
+            },
+            icon: Icon(Icons.settings),
+          ),
         ],
       ),
       floatingActionButton:
-          widget.isLocal
-              ? SizedBox.shrink()
-              : FloatingActionButton.extended(
-                onPressed: () {
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: CreateLogPage(
-                            projectId: widget.project.id,
-                            onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              //dailyLogsList.add(retrievedLog);
-                              Navigator.pop(context);
-                              //setState(() {});
-                            },
-                          ),
-                        ),
-                  );
+      widget.isLocal
+          ? SizedBox.shrink()
+          : FloatingActionButton.extended(
+        onPressed: () {
+          showRoundedBottomSheet(
+            context: context,
+            backgroundColor: AppPalette.backgroundColor,
+            builder:
+                (context) => SizedBox(
+              height: MediaQuery.of(context).size.height,
+              child: CreateLogPage(
+                projectId: widget.project.id,
+                onClose: () => Navigator.pop(context),
+                onCompleted: () {
+                  Navigator.pop(context);
                 },
-                label: const Text('Create Log'),
-                icon: const Icon(Icons.add),
               ),
+            ),
+          );
+        },
+        label: const Text('Create Log'),
+        icon: const Icon(Icons.add),
+      ),
       body: BlocListener<ProjectBloc, ProjectState>(
         listener: (context, state) {
           if (state is ProjectLoading) {
@@ -147,9 +159,6 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
             showSnackBar(context, state.error);
           }
           if (state is ProjectRetrieveSuccess) {
-            //showSnackBar(context, 'File has been saved!');
-            //widget.onCompleted(finishedDailyLog!);
-            //updatedDailyLogsList = state.projects[widget.projectIndex].dailyLogs;
             setState(() {});
           }
         },
@@ -181,43 +190,44 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
+              // Use the getter here too to ensure UI is consistent
               AboutProjectCard(
-                project: widget.project,
+                project: _getCurrentProject(),
                 isLocal: widget.isLocal,
                 onViewClicked: () {
+                  final currentProject = _getCurrentProject();
                   showRoundedBottomSheet(
                     context: context,
                     backgroundColor: AppPalette.backgroundColor,
                     builder:
                         (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: ViewProjectDetail(
-                            project: widget.project,
-                            onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              //Do Something
-                              Navigator.pop(context);
-                            },
-                          ),
-                        ),
+                      height: MediaQuery.of(context).size.height,
+                      child: ViewProjectDetail(
+                        project: currentProject,
+                        onClose: () => Navigator.pop(context),
+                        onCompleted: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
                   );
                 },
                 onEditClicked: () {
+                  final currentProject = _getCurrentProject();
                   showRoundedBottomSheet(
                     context: context,
                     backgroundColor: AppPalette.backgroundColor,
                     builder:
                         (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: EditProjectDetail(
-                            project: widget.project,
-                            onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              //Do Something
-                              Navigator.pop(context);
-                            },
-                          ),
-                        ),
+                      height: MediaQuery.of(context).size.height,
+                      child: EditProjectDetail(
+                        project: currentProject,
+                        onClose: () => Navigator.pop(context),
+                        onCompleted: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
                   );
                 },
               ),
@@ -238,98 +248,102 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                   }
 
                   if (state is ProjectRetrieveSuccess) {
-                    /*final matchingProject = state.projects.firstWhere(
-                      (p) => p.id == widget.project.id,
-                      orElse: () => widget.project,
-                    );*/
+                    // Logic to find project handled by index/ID in builder
+                    // Safe because we are inside the builder that updates on success
+                    Project projectToShow;
+                    try {
+                      projectToShow = state.projects.firstWhere((p) => p.id == widget.project.id);
+                    } catch(e) {
+                      projectToShow = state.projects[widget.projectIndex]; // Fallback
+                    }
 
-                    final logs = state.projects[widget.projectIndex].dailyLogs;
+                    final logs = projectToShow.dailyLogs;
 
                     return logs.isNotEmpty
                         ? ListView.builder(
-                          itemCount: logs.length,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemBuilder: (context, index) {
-                            final item = logs[index];
-                            IconData weatherIcon;
-                            if (item.weatherCondition == 'Rainy') {
-                              weatherIcon = Icons.thunderstorm;
-                            } else if (item.weatherCondition == 'Cloudy') {
-                              weatherIcon = Icons.cloud;
-                            } else {
-                              weatherIcon = Icons.sunny;
-                            }
-                            return LogListItem(
-                              log: item,
-                              isEditable: !item.isConfirmed || !widget.isLocal,
-                              onEdit: () {
-                                showRoundedBottomSheet(
-                                  context: context,
-                                  backgroundColor: AppPalette.backgroundColor,
-                                  builder:
-                                      (context) => SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.height,
-                                        child: CreateLogPage(
-                                          projectId: widget.project.id,
-                                          log: item,
-                                          onCompleted: () {
-                                            Navigator.pop(context);
-                                          },
-                                          onClose: () => Navigator.pop(context),
-                                        ),
-                                      ),
-                                );
-                              },
-                              onDelete: () {},
-                              onConfirm: () {
-                                showRoundedBottomSheet(
-                                  context: context,
-                                  backgroundColor: AppPalette.backgroundColor,
-                                  builder:
-                                      (context) => SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.height,
-                                        child: ConfirmLogPage(
-                                          projectId: widget.project.id,
-                                          log: item,
-                                          onCompleted: () {
-                                            Navigator.pop(context);
-                                          },
-                                          onClose: () => Navigator.pop(context),
-                                        ),
-                                      ),
-                                );
-                              },
-                              onOpen: () {
-                                showRoundedBottomSheet(
-                                  context: context,
-                                  backgroundColor: AppPalette.backgroundColor,
-                                  builder:
-                                      (context) => SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.height,
-                                        child: ViewLogPage(
-                                          log: item,
-                                          onClose: () => Navigator.pop(context),
-                                        ),
-                                      ),
-                                );
-                              },
-                              weatherIcon: weatherIcon,
+                      itemCount: logs.length,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        final item = logs[index];
+                        IconData weatherIcon;
+                        if (item.weatherCondition == 'Rainy') {
+                          weatherIcon = Icons.thunderstorm;
+                        } else if (item.weatherCondition == 'Cloudy') {
+                          weatherIcon = Icons.cloud;
+                        } else {
+                          weatherIcon = Icons.sunny;
+                        }
+                        return LogListItem(
+                          log: item,
+                          isEditable: !item.isConfirmed || !widget.isLocal,
+                          onEdit: () {
+                            showRoundedBottomSheet(
+                              context: context,
+                              backgroundColor: AppPalette.backgroundColor,
+                              builder:
+                                  (context) => SizedBox(
+                                height:
+                                MediaQuery.of(context).size.height,
+                                child: CreateLogPage(
+                                  projectId: widget.project.id,
+                                  log: item,
+                                  onCompleted: () {
+                                    Navigator.pop(context);
+                                  },
+                                  onClose: () => Navigator.pop(context),
+                                ),
+                              ),
                             );
                           },
-                        )
-                        : SizedBox(
-                          height: 180,
-                          child: Center(
-                            child: Text(
-                              'Project Logs are currently empty. Click \'Create Log\' to Start a Log for the Day',
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+                          onDelete: () {},
+                          onConfirm: () {
+                            showRoundedBottomSheet(
+                              context: context,
+                              backgroundColor: AppPalette.backgroundColor,
+                              builder:
+                                  (context) => SizedBox(
+                                height:
+                                MediaQuery.of(context).size.height,
+                                child: ConfirmLogPage(
+                                  projectId: widget.project.id,
+                                  log: item,
+                                  onCompleted: () {
+                                    Navigator.pop(context);
+                                  },
+                                  onClose: () => Navigator.pop(context),
+                                ),
+                              ),
+                            );
+                          },
+                          onOpen: () {
+                            showRoundedBottomSheet(
+                              context: context,
+                              backgroundColor: AppPalette.backgroundColor,
+                              builder:
+                                  (context) => SizedBox(
+                                height:
+                                MediaQuery.of(context).size.height,
+                                child: ViewLogPage(
+                                  log: item,
+                                  onClose: () => Navigator.pop(context),
+                                ),
+                              ),
+                            );
+                          },
+                          weatherIcon: weatherIcon,
                         );
+                      },
+                    )
+                        : SizedBox(
+                      height: 180,
+                      child: Center(
+                        child: Text(
+                          'Project Logs are currently empty. Click \'Create Log\' to Start a Log for the Day',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
                   }
 
                   return const Center(child: Text('Something went wrong'));
@@ -342,6 +356,3 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
     );
   }
 }
-
-//  Project settings - Change Security, Accept user, Delete Project, Transfer Project
-//

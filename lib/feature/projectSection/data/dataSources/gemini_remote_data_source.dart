@@ -42,10 +42,25 @@ class GeminiRemoteDataSourceImpl implements GeminiRemoteDataSource {
         throw ServerException('No response generated from AI.');
       }
 
-      final jsonResponse = jsonDecode(response.text!);
+      String cleanedText = response.text!;
+
+      // Remove Markdown code fences if present
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.replaceFirst('```json', '').replaceFirst('```', '');
+      } else if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.replaceFirst('```', '').replaceFirst('```', '');
+      }
+
+      cleanedText = cleanedText.trim();
+
+      final jsonResponse = jsonDecode(cleanedText);
       return ProjectSummaryModel.fromJson(jsonResponse);
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("Gemini Error: $e");
+      // Provide a clearer error message for parsing failures
+      if (e is FormatException) {
+        throw ServerException("Failed to parse AI response. The summary might have been cut off or formatted incorrectly. Please try again.");
+      }
       throw ServerException(e.toString());
     }
   }

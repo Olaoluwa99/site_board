@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
-import 'package:site_board/feature/projectSection/presentation/bloc/summary_bloc.dart';
+// import 'package:site_board/feature/projectSection/presentation/bloc/summary_bloc.dart'; // Remove this import if not used elsewhere or keep if needed for type reference, but usually safe to remove if only used in provider.
 
 import 'core/common/cubits/app_user/app_user_cubit.dart';
 import 'core/theme/theme.dart';
@@ -18,7 +18,7 @@ void main() async {
         BlocProvider(create: (_) => serviceLocator<AppUserCubit>()),
         BlocProvider(create: (_) => serviceLocator<AuthBloc>()),
         BlocProvider(create: (_) => serviceLocator<ProjectBloc>()),
-        BlocProvider(create: (_) => serviceLocator<SummaryBloc>()),
+        // BlocProvider(create: (_) => serviceLocator<SummaryBloc>()), // REMOVE THIS LINE
       ],
       child: const MyApp(),
     ),
