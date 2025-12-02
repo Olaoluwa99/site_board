@@ -60,9 +60,36 @@ class ProjectRepositoryImpl implements ProjectRepository {
         projectSecurityType: project.projectSecurityType,
         projectPassword: project.projectPassword,
       );
+
+      // 1. Create Project
       final uploadedProject = await projectRemoteDataSource.createProject(
         projectModel,
       );
+
+      // FIX ISSUE C: Atomic-like Creator Assignment
+      // Immediately add the creator as a Member (Admin)
+      if (project.creatorId.isNotEmpty) {
+        try {
+          MemberModel creatorMember = MemberModel(
+            id: const Uuid().v4(),
+            projectId: uploadedProject.id,
+            name: "Creator", // Placeholder, profile update should fix this
+            email: "", // Placeholder
+            userId: uploadedProject.creatorId,
+            isAccepted: true,
+            isBlocked: false,
+            isAdmin: true,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          );
+
+          await projectRemoteDataSource.createMember(creatorMember);
+
+        } catch(e) {
+          debugPrint("Warning: Auto-member creation failed: $e");
+        }
+      }
+
       return right(uploadedProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));
@@ -138,11 +165,25 @@ class ProjectRepositoryImpl implements ProjectRepository {
         images: startingTaskImageList,
         dailyLogModel: dailyLogModel,
       );
-      dailyLogModel.copyWith(
+
+      // FIX: Manually recreate DailyLogModel because copyWith returns DailyLog
+      dailyLogModel = DailyLogModel(
+        id: dailyLogModel.id,
+        projectId: dailyLogModel.projectId,
+        dateTimeList: dailyLogModel.dateTimeList,
+        numberOfWorkers: dailyLogModel.numberOfWorkers,
+        weatherCondition: dailyLogModel.weatherCondition,
+        materialsAvailable: dailyLogModel.materialsAvailable,
+        plannedTasks: dailyLogModel.plannedTasks,
         startingImageUrl: imageModifier(
           dailyLog.startingImageUrl,
           modifiedStartingImageUrlList,
         ),
+        endingImageUrl: dailyLogModel.endingImageUrl,
+        observations: dailyLogModel.observations,
+        isConfirmed: dailyLogModel.isConfirmed,
+        workScore: dailyLogModel.workScore,
+        generatedSummary: dailyLogModel.generatedSummary,
       );
 
       final uploadedDailyLog = await projectRemoteDataSource.createDailyLog(
@@ -199,11 +240,25 @@ class ProjectRepositoryImpl implements ProjectRepository {
           images: startingTaskImageList,
           dailyLogModel: dailyLogModel,
         );
-        dailyLogModel.copyWith(
+
+        // FIX: Manually recreate DailyLogModel
+        dailyLogModel = DailyLogModel(
+          id: dailyLogModel.id,
+          projectId: dailyLogModel.projectId,
+          dateTimeList: dailyLogModel.dateTimeList,
+          numberOfWorkers: dailyLogModel.numberOfWorkers,
+          weatherCondition: dailyLogModel.weatherCondition,
+          materialsAvailable: dailyLogModel.materialsAvailable,
+          plannedTasks: dailyLogModel.plannedTasks,
           startingImageUrl: imageModifier(
             dailyLog.startingImageUrl,
             modifiedStartingImageUrlList,
           ),
+          endingImageUrl: dailyLogModel.endingImageUrl,
+          observations: dailyLogModel.observations,
+          isConfirmed: dailyLogModel.isConfirmed,
+          workScore: dailyLogModel.workScore,
+          generatedSummary: dailyLogModel.generatedSummary,
         );
       }
 
@@ -215,11 +270,24 @@ class ProjectRepositoryImpl implements ProjectRepository {
           dailyLogModel: dailyLogModel,
         );
 
-        dailyLogModel.copyWith(
+        // FIX: Manually recreate DailyLogModel
+        dailyLogModel = DailyLogModel(
+          id: dailyLogModel.id,
+          projectId: dailyLogModel.projectId,
+          dateTimeList: dailyLogModel.dateTimeList,
+          numberOfWorkers: dailyLogModel.numberOfWorkers,
+          weatherCondition: dailyLogModel.weatherCondition,
+          materialsAvailable: dailyLogModel.materialsAvailable,
+          plannedTasks: dailyLogModel.plannedTasks,
+          startingImageUrl: dailyLogModel.startingImageUrl,
           endingImageUrl: imageModifier(
             dailyLog.endingImageUrl,
             modifiedEndingTaskImageUrlList,
           ),
+          observations: dailyLogModel.observations,
+          isConfirmed: dailyLogModel.isConfirmed,
+          workScore: dailyLogModel.workScore,
+          generatedSummary: dailyLogModel.generatedSummary,
         );
       }
 
@@ -493,7 +561,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       List<String> currentImageUrls,
       List<String> newImageUrls,
       ) {
-    List<String> updatedStartingList = currentImageUrls;
+    // FIX: Create a mutable copy of the list.
+    // DailyLog fields are final and possibly unmodifiable.
+    List<String> updatedStartingList = List.from(currentImageUrls);
+
     for (int index = 0; index < newImageUrls.length; index++) {
       final selectedUrl = newImageUrls[index];
       if (selectedUrl != '') {

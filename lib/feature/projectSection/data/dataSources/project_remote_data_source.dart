@@ -46,15 +46,12 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
 
   @override
   Future<ProjectModel> createProject(ProjectModel project) async {
-    debugPrint(project.toJson().toString());
-    debugPrint('-----------------------------------------------------');
     try {
       final projectData =
-          await supabaseClient
-              .from('projects')
-              .insert(project.toJson())
-              .select();
-      debugPrint(project.toJson().toString());
+      await supabaseClient
+          .from('projects')
+          .insert(project.toJson())
+          .select();
       return ProjectModel.fromJson(projectData.first);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
@@ -67,11 +64,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<ProjectModel> updateProject(ProjectModel project) async {
     try {
       final updatedProject =
-          await supabaseClient
-              .from('projects')
-              .update(project.toJson())
-              .eq('id', project.id)
-              .select();
+      await supabaseClient
+          .from('projects')
+          .update(project.toJson())
+          .eq('id', project.id)
+          .select();
 
       return ProjectModel.fromJson(updatedProject.first);
     } on PostgrestException catch (e) {
@@ -85,10 +82,10 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<DailyLogModel> createDailyLog(DailyLogModel dailyLog) async {
     try {
       final dailyLogData =
-          await supabaseClient
-              .from('daily_logs')
-              .insert(dailyLog.toJson())
-              .select();
+      await supabaseClient
+          .from('daily_logs')
+          .insert(dailyLog.toJson())
+          .select();
       return DailyLogModel.fromJson(dailyLogData.first);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
@@ -101,11 +98,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<DailyLogModel> updateDailyLog(DailyLogModel dailyLog) async {
     try {
       final updatedDailyLogData =
-          await supabaseClient
-              .from('daily_logs')
-              .update(dailyLog.toJson())
-              .eq('id', dailyLog.id)
-              .select();
+      await supabaseClient
+          .from('daily_logs')
+          .update(dailyLog.toJson())
+          .eq('id', dailyLog.id)
+          .select();
 
       return DailyLogModel.fromJson(updatedDailyLogData.first);
     } on PostgrestException catch (e) {
@@ -115,12 +112,35 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     }
   }
 
-  @override
-  Future<MemberModel> createMember(MemberModel member) async {
+  // Helper method for Upsert Logic
+  Future<MemberModel> _upsertMember(MemberModel member) async {
     try {
-      final memberData =
-          await supabaseClient.from('members').insert(member.toJson()).select();
-      return MemberModel.fromJson(memberData.first);
+      // FIX ISSUE D: Check existence by Composite Key (project_id + user_id)
+      final existingMember = await supabaseClient
+          .from('members')
+          .select()
+          .eq('project_id', member.projectId)
+          .eq('user_id', member.userId)
+          .maybeSingle();
+
+      if (existingMember != null) {
+        // Update existing
+        final updatedData = await supabaseClient
+            .from('members')
+            .update(member.toJson())
+            .eq('id', existingMember['id']) // Use the REAL DB ID
+            .select()
+            .single();
+        return MemberModel.fromJson(updatedData);
+      } else {
+        // Insert new
+        final newData = await supabaseClient
+            .from('members')
+            .insert(member.toJson())
+            .select()
+            .single();
+        return MemberModel.fromJson(newData);
+      }
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {
@@ -129,21 +149,15 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   }
 
   @override
-  Future<MemberModel> updateMember(MemberModel member) async {
-    try {
-      final updatedMemberData =
-          await supabaseClient
-              .from('members')
-              .update(member.toJson())
-              .eq('id', member.id)
-              .select();
+  Future<MemberModel> createMember(MemberModel member) async {
+    // Redirect to Upsert Logic
+    return _upsertMember(member);
+  }
 
-      return MemberModel.fromJson(updatedMemberData.first);
-    } on PostgrestException catch (e) {
-      throw ServerException(e.message);
-    } catch (e) {
-      throw ServerException(e.toString());
-    }
+  @override
+  Future<MemberModel> updateMember(MemberModel member) async {
+    // Redirect to Upsert Logic
+    return _upsertMember(member);
   }
 
   @override
@@ -167,10 +181,10 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
           await supabaseClient.storage
               .from('daily_log_images')
               .upload(
-                filePath,
-                images[i]!,
-                fileOptions: const FileOptions(upsert: true),
-              );
+            filePath,
+            images[i]!,
+            fileOptions: const FileOptions(upsert: true),
+          );
           final publicUrl = supabaseClient.storage
               .from('daily_log_images')
               .getPublicUrl(filePath);
@@ -209,7 +223,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     try {
       final response = await supabaseClient
           .from('projects')
-          //.select('*, daily_logs(*, log_tasks(*))')
+      //.select('*, daily_logs(*, log_tasks(*))')
           .select('*, daily_logs(*, log_tasks(*)), members(*)')
           .eq('creator_id', userId);
 
@@ -228,11 +242,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<ProjectModel> getProjectById({required String projectId}) async {
     try {
       final response =
-          await supabaseClient
-              .from('projects')
-              .select('*, daily_logs(*, log_tasks(*)), members(*)')
-              .eq('id', projectId)
-              .maybeSingle();
+      await supabaseClient
+          .from('projects')
+          .select('*, daily_logs(*, log_tasks(*)), members(*)')
+          .eq('id', projectId)
+          .maybeSingle();
 
       if (response == null) {
         throw ServerException('Project not found for id: $projectId');
@@ -250,11 +264,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<ProjectModel> getProjectByLink({required String projectLink}) async {
     try {
       final response =
-          await supabaseClient
-              .from('projects')
-              .select('*, daily_logs(*, log_tasks(*)), members(*)')
-              .eq('project_link', projectLink)
-              .maybeSingle();
+      await supabaseClient
+          .from('projects')
+          .select('*, daily_logs(*, log_tasks(*)), members(*)')
+          .eq('project_link', projectLink)
+          .maybeSingle();
 
       if (response == null) {
         throw ServerException('Project not found for link: $projectLink');
@@ -281,9 +295,9 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
           .eq('daily_log_id', dailyLogId);
 
       final existingTasks =
-          (response as List<dynamic>)
-              .map((e) => LogTaskModel.fromJson(e))
-              .toList();
+      (response as List<dynamic>)
+          .map((e) => LogTaskModel.fromJson(e))
+          .toList();
 
       // 2. Create maps for easy comparison
       final existingMap = {for (var t in existingTasks) t.id: t};
@@ -291,24 +305,24 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
 
       // 3. Find tasks to delete
       final tasksToDelete =
-          existingTasks
-              .where((t) => !currentMap.containsKey(t.id))
-              .map((t) => t.id)
-              .toList();
+      existingTasks
+          .where((t) => !currentMap.containsKey(t.id))
+          .map((t) => t.id)
+          .toList();
 
       // 4. Find tasks to insert (new ones without ID or empty UUID)
       final tasksToInsert =
-          currentTasks
-              .where((t) => t.id.isEmpty || !existingMap.containsKey(t.id))
-              .toList();
+      currentTasks
+          .where((t) => t.id.isEmpty || !existingMap.containsKey(t.id))
+          .toList();
 
       // 5. Find tasks to update (ID exists in both, but content changed)
       final tasksToUpdate =
-          currentTasks.where((t) {
-            final existing = existingMap[t.id];
-            return existing != null &&
-                existing != t; // Override equality if needed
-          }).toList();
+      currentTasks.where((t) {
+        final existing = existingMap[t.id];
+        return existing != null &&
+            existing != t; // Override equality if needed
+      }).toList();
 
       // 6. Perform deletes
       if (tasksToDelete.isNotEmpty) {

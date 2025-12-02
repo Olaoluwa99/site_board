@@ -43,11 +43,11 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder:
           (context) => CreateProjectDialog(
-            onCompleted: (Project project) {
-              context.read<ProjectBloc>().add(ProjectCreate(project: project));
-              linkController.text = project.projectLink ?? '';
-            },
-          ),
+        onCompleted: (Project project) {
+          context.read<ProjectBloc>().add(ProjectCreate(project: project));
+          linkController.text = project.projectLink ?? '';
+        },
+      ),
     );
   }
 
@@ -67,6 +67,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _uploadCreatorStatus(Project currentProject, bool isLocal, int index) {
+    // This is now mostly a fallback/redundant call if the Repository handles creation,
+    // but kept for safety in case of UI-driven logic flows.
     Member? uploadMember = Member(
       id: const Uuid().v4(),
       projectId: currentProject.id,
@@ -90,103 +92,16 @@ class _HomePageState extends State<HomePage> {
     Navigator.pop(context);
   }
 
-  /*void _uploadMemberStatusOld(Project currentProject, bool isLocal, int index) {
-    if (!isLocal) {
-      bool isOldUser = false;
-      Member? soughtMember;
-      currentProject.teamMembers.map((member) {
-        if (member.userId == retrievedUser!.id) {
-          isOldUser = true;
-          soughtMember = member;
-        }
-      });
-
-      Member? uploadMember;
-      if (isOldUser) {
-        uploadMember = soughtMember!.copyWith(lastViewed: DateTime.now());
-      } else {
-        if (currentProject.projectSecurityType == Constants.securityApproval) {
-          uploadMember = Member(
-            id: const Uuid().v4(),
-            projectId: currentProject.id,
-            name: retrievedUser!.name,
-            email: retrievedUser!.email,
-            userId: retrievedUser!.id,
-            isAccepted: false,
-            isBlocked: false,
-            isAdmin: false,
-            hasLeft: false,
-            lastViewed: DateTime.now(),
-          );
-        } else if (currentProject.projectSecurityType ==
-            Constants.securityPassword) {
-          showDialog(
-            context: context,
-            builder:
-                (context) => ProjectPasswordDialog(
-                  onCompleted: (String passwordText) {
-                    if (passwordText == currentProject.projectPassword) {
-                      uploadMember = Member(
-                        id: const Uuid().v4(),
-                        projectId: currentProject.id,
-                        name: retrievedUser!.name,
-                        email: retrievedUser!.email,
-                        userId: retrievedUser!.id,
-                        isAccepted: true,
-                        isBlocked: false,
-                        isAdmin: false,
-                        hasLeft: false,
-                        lastViewed: DateTime.now(),
-                      );
-
-                      Navigator.pop(context);
-                    } else {
-                      showSnackBar(
-                        context,
-                        'The password you entered is incorrect. Please check with the project administrator and try again.',
-                      );
-                    }
-                  },
-                ),
-          );
-        } else {
-          uploadMember = Member(
-            id: const Uuid().v4(),
-            projectId: currentProject.id,
-            name: retrievedUser!.name,
-            email: retrievedUser!.email,
-            userId: retrievedUser!.id,
-            isAccepted: true,
-            isBlocked: false,
-            isAdmin: false,
-            hasLeft: false,
-            lastViewed: DateTime.now(),
-          );
-        }
-      }
-
-      if (uploadMember != null) {
-        context.read<ProjectBloc>().add(
-          UpdateMemberEvent(
-            project: currentProject,
-            member: uploadMember!,
-            isCreateMember: !isOldUser,
-          ),
-        );
-      }
-    }
-  }*/
-
-  //  TODO - First fix - Not retrieving members issue
-
   Future<void> _uploadMemberStatus(
-    Project currentProject,
-    bool isLocal,
-    int index,
-  ) async {
+      Project currentProject,
+      bool isLocal,
+      int index,
+      ) async {
     if (!isLocal) {
       bool isOldUser = false;
       Member? soughtMember;
+
+      // Check if the user exists in the currently loaded member list
       for (final member in currentProject.teamMembers) {
         if (member.userId == retrievedUser!.id) {
           isOldUser = true;
@@ -195,11 +110,38 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
+      // FIX ISSUE A: Explicit Creator Check
+      // Even if they aren't in the list (fetch delay), if they created it, they are Admin.
+      bool isCreator = currentProject.creatorId == retrievedUser!.id;
+
       Member? uploadMember;
       if (isOldUser) {
-        uploadMember = soughtMember!.copyWith(lastViewed: DateTime.now());
+        // FIX ISSUE F: Efficient Updates (Debounce)
+        // Only update if last viewed was more than 5 minutes ago
+        final timeDiff = DateTime.now().difference(soughtMember!.lastViewed);
+        if (timeDiff.inMinutes > 5) {
+          uploadMember = soughtMember.copyWith(lastViewed: DateTime.now());
+        } else {
+          // Skip update, just proceed
+          _proceedToProject(currentProject, index, isLocal);
+          return;
+        }
       } else {
-        if (currentProject.projectSecurityType == Constants.securityApproval) {
+        if (isCreator) {
+          // Force Admin status for Creator
+          uploadMember = Member(
+            id: const Uuid().v4(), // ID will be handled by Upsert logic in backend
+            projectId: currentProject.id,
+            name: retrievedUser!.name,
+            email: retrievedUser!.email,
+            userId: retrievedUser!.id,
+            isAccepted: true,
+            isBlocked: false,
+            isAdmin: true,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          );
+        } else if (currentProject.projectSecurityType == Constants.securityApproval) {
           uploadMember = Member(
             id: const Uuid().v4(),
             projectId: currentProject.id,
@@ -218,10 +160,10 @@ class _HomePageState extends State<HomePage> {
             context: context,
             builder:
                 (context) => ProjectPasswordDialog(
-                  onCompleted: (passwordText) {
-                    Navigator.pop(context, passwordText);
-                  },
-                ),
+              onCompleted: (passwordText) {
+                Navigator.pop(context, passwordText);
+              },
+            ),
           );
 
           if (passwordText == null) {
@@ -250,6 +192,7 @@ class _HomePageState extends State<HomePage> {
             return;
           }
         } else {
+          // Public Project
           uploadMember = Member(
             id: const Uuid().v4(),
             projectId: currentProject.id,
@@ -265,14 +208,30 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
-      context.read<ProjectBloc>().add(
-        UpdateMemberEvent(
-          project: currentProject,
-          member: uploadMember,
-          isCreateMember: !isOldUser,
-        ),
-      );
+      if (uploadMember != null) {
+        context.read<ProjectBloc>().add(
+          UpdateMemberEvent(
+            project: currentProject,
+            member: uploadMember,
+            isCreateMember: !isOldUser, // Upsert logic in Repo will handle this mostly
+          ),
+        );
+      }
+    } else {
+      // Local Mode: Just proceed
+      _proceedToProject(currentProject, index, isLocal);
     }
+  }
+
+  void _proceedToProject(Project project, int index, bool isLocal) {
+    Navigator.push(
+      context,
+      ProjectHomePage.route(
+        project: project,
+        projectIndex: index,
+        isLocal: isLocal,
+      ),
+    );
   }
 
   @override
@@ -286,34 +245,32 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Home', style: TextStyle(fontWeight: FontWeight.bold)),
-        // shadowColor: Colors.grey,
-        // elevation: 10,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             onPressed: () {
               widget.isLoggedIn
                   ? Navigator.push(
-                    context,
-                    AccountPage.route(user: retrievedUser!),
-                  )
+                context,
+                AccountPage.route(user: retrievedUser!),
+              )
                   : Navigator.push(context, LoginPage.route());
             },
             icon:
-                widget.isLoggedIn
-                    ? Icon(Icons.account_circle)
-                    : Icon(Icons.account_circle_outlined),
+            widget.isLoggedIn
+                ? Icon(Icons.account_circle)
+                : Icon(Icons.account_circle_outlined),
           ),
         ],
       ),
       floatingActionButton:
-          widget.isLoggedIn
-              ? FloatingActionButton.extended(
-                onPressed: _showCustomDialog,
-                label: const Text('Create Project'),
-                icon: const Icon(Icons.add),
-              )
-              : SizedBox.shrink(),
+      widget.isLoggedIn
+          ? FloatingActionButton.extended(
+        onPressed: _showCustomDialog,
+        label: const Text('Create Project'),
+        icon: const Icon(Icons.add),
+      )
+          : SizedBox.shrink(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -347,23 +304,23 @@ class _HomePageState extends State<HomePage> {
                       context: context,
                       builder:
                           (context) => OfflineDialog(
-                            onCompleted: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                ProjectHomePage.route(
-                                  project: state.oldProject,
-                                  projectIndex: state.projects.indexOf(
-                                    state.oldProject,
-                                  ),
-                                  isLocal: true,
-                                ),
-                              );
-                            },
-                            onDismiss: () {
-                              Navigator.pop(context);
-                            },
-                          ),
+                        onCompleted: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            ProjectHomePage.route(
+                              project: state.oldProject,
+                              projectIndex: state.projects.indexOf(
+                                state.oldProject,
+                              ),
+                              isLocal: true,
+                            ),
+                          );
+                        },
+                        onDismiss: () {
+                          Navigator.pop(context);
+                        },
+                      ),
                     );
                   }
                   if (state is ProjectRetrieveByLinkFailure) {
@@ -371,13 +328,13 @@ class _HomePageState extends State<HomePage> {
                       context: context,
                       builder:
                           (context) => MainAlertDialog(
-                            title: 'Error Loading Project',
-                            text:
-                                '${state.error}\n\nWe encountered an error while trying to retrieve data from this project link. Please verify that the link is correct and check your internet connection. If the issue continues, contact the project administrator for assistance.',
-                            onDismiss: () {
-                              Navigator.pop(context);
-                            },
-                          ),
+                        title: 'Error Loading Project',
+                        text:
+                        '${state.error}\n\nWe encountered an error while trying to retrieve data from this project link. Please verify that the link is correct and check your internet connection. If the issue continues, contact the project administrator for assistance.',
+                        onDismiss: () {
+                          Navigator.pop(context);
+                        },
+                      ),
                     );
                   }
                   if (state is ProjectRetrieveRecentSuccess) {
@@ -388,17 +345,19 @@ class _HomePageState extends State<HomePage> {
                     }
                   }
                   if (state is ProjectMemberUpdateFailure) {
+                    // Even if update fails, if we have local data, we might want to proceed or show error
+                    // For now showing error is safer
                     showDialog(
                       context: context,
                       builder:
                           (context) => MainAlertDialog(
-                            title: 'Error Loading Project',
-                            text:
-                                '${state.error}\n\nWe encountered an error while trying to retrieve data from this project link. Please verify that the link is correct and check your internet connection. If the issue continues, contact the project administrator for assistance.',
-                            onDismiss: () {
-                              Navigator.pop(context);
-                            },
-                          ),
+                        title: 'Error Loading Project',
+                        text:
+                        '${state.error}\n\nWe encountered an error while updating your membership status.',
+                        onDismiss: () {
+                          Navigator.pop(context);
+                        },
+                      ),
                     );
                   }
                   if (state is ProjectMemberUpdateSuccess) {
@@ -407,30 +366,24 @@ class _HomePageState extends State<HomePage> {
                         context: context,
                         builder:
                             (context) => BlockedNotifier(
-                              onCompleted: () {
-                                Navigator.pop(context);
-                              },
-                            ),
+                          onCompleted: () {
+                            Navigator.pop(context);
+                          },
+                        ),
                       );
                     } else if (!state.member.isAccepted) {
                       showDialog(
                         context: context,
                         builder:
                             (context) => AdminPermissionNotifier(
-                              onCompleted: () {
-                                Navigator.pop(context);
-                              },
-                            ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        ProjectHomePage.route(
-                          project: state.project,
-                          projectIndex: state.projects.indexOf(state.project),
-                          isLocal: false,
+                          onCompleted: () {
+                            Navigator.pop(context);
+                          },
                         ),
                       );
+                    } else {
+                      // Access Granted
+                      _proceedToProject(state.project, state.projects.indexOf(state.project), false);
                     }
                   }
                   if (state is ProjectRetrieveSuccessLink) {
@@ -441,14 +394,6 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
                   if (state is ProjectRetrieveSuccessId) {
-                    debugPrint(
-                      '---------------zzzzzzzzzzzzzzzzzzzzzzz----------------------',
-                    );
-                    debugPrint(state.project.toString());
-                    debugPrint(
-                      '---------------zzzzzzzzzzzzzzzzzzzzzzz----------------------',
-                    );
-
                     _uploadMemberStatus(
                       state.project,
                       false,
@@ -456,6 +401,7 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
                   if (state is ProjectCreateSuccess) {
+                    // Creator is added in repo, but we might want to update local view or auto-open
                     _uploadCreatorStatus(
                       state.project,
                       false,
@@ -471,46 +417,46 @@ class _HomePageState extends State<HomePage> {
                   if (state is ProjectRetrieveRecentSuccess) {
                     return Column(
                       children:
-                          state.projects.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final project = entry.value;
+                      state.projects.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final project = entry.value;
 
-                            return GestureDetector(
-                              onTap: () {
-                                context.read<ProjectBloc>().add(
-                                  ProjectGetProjectById(project: project),
-                                );
-                              },
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: 8),
-                                  Text(project.projectName),
-                                  SizedBox(height: 8),
-                                  Divider(),
-                                ],
-                              ),
+                        return GestureDetector(
+                          onTap: () {
+                            context.read<ProjectBloc>().add(
+                              ProjectGetProjectById(project: project),
                             );
-                          }).toList(),
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 8),
+                              Text(project.projectName),
+                              SizedBox(height: 8),
+                              Divider(),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     );
                   }
 
                   if (state is ProjectRetrieveByIdFailure) {
                     return Column(
                       children:
-                          state.projects.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final project = entry.value;
+                      state.projects.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final project = entry.value;
 
-                            return ProjectListItem(
-                              projectName: project.projectName,
-                              onClicked: () {
-                                context.read<ProjectBloc>().add(
-                                  ProjectGetProjectById(project: project),
-                                );
-                              },
+                        return ProjectListItem(
+                          projectName: project.projectName,
+                          onClicked: () {
+                            context.read<ProjectBloc>().add(
+                              ProjectGetProjectById(project: project),
                             );
-                          }).toList(),
+                          },
+                        );
+                      }).toList(),
                     );
                   }
                   return const SizedBox();
