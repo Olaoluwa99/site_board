@@ -19,7 +19,7 @@ class ViewProjectDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Project detail')),
+      appBar: AppBar(title: Text('Project Detail')),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -42,7 +42,7 @@ class ViewProjectDetail extends StatelessWidget {
               ),
               SizedBox(height: 16),
               TextWithPrefix(
-                prefix: 'Creator',
+                prefix: 'Creator ID',
                 text: project.creatorId,
                 textSize: 16,
               ),
@@ -61,7 +61,7 @@ class ViewProjectDetail extends StatelessWidget {
               SizedBox(height: 16),
               TextWithPrefix(
                 prefix: 'Location',
-                text: project.location ?? '',
+                text: project.location ?? 'N/A',
                 textSize: 16,
               ),
               SizedBox(height: 16),
@@ -69,34 +69,48 @@ class ViewProjectDetail extends StatelessWidget {
               SizedBox(height: 16),
               TextWithPrefix(
                 prefix: 'Description',
-                text: project.description ?? '',
+                text: project.description ?? 'No description.',
                 textSize: 16,
               ),
               SizedBox(height: 16),
               TextWithPrefix(
                 prefix: 'Access Link',
-                text: project.projectLink ?? '',
+                text: project.projectLink ?? 'N/A',
                 textSize: 16,
               ),
               SizedBox(height: 16),
               Divider(),
               SizedBox(height: 16),
-              TextWithPrefix(prefix: 'Team members', text: '', textSize: 16),
+              Text('Team Members', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              if (project.teamMembers.isEmpty)
+                Text("No members.", style: TextStyle(color: Colors.grey)),
               ...project.teamMembers.map((member) {
-                return Column(
-                  children: [Text('   * ${member.name}'), SizedBox(height: 4)],
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.person, size: 16, color: Colors.grey),
+                      SizedBox(width: 8),
+                      Text(member.name, style: TextStyle(fontSize: 16)),
+                      if (member.isAdmin)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Chip(label: Text("Admin", style: TextStyle(fontSize: 10)), visualDensity: VisualDensity.compact),
+                        )
+                    ],
+                  ),
                 );
               }),
-              Text('   * Shamgar'),
-              SizedBox(height: 4),
-              Text('   * Dancer'),
+              SizedBox(height: 16),
+              Divider(),
               SizedBox(height: 16),
               TextWithPrefix(
                 prefix: 'End date',
                 text:
-                    project.endDate == null
-                        ? 'Not at End'
-                        : formatDateDDMMYYYYHHMM(project.endDate!),
+                project.endDate == null
+                    ? 'Ongoing'
+                    : formatDateDDMMYYYYHHMM(project.endDate!),
                 textSize: 16,
               ),
               SizedBox(height: 120),

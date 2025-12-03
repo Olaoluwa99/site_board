@@ -8,11 +8,13 @@ import '../../../../core/utils/format_date.dart';
 class AboutProjectCard extends StatelessWidget {
   final Project project;
   final bool isLocal;
+  final bool canEdit;
   final VoidCallback onEditClicked;
   final VoidCallback onViewClicked;
   const AboutProjectCard({
     required this.project,
     required this.isLocal,
+    required this.canEdit,
     required this.onEditClicked,
     required this.onViewClicked,
     super.key,
@@ -39,19 +41,19 @@ class AboutProjectCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextWithPrefix(
-                    prefix: 'Project name: ',
+                    prefix: 'Project name',
                     text: project.projectName,
                     textSize: 14,
                   ),
                   SizedBox(height: 6),
                   TextWithPrefix(
-                    prefix: 'Location: ',
+                    prefix: 'Location',
                     text: project.location ?? '',
                     textSize: 14,
                   ),
                   SizedBox(height: 6),
                   TextWithPrefix(
-                    prefix: 'Start date: ',
+                    prefix: 'Start date',
                     text: formatDateDDMMYYYYHHMM(project.createdDate),
                     textSize: 14,
                   ),
@@ -72,27 +74,27 @@ class AboutProjectCard extends StatelessWidget {
             ),
           ),
         ),
-        isLocal
+        (isLocal || !canEdit)
             ? SizedBox.shrink()
             : SizedBox(
-              child: InkWell(
-                onTap: onEditClicked,
-                borderRadius: BorderRadius.circular(30),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color:
-                          AppPalette
-                              .backgroundColor, //Colors.black.withOpacity(0.6),
-                      shape: BoxShape.circle,
-                    ),
-                    padding: EdgeInsets.all(12), // space around the icon
-                    child: Icon(Icons.edit, size: 20),
-                  ),
+          child: InkWell(
+            onTap: onEditClicked,
+            borderRadius: BorderRadius.circular(30),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color:
+                  AppPalette
+                      .backgroundColor, //Colors.black.withOpacity(0.6),
+                  shape: BoxShape.circle,
                 ),
+                padding: EdgeInsets.all(12), // space around the icon
+                child: Icon(Icons.edit, size: 20),
               ),
             ),
+          ),
+        ),
       ],
     );
   }

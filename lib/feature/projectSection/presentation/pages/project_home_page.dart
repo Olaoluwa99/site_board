@@ -8,14 +8,15 @@ import 'package:site_board/feature/projectSection/presentation/pages/view_log_pa
 import 'package:site_board/feature/projectSection/presentation/pages/view_project_detail.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/about_project_card.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/show_bar_chart.dart';
-import 'package:site_board/init_dependencies.dart'; // Import serviceLocator
+import 'package:site_board/init_dependencies.dart';
 
 import '../../../../../core/utils/show_rounded_bottom_sheet.dart';
+import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 import '../../../../core/common/widgets/loader.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../domain/entities/project.dart';
 import '../bloc/project_bloc.dart';
-import '../bloc/summary_bloc.dart'; // Import SummaryBloc
+import '../bloc/summary_bloc.dart';
 import '../widgets/log_list_item.dart';
 import 'confirm_log_page.dart';
 import 'create_log_page.dart';
@@ -48,23 +49,38 @@ class ProjectHomePage extends StatefulWidget {
 }
 
 class _ProjectHomePageState extends State<ProjectHomePage> {
-  // Helper to get the most up-to-date project data
+
   Project _getCurrentProject() {
     final state = context.read<ProjectBloc>().state;
     if (state is ProjectRetrieveSuccess) {
-      // Try to find the project in the list
       try {
         return state.projects.firstWhere((p) => p.id == widget.project.id);
       } catch (e) {
-        // Fallback if not found (unlikely)
         return widget.project;
       }
     }
     return widget.project;
   }
 
+  bool _canEdit(Project project) {
+    final userState = context.read<AppUserCubit>().state;
+    if (userState is AppUserLoggedIn) {
+      final userId = userState.user.id;
+      if (project.creatorId == userId) return true;
+      for (final member in project.teamMembers) {
+        if (member.userId == userId && member.isAdmin) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final currentProject = _getCurrentProject();
+    final canEdit = _canEdit(currentProject);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.project.projectName),
@@ -79,12 +95,12 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 context: context,
                 backgroundColor: AppPalette.backgroundColor,
                 builder:
-                    (context) => BlocProvider( // Inject Bloc locally here
+                    (context) => BlocProvider(
                   create: (context) => serviceLocator<SummaryBloc>(),
                   child: SizedBox(
                     height: MediaQuery.of(context).size.height,
                     child: ProjectSummarizer(
-                      project: currentProject, // Pass updated project
+                      project: currentProject,
                       onClose: () => Navigator.pop(context),
                       onCompleted: () {
                         Navigator.pop(context);
@@ -96,7 +112,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
             },
             icon: Icon(Icons.note),
           ),
-          widget.isLocal
+          (widget.isLocal || !canEdit)
               ? SizedBox.shrink()
               : IconButton(
             onPressed: () {
@@ -190,10 +206,10 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
-              // Use the getter here too to ensure UI is consistent
               AboutProjectCard(
-                project: _getCurrentProject(),
+                project: currentProject,
                 isLocal: widget.isLocal,
+                canEdit: canEdit,
                 onViewClicked: () {
                   final currentProject = _getCurrentProject();
                   showRoundedBottomSheet(
@@ -248,13 +264,11 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                   }
 
                   if (state is ProjectRetrieveSuccess) {
-                    // Logic to find project handled by index/ID in builder
-                    // Safe because we are inside the builder that updates on success
                     Project projectToShow;
                     try {
                       projectToShow = state.projects.firstWhere((p) => p.id == widget.project.id);
                     } catch(e) {
-                      projectToShow = state.projects[widget.projectIndex]; // Fallback
+                      projectToShow = state.projects[widget.projectIndex];
                     }
 
                     final logs = projectToShow.dailyLogs;
