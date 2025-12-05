@@ -38,6 +38,9 @@ abstract interface class ProjectRemoteDataSource {
     required List<File?> images,
     required DailyLogModel dailyLogModel,
   });
+
+  Future<void> deleteProject(String projectId);
+  Future<void> leaveProject(String projectId, String userId);
 }
 
 class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
@@ -115,7 +118,6 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   // Helper method for Upsert Logic
   Future<MemberModel> _upsertMember(MemberModel member) async {
     try {
-      // FIX ISSUE D: Check existence by Composite Key (project_id + user_id)
       final existingMember = await supabaseClient
           .from('members')
           .select()
@@ -128,7 +130,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
         final updatedData = await supabaseClient
             .from('members')
             .update(member.toJson())
-            .eq('id', existingMember['id']) // Use the REAL DB ID
+            .eq('id', existingMember['id'])
             .select()
             .single();
         return MemberModel.fromJson(updatedData);
@@ -150,13 +152,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
 
   @override
   Future<MemberModel> createMember(MemberModel member) async {
-    // Redirect to Upsert Logic
     return _upsertMember(member);
   }
 
   @override
   Future<MemberModel> updateMember(MemberModel member) async {
-    // Redirect to Upsert Logic
     return _upsertMember(member);
   }
 
@@ -205,12 +205,16 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     required ProjectModel project,
   }) async {
     try {
+      // Use a consistent path for project images
+      final filePath = 'covers/${project.id}';
+
       await supabaseClient.storage
           .from('project_images')
-          .upload(project.id, image);
+          .upload(filePath, image, fileOptions: const FileOptions(upsert: true));
+
       return supabaseClient.storage
           .from('project_images')
-          .getPublicUrl(project.id);
+          .getPublicUrl(filePath);
     } on StorageException catch (e) {
       throw ServerException(e.message);
     } catch (e) {
@@ -221,13 +225,26 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   @override
   Future<List<ProjectModel>> getAllProjects({required String userId}) async {
     try {
+      // FIX: Fetch all projects where user is a member OR creator
+      // We rely on the Members table. Since creators are added as members,
+      // querying the Members table for the userId gives us all project IDs.
+
+      final membersResponse = await supabaseClient
+          .from('members')
+          .select('project_id')
+          .eq('user_id', userId);
+
+      final projectIds = (membersResponse as List)
+          .map((m) => m['project_id'] as String)
+          .toList();
+
+      if (projectIds.isEmpty) return [];
+
       final response = await supabaseClient
           .from('projects')
-      //.select('*, daily_logs(*, log_tasks(*))')
           .select('*, daily_logs(*, log_tasks(*)), members(*)')
-          .eq('creator_id', userId);
+          .inFilter('id', projectIds);
 
-      // Parse into ProjectModel
       return (response as List<dynamic>)
           .map((project) => ProjectModel.fromJson(project))
           .toList();
@@ -288,7 +305,6 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     required List<LogTaskModel> currentTasks,
   }) async {
     try {
-      // 1. Fetch existing tasks from DB
       final response = await supabaseClient
           .from('log_tasks')
           .select()
@@ -299,32 +315,27 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
           .map((e) => LogTaskModel.fromJson(e))
           .toList();
 
-      // 2. Create maps for easy comparison
       final existingMap = {for (var t in existingTasks) t.id: t};
       final currentMap = {for (var t in currentTasks) t.id: t};
 
-      // 3. Find tasks to delete
       final tasksToDelete =
       existingTasks
           .where((t) => !currentMap.containsKey(t.id))
           .map((t) => t.id)
           .toList();
 
-      // 4. Find tasks to insert (new ones without ID or empty UUID)
       final tasksToInsert =
       currentTasks
           .where((t) => t.id.isEmpty || !existingMap.containsKey(t.id))
           .toList();
 
-      // 5. Find tasks to update (ID exists in both, but content changed)
       final tasksToUpdate =
       currentTasks.where((t) {
         final existing = existingMap[t.id];
         return existing != null &&
-            existing != t; // Override equality if needed
+            existing != t;
       }).toList();
 
-      // 6. Perform deletes
       if (tasksToDelete.isNotEmpty) {
         await supabaseClient
             .from('log_tasks')
@@ -332,20 +343,46 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
             .inFilter('id', tasksToDelete);
       }
 
-      // 7. Perform inserts
       if (tasksToInsert.isNotEmpty) {
         await supabaseClient
             .from('log_tasks')
             .insert(tasksToInsert.map((e) => e.toJson()).toList());
       }
 
-      // 8. Perform updates
       for (final task in tasksToUpdate) {
         await supabaseClient
             .from('log_tasks')
             .update(task.toJson())
             .eq('id', task.id);
       }
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteProject(String projectId) async {
+    try {
+      // Requires Cascade Delete on DB or manual deletion of children.
+      // Assuming Cascade is ON in Supabase for foreign keys.
+      await supabaseClient.from('projects').delete().eq('id', projectId);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> leaveProject(String projectId, String userId) async {
+    try {
+      await supabaseClient
+          .from('members')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('user_id', userId);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {

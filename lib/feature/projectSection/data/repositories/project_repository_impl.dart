@@ -61,20 +61,17 @@ class ProjectRepositoryImpl implements ProjectRepository {
         projectPassword: project.projectPassword,
       );
 
-      // 1. Create Project
       final uploadedProject = await projectRemoteDataSource.createProject(
         projectModel,
       );
 
-      // FIX ISSUE C: Atomic-like Creator Assignment
-      // Immediately add the creator as a Member (Admin)
       if (project.creatorId.isNotEmpty) {
         try {
           MemberModel creatorMember = MemberModel(
             id: const Uuid().v4(),
             projectId: uploadedProject.id,
-            name: "Creator", // Placeholder, profile update should fix this
-            email: "", // Placeholder
+            name: "Creator",
+            email: "",
             userId: uploadedProject.creatorId,
             isAccepted: true,
             isBlocked: false,
@@ -105,6 +102,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
       if (!await (connectionChecker.isConnected)) {
         return left(Failure(Constants.noConnectionErrorMessage));
       }
+
       ProjectModel projectModel = ProjectModel(
         id: project.id,
         projectName: project.projectName,
@@ -123,6 +121,16 @@ class ProjectRepositoryImpl implements ProjectRepository {
         projectSecurityType: project.projectSecurityType,
         projectPassword: project.projectPassword,
       );
+
+      // FIX: Handle Image Upload Logic HERE
+      if (image != null) {
+        final imageUrl = await projectRemoteDataSource.uploadProjectCoverImage(
+            image: image,
+            project: projectModel
+        );
+        projectModel = projectModel.copyWithModel(coverPhotoUrl: imageUrl);
+      }
+
       final uploadedProject = await projectRemoteDataSource.updateProject(
         projectModel,
       );
@@ -166,7 +174,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
         dailyLogModel: dailyLogModel,
       );
 
-      // FIX: Manually recreate DailyLogModel because copyWith returns DailyLog
       dailyLogModel = DailyLogModel(
         id: dailyLogModel.id,
         projectId: dailyLogModel.projectId,
@@ -241,7 +248,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
           dailyLogModel: dailyLogModel,
         );
 
-        // FIX: Manually recreate DailyLogModel
         dailyLogModel = DailyLogModel(
           id: dailyLogModel.id,
           projectId: dailyLogModel.projectId,
@@ -270,7 +276,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
           dailyLogModel: dailyLogModel,
         );
 
-        // FIX: Manually recreate DailyLogModel
         dailyLogModel = DailyLogModel(
           id: dailyLogModel.id,
           projectId: dailyLogModel.projectId,
@@ -517,6 +522,32 @@ class ProjectRepositoryImpl implements ProjectRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, void>> deleteProject(String projectId) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      await projectRemoteDataSource.deleteProject(projectId);
+      return right(null);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> leaveProject(String projectId, String userId) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      await projectRemoteDataSource.leaveProject(projectId, userId);
+      return right(null);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
   List<DailyLogModel> logConverter(List<DailyLog> logs) {
     List<DailyLogModel> updatedList = [];
     for (DailyLog dLog in logs) {
@@ -561,8 +592,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
       List<String> currentImageUrls,
       List<String> newImageUrls,
       ) {
-    // FIX: Create a mutable copy of the list.
-    // DailyLog fields are final and possibly unmodifiable.
     List<String> updatedStartingList = List.from(currentImageUrls);
 
     for (int index = 0; index < newImageUrls.length; index++) {

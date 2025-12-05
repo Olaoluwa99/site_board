@@ -20,7 +20,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     return _getUser(
-      () async => await remoteDataSource.loginWithEmailPassword(
+          () async => await remoteDataSource.loginWithEmailPassword(
         email: email,
         password: password,
       ),
@@ -34,7 +34,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     return _getUser(
-      () async => await remoteDataSource.signUpWithEmailPassword(
+          () async => await remoteDataSource.signUpWithEmailPassword(
         name: name,
         email: email,
         password: password,
@@ -94,6 +94,19 @@ class AuthRepositoryImpl implements AuthRepository {
       } else {
         return left(Failure('Unable to logout user'));
       }
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteAccount() async {
+    try {
+      if (!await (connectionChecker.isConnected)) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      await remoteDataSource.deleteAccount();
+      return right(null);
     } on ServerException catch (e) {
       return left(Failure(e.message));
     }

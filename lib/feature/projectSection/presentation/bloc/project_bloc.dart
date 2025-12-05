@@ -6,8 +6,10 @@ import 'package:site_board/core/usecases/usecase.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/add_recent_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_project.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/delete_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_id.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_link.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/leave_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/manage_log_task.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_project.dart';
@@ -34,6 +36,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
   final GetProjectById _getProjectById;
   final UpdateMember _updateMember;
   final AddRecentProject _addRecentProject;
+  final DeleteProject _deleteProject;
+  final LeaveProject _leaveProject;
 
   ProjectBloc({
     required GetAllProjects getAllProjects,
@@ -47,6 +51,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     required GetProjectByLink getProjectByLink,
     required UpdateMember updateMember,
     required AddRecentProject addRecentProject,
+    required DeleteProject deleteProject,
+    required LeaveProject leaveProject,
   }) : _createProject = createProject,
         _updateProject = updateProject,
         _createDailyLog = createDailyLog,
@@ -58,8 +64,9 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         _getProjectByLink = getProjectByLink,
         _updateMember = updateMember,
         _addRecentProject = addRecentProject,
+        _deleteProject = deleteProject,
+        _leaveProject = leaveProject,
         super(ProjectInitial()) {
-    //on<ProjectEvent>((event, emit) => emit(ProjectLoading()));
     on<ProjectCreate>(_onProjectCreate);
     on<ProjectUpdate>(_onProjectUpdate);
     on<DailyLogCreate>(_onDailyLogCreate);
@@ -71,6 +78,8 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<ProjectGetProjectByLink>(_onGetProjectByLink);
     on<UpdateMemberEvent>(_onUpdateMember);
     on<ProjectAddToRecent>(_onAddRecentProject);
+    on<ProjectDeleteEvent>(_onDeleteProject);
+    on<ProjectLeaveEvent>(_onLeaveProject);
   }
 
   bool isLocalMode = false;
@@ -89,29 +98,20 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         },
             (r) {
           // Replace updated project in list
-          Project? outputProject;
-          final updatedProjects =
-          currentState.projects.map((project) {
-            // If ID matches (shouldn't happen on create but checking)
-            return project.id == event.project.id ? event.project : project;
-          }).toList();
-
-          // Add the new project to the list if not present
+          final updatedProjects = currentState.projects.toList();
           if(!updatedProjects.any((p) => p.id == r.id)) {
             updatedProjects.add(r);
           }
-          outputProject = r;
 
           emit(
             ProjectCreateSuccess(
               projects: updatedProjects,
-              project: outputProject!,
+              project: r,
             ),
           );
         },
       );
     } else {
-      // If state wasn't loaded, just emit create success
       emit(ProjectLoading());
       final response = await _createProject(CreateProjectParams(project: event.project));
       response.fold(
@@ -137,8 +137,9 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           // Replace updated project in list
           final updatedProjects =
           currentState.projects.map((p) {
-            return p.id == event.project.id ? event.project : p;
+            return p.id == event.project.id ? r : p;
           }).toList();
+
           emit(ProjectRetrieveSuccess(updatedProjects));
         },
       );
@@ -175,7 +176,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           final updatedProjects =
           currentState.projects.map((project) {
             if (project.id == event.projectId) {
-              final updatedLogs = [...project.dailyLogs, event.dailyLog];
+              final updatedLogs = [...project.dailyLogs, r];
               return project.copyWith(dailyLogs: updatedLogs);
             }
             return project;
@@ -221,7 +222,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
               final updatedLogs =
               project.dailyLogs.map((log) {
                 return log.id == event.dailyLog.id
-                    ? event.dailyLog
+                    ? r
                     : log;
               }).toList();
 
@@ -263,14 +264,12 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
             (r) {
           Project outputProject = event.project;
 
-          // Rebuild member list with updated/new member
           final updatedMembers = [
             for (final m in outputProject.teamMembers)
-              if (m.userId != event.member.userId) m, // Filter out old instance of this user
-            event.member, // Add new instance
+              if (m.userId != event.member.userId) m,
+            r, // Use returned member
           ];
 
-          // FIX ISSUE B: Assign the copyWith result back to outputProject
           outputProject = outputProject.copyWith(teamMembers: updatedMembers);
 
           emit(
@@ -280,7 +279,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
                 outputProject,
               ),
               project: outputProject,
-              member: event.member,
+              member: r,
             ),
           );
         },
@@ -317,7 +316,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
             final updatedLogs =
             project.dailyLogs.map((log) {
               if (log.id == event.dailyLogId) {
-                return log.copyWith(plannedTasks: event.currentTasks);
+                return log.copyWith(plannedTasks: r);
               }
               return log;
             }).toList();
@@ -363,7 +362,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       Emitter<ProjectState> emit,
       ) async {
     final currentState = state;
-    // Allow retrieving even if current state is just recent projects
     List<Project> currentProjects = [];
     if (currentState is ProjectRetrieveSuccess) {
       currentProjects = currentState.projects;
@@ -383,7 +381,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           ),
         ),
             (retrievedProject) {
-          // If the project exists in the list, replace it. If not, add it.
           List<Project> updatedProjects;
           if (currentProjects.any((p) => p.id == retrievedProject.id)) {
             updatedProjects = currentProjects.map((p) {
@@ -460,7 +457,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       ) async {
     final currentState = state;
     if (currentState is ProjectRetrieveSuccess) {
-      //emit(ProjectLoading()); // Optional: loading might flicker UI too much here
       await _addRecentProject(AddToRecentParams(project: event.project));
 
       emit(
@@ -472,8 +468,49 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     }
   }
 
+  void _onDeleteProject(
+      ProjectDeleteEvent event,
+      Emitter<ProjectState> emit,
+      ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      emit(ProjectLoading());
+      final response = await _deleteProject(DeleteProjectParams(projectId: event.projectId));
+      response.fold(
+            (l) {
+          emit(ProjectFailure(l.message));
+          emit(ProjectRetrieveSuccess(currentState.projects));
+        },
+            (r) {
+          final updatedProjects = currentState.projects.where((p) => p.id != event.projectId).toList();
+          emit(ProjectRetrieveSuccess(updatedProjects));
+        },
+      );
+    }
+  }
+
+  void _onLeaveProject(
+      ProjectLeaveEvent event,
+      Emitter<ProjectState> emit,
+      ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      emit(ProjectLoading());
+      final response = await _leaveProject(LeaveProjectParams(projectId: event.projectId, userId: event.userId));
+      response.fold(
+            (l) {
+          emit(ProjectFailure(l.message));
+          emit(ProjectRetrieveSuccess(currentState.projects));
+        },
+            (r) {
+          final updatedProjects = currentState.projects.where((p) => p.id != event.projectId).toList();
+          emit(ProjectRetrieveSuccess(updatedProjects));
+        },
+      );
+    }
+  }
+
   List<Project> updateProjectInList(List<Project> projects, Project updated) {
-    // Helper to safely update project in list
     if (projects.isEmpty) return [updated];
     if (projects.any((p) => p.id == updated.id)) {
       return projects.map((p) => p.id == updated.id ? updated : p).toList();

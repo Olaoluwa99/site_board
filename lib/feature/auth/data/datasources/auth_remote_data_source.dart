@@ -19,6 +19,8 @@ abstract interface class AuthRemoteDataSource {
   Future<UserModel?> getCurrentUserData();
 
   Future<bool> logout();
+
+  Future<void> deleteAccount();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -95,6 +97,38 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       await supabaseClient.auth.signOut();
       return true;
+    } on AuthException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    try {
+      final userId = currentUserSession?.user.id;
+      if (userId == null) throw ServerException("User not found");
+
+      // Note: Standard Supabase users cannot delete themselves without an RPC or Edge Function
+      // calling auth.admin.deleteUser.
+      // However, usually client-side deletion removes the public 'profiles' row if cascade is set up,
+      // but 'auth.users' remains.
+      // For this implementation, we will assume an RPC function 'delete_user' exists
+      // OR we just use the Dart SDK method which might rely on backend config.
+
+      // Attempting standard RPC method if available, else falling back to profile deletion
+      // which triggers cascade.
+      try {
+        await supabaseClient.rpc('delete_user');
+      } catch(_) {
+        // Fallback: This only works if your DB allows deleting profiles
+        // and doesn't fully clean up Auth.
+        // await supabaseClient.from('profiles').delete().eq('id', userId);
+        throw ServerException("Account deletion requires admin privileges or an RPC function 'delete_user'.");
+      }
+
+      await supabaseClient.auth.signOut();
     } on AuthException catch (e) {
       throw ServerException(e.message);
     } catch (e) {

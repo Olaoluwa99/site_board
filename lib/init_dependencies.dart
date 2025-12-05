@@ -3,7 +3,9 @@ import 'package:hive/hive.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/add_recent_project.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/delete_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/generate_project_summary.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/leave_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/manage_log_task.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_member.dart';
@@ -17,6 +19,7 @@ import 'feature/auth/data/datasources/auth_remote_data_source.dart';
 import 'feature/auth/data/repositories/auth_repository_impl.dart';
 import 'feature/auth/domain/repository/auth_repository.dart';
 import 'feature/auth/domain/usecases/current_user.dart';
+import 'feature/auth/domain/usecases/delete_account.dart';
 import 'feature/auth/domain/usecases/user_login.dart';
 import 'feature/auth/domain/usecases/user_logout.dart';
 import 'feature/auth/domain/usecases/user_sign_up.dart';
@@ -81,6 +84,7 @@ void _initAuth() {
     ..registerFactory(() => UserLogin(serviceLocator()))
     ..registerFactory(() => CurrentUser(serviceLocator()))
     ..registerFactory(() => UserLogout(serviceLocator()))
+    ..registerFactory(() => DeleteAccount(serviceLocator()))
     ..registerLazySingleton(
           () => AuthBloc(
         userSignUp: serviceLocator(),
@@ -88,6 +92,7 @@ void _initAuth() {
         currentUser: serviceLocator(),
         appUserCubit: serviceLocator(),
         userLogout: serviceLocator(),
+        deleteAccount: serviceLocator(),
       ),
     );
 }
@@ -128,6 +133,8 @@ void _initProject() {
     ..registerFactory(() => UpdateMember(serviceLocator()))
     ..registerFactory(() => AddRecentProject(serviceLocator()))
     ..registerFactory(() => GenerateProjectSummary(serviceLocator()))
+    ..registerFactory(() => DeleteProject(serviceLocator()))
+    ..registerFactory(() => LeaveProject(serviceLocator()))
   // Bloc
     ..registerLazySingleton(
           () => ProjectBloc(
@@ -142,6 +149,8 @@ void _initProject() {
         getProjectByLink: serviceLocator(),
         updateMember: serviceLocator(),
         addRecentProject: serviceLocator(),
+        deleteProject: serviceLocator(),
+        leaveProject: serviceLocator(),
       ),
     )
     ..registerFactory(

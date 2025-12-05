@@ -66,4 +66,8 @@ abstract interface class ProjectRepository {
   Future<Either<Failure, ProjectSummary>> generateProjectSummary({
     required String promptText,
   });
+
+  Future<Either<Failure, void>> deleteProject(String projectId);
+
+  Future<Either<Failure, void>> leaveProject(String projectId, String userId);
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/image_item_project.dart';
 
 import '../../../../core/utils/format_date.dart';
+import '../../../../core/utils/show_snackbar.dart';
 import '../widgets/text_with_prefix.dart';
 
 class ViewProjectDetail extends StatelessWidget {
@@ -15,6 +17,17 @@ class ViewProjectDetail extends StatelessWidget {
     required this.onCompleted,
     super.key,
   });
+
+  String getCreatorName() {
+    try {
+      final creator = project.teamMembers.firstWhere(
+            (m) => m.userId == project.creatorId,
+      );
+      return creator.name;
+    } catch (e) {
+      return "Unknown";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +55,8 @@ class ViewProjectDetail extends StatelessWidget {
               ),
               SizedBox(height: 16),
               TextWithPrefix(
-                prefix: 'Creator ID',
-                text: project.creatorId,
+                prefix: 'Creator',
+                text: getCreatorName(),
                 textSize: 16,
               ),
               SizedBox(height: 16),
@@ -73,10 +86,35 @@ class ViewProjectDetail extends StatelessWidget {
                 textSize: 16,
               ),
               SizedBox(height: 16),
-              TextWithPrefix(
-                prefix: 'Access Link',
-                text: project.projectLink ?? 'N/A',
-                textSize: 16,
+              Row(
+                children: [
+                  Expanded(
+                    child: TextWithPrefix(
+                      prefix: 'Access Link',
+                      text: project.projectLink ?? 'N/A',
+                      textSize: 16,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.copy),
+                    onPressed: () {
+                      if (project.projectLink != null) {
+                        Clipboard.setData(ClipboardData(text: project.projectLink!));
+                        showSnackBar(context, 'Link copied to clipboard');
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.share),
+                    onPressed: () {
+                      // Implementing basic copy for now as share_plus dependency isn't explicitly in context
+                      if (project.projectLink != null) {
+                        Clipboard.setData(ClipboardData(text: project.projectLink!));
+                        showSnackBar(context, 'Link copied for sharing');
+                      }
+                    },
+                  ),
+                ],
               ),
               SizedBox(height: 16),
               Divider(),

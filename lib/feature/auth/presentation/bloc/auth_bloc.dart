@@ -6,6 +6,7 @@ import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 import '../../../../core/common/entities/user.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/usecases/current_user.dart';
+import '../../domain/usecases/delete_account.dart';
 import '../../domain/usecases/user_login.dart';
 import '../../domain/usecases/user_sign_up.dart';
 
@@ -18,6 +19,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final CurrentUser _currentUser;
   final AppUserCubit _appUserCubit;
   final UserLogout _userLogout;
+  final DeleteAccount _deleteAccount;
 
   AuthBloc({
     required UserSignUp userSignUp,
@@ -25,27 +27,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required CurrentUser currentUser,
     required AppUserCubit appUserCubit,
     required UserLogout userLogout,
+    required DeleteAccount deleteAccount,
   }) : _userSignUp = userSignUp,
-       _userLogin = userLogin,
-       _currentUser = currentUser,
-       _appUserCubit = appUserCubit,
-       _userLogout = userLogout,
-       super(AuthInitial()) {
+        _userLogin = userLogin,
+        _currentUser = currentUser,
+        _appUserCubit = appUserCubit,
+        _userLogout = userLogout,
+        _deleteAccount = deleteAccount,
+        super(AuthInitial()) {
     on<AuthEvent>((_, emit) => emit(AuthLoading()));
     on<AuthSignUp>(_onAuthSignUp);
     on<AuthLogin>(_onAuthLogin);
     on<AuthIsUserLoggedIn>(_isUserLoggedIn);
     on<AuthLogout>(_onAuthLogout);
+    on<AuthDeleteAccount>(_onAuthDeleteAccount);
   }
 
   void _isUserLoggedIn(
-    AuthIsUserLoggedIn event,
-    Emitter<AuthState> emit,
-  ) async {
+      AuthIsUserLoggedIn event,
+      Emitter<AuthState> emit,
+      ) async {
     final response = await _currentUser(NoParams());
     response.fold(
-      (failure) => emit(AuthFailure(failure.message)),
-      (user) => emitAuthSuccess(user, emit),
+          (failure) => emit(AuthFailure(failure.message)),
+          (user) => emitAuthSuccess(user, emit),
     );
   }
 
@@ -59,8 +64,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
 
     response.fold(
-      (failure) => emit(AuthFailure(failure.message)),
-      (user) => emitAuthSuccess(user, emit),
+          (failure) => emit(AuthFailure(failure.message)),
+          (user) => emitAuthSuccess(user, emit),
     );
   }
 
@@ -70,8 +75,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
 
     response.fold(
-      (failure) => emit(AuthFailure(failure.message)),
-      (user) => emitAuthSuccess(user, emit),
+          (failure) => emit(AuthFailure(failure.message)),
+          (user) => emitAuthSuccess(user, emit),
     );
   }
 
@@ -79,8 +84,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final response = await _userLogout(NoParams());
 
     response.fold(
-      (failure) => emit(AuthFailure(failure.message)),
-      (value) => emit(AuthFailure('User has been logged out.')),
+          (failure) => emit(AuthFailure(failure.message)),
+          (value) => emit(AuthFailure('User has been logged out.')),
+    );
+  }
+
+  void _onAuthDeleteAccount(AuthDeleteAccount event, Emitter<AuthState> emit) async {
+    final response = await _deleteAccount(NoParams());
+
+    response.fold(
+          (failure) => emit(AuthFailure(failure.message)),
+          (value) => emit(AuthFailure('Account deleted successfully.')),
     );
   }
 

@@ -3,26 +3,6 @@ part of 'project_bloc.dart';
 @immutable
 sealed class ProjectEvent {}
 
-/*final class ProjectUpload extends ProjectEvent {
-  final Project project;
-  final DailyLog? dailyLog;
-  final bool isUpdate;
-  final bool isCoverImage;
-  final bool isDailyLogIncluded;
-  final File? coverImage;
-  final List<File?> taskImageList;
-
-  ProjectUpload({
-    required this.project,
-    required this.dailyLog,
-    required this.isUpdate,
-    required this.isCoverImage,
-    required this.isDailyLogIncluded,
-    required this.coverImage,
-    required this.taskImageList,
-  });
-}*/
-
 final class ProjectCreate extends ProjectEvent {
   final Project project;
 
@@ -108,4 +88,15 @@ final class UpdateMemberEvent extends ProjectEvent {
     required this.project,
     required this.isCreateMember,
   });
+}
+
+final class ProjectDeleteEvent extends ProjectEvent {
+  final String projectId;
+  ProjectDeleteEvent({required this.projectId});
+}
+
+final class ProjectLeaveEvent extends ProjectEvent {
+  final String projectId;
+  final String userId;
+  ProjectLeaveEvent({required this.projectId, required this.userId});
 }

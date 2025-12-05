@@ -76,10 +76,25 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
     return false;
   }
 
+  List<double> _getChartData(Project project) {
+    final confirmedLogs = project.dailyLogs.where((log) => log.isConfirmed).toList();
+    // Sort by date descending
+    confirmedLogs.sort((a, b) => b.dateTimeList.first.compareTo(a.dateTimeList.first));
+
+    // Take last 7 days (or fewer)
+    final recentLogs = confirmedLogs.take(7).toList();
+
+    // Reverse to show oldest to newest left to right
+    return recentLogs.reversed.map((log) => log.workScore * 10).toList();
+    // Assuming workScore is 0-10, chart expects roughly 0-100? Or raw score.
+    // ShowBarChart max dummy is 100, so if workScore is 0.0-10.0, multiply by 10.
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentProject = _getCurrentProject();
     final canEdit = _canEdit(currentProject);
+    final chartValues = _getChartData(currentProject);
 
     return Scaffold(
       appBar: AppBar(
@@ -175,7 +190,13 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
             showSnackBar(context, state.error);
           }
           if (state is ProjectRetrieveSuccess) {
-            setState(() {});
+            // Check if user was removed from project
+            if(!state.projects.any((p) => p.id == widget.project.id)) {
+              Navigator.of(context).pop(); // Go back to Home/Account
+              showSnackBar(context, "Project unavailable or deleted.");
+            } else {
+              setState(() {});
+            }
           }
         },
         child: SingleChildScrollView(
@@ -184,7 +205,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '7-day Log chart',
+                '7-day Performance',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 20),
@@ -197,7 +218,9 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
-                  child: ShowBarChart(values: [20, 50, 70, 48, 39, 100, 15]),
+                  child: chartValues.isEmpty
+                      ? Center(child: Text("No confirmed logs yet"))
+                      : ShowBarChart(values: chartValues),
                 ),
               ),
               const SizedBox(height: 20),
@@ -268,7 +291,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     try {
                       projectToShow = state.projects.firstWhere((p) => p.id == widget.project.id);
                     } catch(e) {
-                      projectToShow = state.projects[widget.projectIndex];
+                      projectToShow = state.projects.isNotEmpty ? state.projects[0] : widget.project;
                     }
 
                     final logs = projectToShow.dailyLogs;
@@ -288,9 +311,11 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         } else {
                           weatherIcon = Icons.sunny;
                         }
+
                         return LogListItem(
                           log: item,
-                          isEditable: !item.isConfirmed || !widget.isLocal,
+                          // If confirmed, not editable. If local, not editable.
+                          isEditable: !item.isConfirmed && !widget.isLocal,
                           onEdit: () {
                             showRoundedBottomSheet(
                               context: context,

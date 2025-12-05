@@ -37,11 +37,11 @@ class _EditProjectDetailState extends State<EditProjectDetail> {
   late TextEditingController _locationController;
   late TextEditingController _descriptionController;
   late TextEditingController _passwordController;
-  final TextEditingController _emailController = TextEditingController();
 
   String? selectedMode;
   bool dropdownOpen = false;
   List<String> adminNames = [];
+  bool isModified = false;
 
   @override
   void initState() {
@@ -57,6 +57,25 @@ class _EditProjectDetailState extends State<EditProjectDetail> {
         .where((m) => widget.project.teamAdminIds.contains(m.id) || m.isAdmin)
         .map((m) => m.name)
         .toList();
+
+    _projectNameController.addListener(_checkModification);
+    _locationController.addListener(_checkModification);
+    _descriptionController.addListener(_checkModification);
+    _passwordController.addListener(_checkModification);
+  }
+
+  void _checkModification() {
+    bool modified = false;
+    if (_projectNameController.text != widget.project.projectName) modified = true;
+    if (_locationController.text != (widget.project.location ?? '')) modified = true;
+    if (_descriptionController.text != (widget.project.description ?? '')) modified = true;
+    if (_passwordController.text != widget.project.projectPassword) modified = true;
+    if (selectedMode != widget.project.projectSecurityType) modified = true;
+    if (image != null) modified = true;
+
+    setState(() {
+      isModified = modified;
+    });
   }
 
   void selectImage() async {
@@ -64,11 +83,14 @@ class _EditProjectDetailState extends State<EditProjectDetail> {
     if (pickedImage != null) {
       setState(() {
         image = pickedImage;
+        _checkModification();
       });
     }
   }
 
   void updateDetails() {
+    if (!isModified) return;
+
     if (selectedMode == Constants.securityPassword && _passwordController.text.isEmpty) {
       showSnackBar(context, 'Password field cannot be empty for Password Security mode');
       return;
@@ -96,7 +118,6 @@ class _EditProjectDetailState extends State<EditProjectDetail> {
     _locationController.dispose();
     _descriptionController.dispose();
     _passwordController.dispose();
-    _emailController.dispose();
     super.dispose();
   }
 
@@ -195,6 +216,7 @@ class _EditProjectDetailState extends State<EditProjectDetail> {
                     setState(() {
                       selectedMode = outputMode;
                       dropdownOpen = false;
+                      _checkModification();
                     });
                   },
                 ),
@@ -212,7 +234,13 @@ class _EditProjectDetailState extends State<EditProjectDetail> {
                   ),
 
                 SizedBox(height: 24),
-                GradientButton(onClick: updateDetails, text: 'Update Project'),
+                Opacity(
+                  opacity: isModified ? 1.0 : 0.5,
+                  child: GradientButton(
+                      onClick: isModified ? updateDetails : () {},
+                      text: 'Update Project'
+                  ),
+                ),
                 SizedBox(height: 40),
               ],
             ),
