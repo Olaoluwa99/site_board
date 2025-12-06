@@ -38,6 +38,17 @@ class _HomePageState extends State<HomePage> {
   bool showExtra = false;
   User? retrievedUser;
 
+  @override
+  void initState() {
+    super.initState();
+    // Issue 1 Fix: Initialize retrievedUser immediately from current state
+    final userState = context.read<AppUserCubit>().state;
+    if (userState is AppUserLoggedIn) {
+      retrievedUser = userState.user;
+      context.read<ProjectBloc>().add(ProjectGetRecentProjects());
+    }
+  }
+
   void _showCustomDialog() {
     showDialog(
       context: context,
@@ -111,6 +122,31 @@ class _HomePageState extends State<HomePage> {
 
       Member? uploadMember;
       if (isOldUser) {
+        // Issue 2 Fix: Check if they are actually accepted, even if they are in the list
+        if (soughtMember != null && !soughtMember.isAccepted && !soughtMember.isBlocked) {
+          showDialog(
+            context: context,
+            builder: (context) => AdminPermissionNotifier(
+              onCompleted: () {
+                Navigator.pop(context);
+              },
+            ),
+          );
+          return;
+        }
+
+        if (soughtMember != null && soughtMember.isBlocked) {
+          showDialog(
+            context: context,
+            builder: (context) => BlockedNotifier(
+              onCompleted: () {
+                Navigator.pop(context);
+              },
+            ),
+          );
+          return;
+        }
+
         final timeDiff = DateTime.now().difference(soughtMember!.lastViewed);
         if (timeDiff.inMinutes > 5) {
           uploadMember = soughtMember.copyWith(lastViewed: DateTime.now());
@@ -132,7 +168,8 @@ class _HomePageState extends State<HomePage> {
             hasLeft: false,
             lastViewed: DateTime.now(),
           );
-        } else if (currentProject.projectSecurityType == Constants.securityApproval) {
+        } else if (currentProject.projectSecurityType ==
+            Constants.securityApproval) {
           uploadMember = Member(
             id: const Uuid().v4(),
             projectId: currentProject.id,
@@ -276,7 +313,9 @@ class _HomePageState extends State<HomePage> {
             BlocListener<AppUserCubit, AppUserState>(
               listener: (context, state) {
                 if (state is AppUserLoggedIn) {
-                  retrievedUser = state.user;
+                  setState(() {
+                    retrievedUser = state.user;
+                  });
                   context.read<ProjectBloc>().add(ProjectGetRecentProjects());
                 }
               },
@@ -366,7 +405,11 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                     } else {
-                      _proceedToProject(state.project, state.projects.indexOf(state.project), false);
+                      _proceedToProject(
+                        state.project,
+                        state.projects.indexOf(state.project),
+                        false,
+                      );
                     }
                   }
                   if (state is ProjectRetrieveSuccessLink) {
@@ -396,7 +439,6 @@ class _HomePageState extends State<HomePage> {
                     return const Loader();
                   }
 
-                  // FIX: Listen to generic ProjectRetrieveSuccess to handle all states (Recent, Id, Init, etc.)
                   if (state is ProjectRetrieveSuccess) {
                     return state.projects.isEmpty
                         ? const SizedBox()
@@ -406,8 +448,6 @@ class _HomePageState extends State<HomePage> {
                         final index = entry.key;
                         final project = entry.value;
 
-                        // Using the reusable ProjectListItem widget ensures consistency
-                        // across success and failure states.
                         return ProjectListItem(
                           projectName: project.projectName,
                           onClicked: () {

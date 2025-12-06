@@ -11,10 +11,15 @@ class ShowBarChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final barWidth = 15.0;
     final barColor = AppPalette.gradient3;
-    final thinBarWidth = 2.0; // width for the dummy max bar
+
+    // Issue 7 Fix: Ensure chart has a fixed max height of 100
+    // If your scores are 0-10, change maxY to 10.
+    // Based on usage in project_home_page (log.workScore * 10), the input values are 0-100.
+    const double maxChartY = 100.0;
 
     return BarChart(
       BarChartData(
+        maxY: maxChartY, // Forces the Y-axis to 100
         borderData: FlBorderData(
           border: const Border(
             top: BorderSide.none,
@@ -25,34 +30,24 @@ class ShowBarChart extends StatelessWidget {
         ),
         groupsSpace: 10,
         barGroups: List.generate(
-          values.length + 1, // one extra bar for dummy max
-          (index) {
-            if (index < values.length) {
-              return BarChartGroupData(
-                x: index + 1,
-                barRods: [
-                  BarChartRodData(
+          values.length,
+              (index) {
+            return BarChartGroupData(
+              x: index + 1,
+              barRods: [
+                BarChartRodData(
                     fromY: 0,
                     toY: values[index],
                     width: barWidth,
                     color: barColor,
-                  ),
-                ],
-              );
-            } else {
-              // Final thin dummy bar with value 100
-              return BarChartGroupData(
-                x: 0,
-                barRods: [
-                  BarChartRodData(
-                    fromY: 0,
-                    toY: 100,
-                    width: thinBarWidth,
-                    color: Colors.transparent, // make it invisible
-                  ),
-                ],
-              );
-            }
+                    backDrawRodData: BackgroundBarChartRodData(
+                      show: true,
+                      toY: maxChartY, // Light background bar to show full height potential
+                      color: AppPalette.borderColor,
+                    )
+                ),
+              ],
+            );
           },
         ),
       ),

@@ -127,21 +127,65 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
 
       if (existingMember != null) {
         // Update existing
+        // FIX: Compare fields and ONLY send changed values.
+        // This avoids RLS errors where a user (e.g., Admin) has permission to update
+        // 'is_accepted' but NOT 'last_viewed' (which belongs to the owner).
+
+        final Map<String, dynamic> updateData = {};
+
+        // Check Boolean Flags
+        if (member.isAccepted != (existingMember['is_accepted'] as bool? ?? false)) {
+          updateData['is_accepted'] = member.isAccepted;
+        }
+        if (member.isBlocked != (existingMember['is_blocked'] as bool? ?? false)) {
+          updateData['is_blocked'] = member.isBlocked;
+        }
+        if (member.isAdmin != (existingMember['is_admin'] as bool? ?? false)) {
+          updateData['is_admin'] = member.isAdmin;
+        }
+
+        // Check DateTime (last_viewed)
+        // We parse the DB string to compare. If it's effectively the same time, we don't send it.
+        final existingLastViewedStr = existingMember['last_viewed'] as String?;
+        if (existingLastViewedStr != null) {
+          final existingTime = DateTime.parse(existingLastViewedStr);
+          // Using isAtSameMomentAs to ignore tiny parsing differences if they represent the same time
+          if (!member.lastViewed.isAtSameMomentAs(existingTime)) {
+            updateData['last_viewed'] = member.lastViewed.toIso8601String();
+          }
+        } else {
+          // If previously null, and now we have a date, update it.
+          updateData['last_viewed'] = member.lastViewed.toIso8601String();
+        }
+
+        // If nothing changed, return the existing member to avoid a DB call that might fail RLS
+        if (updateData.isEmpty) {
+          return MemberModel.fromJson(existingMember);
+        }
+
         final updatedData = await supabaseClient
             .from('members')
-            .update(member.toJson())
+            .update(updateData)
             .eq('id', existingMember['id'])
-            .select()
-            .single();
-        return MemberModel.fromJson(updatedData);
+            .select();
+
+        if (updatedData.isEmpty) {
+          throw const ServerException("Update failed: No rows returned. Check RLS policies.");
+        }
+
+        return MemberModel.fromJson(updatedData.first);
       } else {
         // Insert new
         final newData = await supabaseClient
             .from('members')
             .insert(member.toJson())
-            .select()
-            .single();
-        return MemberModel.fromJson(newData);
+            .select();
+
+        if (newData.isEmpty) {
+          throw const ServerException("Insert failed: No rows returned");
+        }
+
+        return MemberModel.fromJson(newData.first);
       }
     } on PostgrestException catch (e) {
       throw ServerException(e.message);

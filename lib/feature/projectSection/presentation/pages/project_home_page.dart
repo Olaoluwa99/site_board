@@ -85,9 +85,9 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
     final recentLogs = confirmedLogs.take(7).toList();
 
     // Reverse to show oldest to newest left to right
-    return recentLogs.reversed.map((log) => log.workScore * 10).toList();
-    // Assuming workScore is 0-10, chart expects roughly 0-100? Or raw score.
-    // ShowBarChart max dummy is 100, so if workScore is 0.0-10.0, multiply by 10.
+    // FIX: Removed the (* 10) multiplication.
+    // workScore is already 0-100 based on the ConfirmLogPage calculation.
+    return recentLogs.reversed.map((log) => log.workScore).toList();
   }
 
   @override
