@@ -85,16 +85,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     response.fold(
           (failure) => emit(AuthFailure(failure.message)),
-          (value) => emit(AuthFailure('User has been logged out.')),
+          (value) {
+        _appUserCubit.updateUser(null);
+        emit(AuthInitial());
+      },
     );
   }
 
-  void _onAuthDeleteAccount(AuthDeleteAccount event, Emitter<AuthState> emit) async {
+  void _onAuthDeleteAccount(
+      AuthDeleteAccount event,
+      Emitter<AuthState> emit,
+      ) async {
     final response = await _deleteAccount(NoParams());
 
     response.fold(
           (failure) => emit(AuthFailure(failure.message)),
-          (value) => emit(AuthFailure('Account deleted successfully.')),
+          (value) {
+        _appUserCubit.updateUser(null);
+        emit(AuthInitial());
+      },
     );
   }
 

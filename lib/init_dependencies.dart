@@ -78,7 +78,11 @@ void _initAuth() {
           () => AuthRemoteDataSourceImpl(serviceLocator()),
     )
     ..registerFactory<AuthRepository>(
-          () => AuthRepositoryImpl(serviceLocator(), serviceLocator()),
+          () => AuthRepositoryImpl(
+        serviceLocator(),
+        serviceLocator(),
+        serviceLocator(),
+      ),
     )
     ..registerFactory(() => UserSignUp(serviceLocator()))
     ..registerFactory(() => UserLogin(serviceLocator()))

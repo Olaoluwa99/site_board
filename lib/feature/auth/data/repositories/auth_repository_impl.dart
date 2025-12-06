@@ -1,4 +1,5 @@
 import 'package:fpdart/fpdart.dart';
+import 'package:site_board/feature/projectSection/data/dataSources/project_local_data_source.dart';
 
 import '../../../../core/common/entities/user.dart';
 import '../../../../core/constants/constants.dart';
@@ -12,7 +13,12 @@ import '../models/user_model.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
   final ConnectionChecker connectionChecker;
-  const AuthRepositoryImpl(this.remoteDataSource, this.connectionChecker);
+  final ProjectLocalDataSource projectLocalDataSource;
+  const AuthRepositoryImpl(
+      this.remoteDataSource,
+      this.connectionChecker,
+      this.projectLocalDataSource,
+      );
 
   @override
   Future<Either<Failure, User>> loginWithEmailPassword({
@@ -90,6 +96,8 @@ class AuthRepositoryImpl implements AuthRepository {
       }
       final response = await remoteDataSource.logout();
       if (response == true) {
+        // Clear local data on successful logout
+        projectLocalDataSource.clearData();
         return right(true);
       } else {
         return left(Failure('Unable to logout user'));
@@ -106,6 +114,7 @@ class AuthRepositoryImpl implements AuthRepository {
         return left(Failure(Constants.noConnectionErrorMessage));
       }
       await remoteDataSource.deleteAccount();
+      projectLocalDataSource.clearData(); // Also clear data on account deletion
       return right(null);
     } on ServerException catch (e) {
       return left(Failure(e.message));

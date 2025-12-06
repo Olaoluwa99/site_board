@@ -118,7 +118,8 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   // Helper method for Upsert Logic
   Future<MemberModel> _upsertMember(MemberModel member) async {
     try {
-      final existingMember = await supabaseClient
+      final existingMember =
+      await supabaseClient
           .from('members')
           .select()
           .eq('project_id', member.projectId)
@@ -134,10 +135,12 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
         final Map<String, dynamic> updateData = {};
 
         // Check Boolean Flags
-        if (member.isAccepted != (existingMember['is_accepted'] as bool? ?? false)) {
+        if (member.isAccepted !=
+            (existingMember['is_accepted'] as bool? ?? false)) {
           updateData['is_accepted'] = member.isAccepted;
         }
-        if (member.isBlocked != (existingMember['is_blocked'] as bool? ?? false)) {
+        if (member.isBlocked !=
+            (existingMember['is_blocked'] as bool? ?? false)) {
           updateData['is_blocked'] = member.isBlocked;
         }
         if (member.isAdmin != (existingMember['is_admin'] as bool? ?? false)) {
@@ -163,20 +166,24 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
           return MemberModel.fromJson(existingMember);
         }
 
-        final updatedData = await supabaseClient
+        final updatedData =
+        await supabaseClient
             .from('members')
             .update(updateData)
             .eq('id', existingMember['id'])
             .select();
 
         if (updatedData.isEmpty) {
-          throw const ServerException("Update failed: No rows returned. Check RLS policies.");
+          throw const ServerException(
+            "Update failed: No rows returned. Check RLS policies.",
+          );
         }
 
         return MemberModel.fromJson(updatedData.first);
       } else {
         // Insert new
-        final newData = await supabaseClient
+        final newData =
+        await supabaseClient
             .from('members')
             .insert(member.toJson())
             .select();
@@ -222,9 +229,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
         }
 
         if (images[i] != null) {
-          await supabaseClient.storage
-              .from('daily_log_images')
-              .upload(
+          await supabaseClient.storage.from('daily_log_images').upload(
             filePath,
             images[i]!,
             fileOptions: const FileOptions(upsert: true),
@@ -252,9 +257,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
       // Use a consistent path for project images
       final filePath = 'covers/${project.id}';
 
-      await supabaseClient.storage
-          .from('project_images')
-          .upload(filePath, image, fileOptions: const FileOptions(upsert: true));
+      await supabaseClient.storage.from('project_images').upload(
+        filePath,
+        image,
+        fileOptions: const FileOptions(upsert: true),
+      );
 
       return supabaseClient.storage
           .from('project_images')
@@ -272,19 +279,23 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
       // FIX: Fetch all projects where user is a member OR creator
       // We rely on the Members table. Since creators are added as members,
       // querying the Members table for the userId gives us all project IDs.
-
-      final membersResponse = await supabaseClient
+      // Filter out members who have left.
+      final membersResponse =
+      await supabaseClient
           .from('members')
           .select('project_id')
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .eq('has_left', false);
 
-      final projectIds = (membersResponse as List)
+      final projectIds =
+      (membersResponse as List)
           .map((m) => m['project_id'] as String)
           .toList();
 
       if (projectIds.isEmpty) return [];
 
-      final response = await supabaseClient
+      final response =
+      await supabaseClient
           .from('projects')
           .select('*, daily_logs(*, log_tasks(*)), members(*)')
           .inFilter('id', projectIds);
@@ -376,8 +387,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
       final tasksToUpdate =
       currentTasks.where((t) {
         final existing = existingMap[t.id];
-        return existing != null &&
-            existing != t;
+        return existing != null && existing != t;
       }).toList();
 
       if (tasksToDelete.isNotEmpty) {
@@ -422,9 +432,10 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   @override
   Future<void> leaveProject(String projectId, String userId) async {
     try {
+      // Soft delete: Mark has_left = true, is_accepted = false
       await supabaseClient
           .from('members')
-          .delete()
+          .update({'has_left': true, 'is_accepted': false})
           .eq('project_id', projectId)
           .eq('user_id', userId);
     } on PostgrestException catch (e) {

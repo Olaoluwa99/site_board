@@ -91,32 +91,21 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       final response = await _createProject(
         CreateProjectParams(project: event.project),
       );
-      response.fold(
-            (l) {
-          emit(ProjectFailure(l.message));
-          emit(ProjectRetrieveSuccess(currentState.projects));
-        },
-            (r) {
-          // Replace updated project in list
-          final updatedProjects = currentState.projects.toList();
-          if(!updatedProjects.any((p) => p.id == r.id)) {
-            updatedProjects.add(r);
-          }
-
-          emit(
-            ProjectCreateSuccess(
-              projects: updatedProjects,
-              project: r,
-            ),
-          );
-        },
-      );
+      response.fold((l) {
+        emit(ProjectFailure(l.message));
+        emit(ProjectRetrieveSuccess(currentState.projects));
+      }, (r) {
+        // Refetch project to get full details (like auto-created member)
+        add(ProjectGetProjectById(project: r));
+      });
     } else {
       emit(ProjectLoading());
-      final response = await _createProject(CreateProjectParams(project: event.project));
+      final response = await _createProject(
+        CreateProjectParams(project: event.project),
+      );
       response.fold(
-              (l) => emit(ProjectFailure(l.message)),
-              (r) => emit(ProjectCreateSuccess(projects: [r], project: r))
+            (l) => emit(ProjectFailure(l.message)),
+            (r) => emit(ProjectCreateSuccess(projects: [r], project: r)),
       );
     }
   }
@@ -128,21 +117,13 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       final response = await _updateProject(
         UpdateProjectParams(project: event.project, image: event.coverImage),
       );
-      response.fold(
-            (l) {
-          emit(ProjectFailure(l.message));
-          emit(ProjectRetrieveSuccess(currentState.projects));
-        },
-            (r) {
-          // Replace updated project in list
-          final updatedProjects =
-          currentState.projects.map((p) {
-            return p.id == event.project.id ? r : p;
-          }).toList();
-
-          emit(ProjectRetrieveSuccess(updatedProjects));
-        },
-      );
+      response.fold((l) {
+        emit(ProjectFailure(l.message));
+        emit(ProjectRetrieveSuccess(currentState.projects));
+      }, (r) async {
+        // Refetch to ensure data consistency
+        await _refetchProject(r.id, emit, currentState.projects);
+      });
     }
   }
 
@@ -163,28 +144,29 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         ),
       );
 
-      response.fold(
-            (l) {
-          emit(
-            DailyLogUploadFailure(
-              error: l.message,
-              projects: currentState.projects,
-            ),
-          );
-        },
-            (r) {
-          final updatedProjects =
-          currentState.projects.map((project) {
-            if (project.id == event.projectId) {
-              final updatedLogs = [...project.dailyLogs, r];
-              return project.copyWith(dailyLogs: updatedLogs);
-            }
-            return project;
-          }).toList();
-
-          emit(DailyLogUploadSuccess(updatedProjects));
-        },
-      );
+      response.fold((l) {
+        emit(
+          DailyLogUploadFailure(
+            error: l.message,
+            projects: currentState.projects,
+          ),
+        );
+      }, (r) async {
+        // After log creation, refetch the project to get the updated logs properly structured from backend
+        final fetchResult = await _getProjectById(
+          GetProjectByIdParams(projectId: event.projectId),
+        );
+        fetchResult.fold(
+              (l) => emit(DailyLogUploadSuccess(currentState.projects)),
+              (freshProject) {
+            emit(
+              DailyLogUploadSuccess(
+                updateProjectInList(currentState.projects, freshProject),
+              ),
+            );
+          },
+        );
+      });
     }
   }
 
@@ -206,34 +188,29 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         ),
       );
 
-      response.fold(
-            (l) {
-          emit(
-            DailyLogUploadFailure(
-              error: l.message,
-              projects: currentState.projects,
-            ),
-          );
-        },
-            (r) {
-          final updatedProjects =
-          currentState.projects.map((project) {
-            if (project.id == event.projectId) {
-              final updatedLogs =
-              project.dailyLogs.map((log) {
-                return log.id == event.dailyLog.id
-                    ? r
-                    : log;
-              }).toList();
-
-              return project.copyWith(dailyLogs: updatedLogs);
-            }
-            return project;
-          }).toList();
-
-          emit(DailyLogUploadSuccess(updatedProjects));
-        },
-      );
+      response.fold((l) {
+        emit(
+          DailyLogUploadFailure(
+            error: l.message,
+            projects: currentState.projects,
+          ),
+        );
+      }, (r) async {
+        // Refetch project to update UI correctly
+        final fetchResult = await _getProjectById(
+          GetProjectByIdParams(projectId: event.projectId),
+        );
+        fetchResult.fold(
+              (l) => emit(DailyLogUploadSuccess(currentState.projects)),
+              (freshProject) {
+            emit(
+              DailyLogUploadSuccess(
+                updateProjectInList(currentState.projects, freshProject),
+              ),
+            );
+          },
+        );
+      });
     }
   }
 
@@ -252,38 +229,56 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         ),
       );
 
-      response.fold(
-            (l) {
-          emit(
-            ProjectMemberUpdateFailure(
-              error: l.message,
-              projects: currentState.projects,
-            ),
-          );
-        },
-            (r) {
-          Project outputProject = event.project;
+      response.fold((l) {
+        emit(
+          ProjectMemberUpdateFailure(
+            error: l.message,
+            projects: currentState.projects,
+          ),
+        );
+      }, (r) async {
+        // IMPORTANT: Refetch the project to get the complete and fresh list of members from the backend
+        final fetchResponse = await _getProjectById(
+          GetProjectByIdParams(projectId: event.project.id),
+        );
 
-          final updatedMembers = [
-            for (final m in outputProject.teamMembers)
-              if (m.userId != event.member.userId) m,
-            r, // Use returned member
-          ];
+        fetchResponse.fold(
+          // If fetch fails, use manual update as fallback
+              (l) {
+            Project outputProject = event.project;
+            final updatedMembers = [
+              for (final m in outputProject.teamMembers)
+                if (m.userId != event.member.userId) m,
+              r,
+            ];
+            outputProject = outputProject.copyWith(teamMembers: updatedMembers);
 
-          outputProject = outputProject.copyWith(teamMembers: updatedMembers);
-
-          emit(
-            ProjectMemberUpdateSuccess(
-              projects: updateProjectInList(
-                currentState.projects,
-                outputProject,
+            emit(
+              ProjectMemberUpdateSuccess(
+                projects: updateProjectInList(
+                  currentState.projects,
+                  outputProject,
+                ),
+                project: outputProject,
+                member: r,
               ),
-              project: outputProject,
-              member: r,
-            ),
-          );
-        },
-      );
+            );
+          },
+          // If fetch succeeds, use the fresh data
+              (freshProject) {
+            emit(
+              ProjectMemberUpdateSuccess(
+                projects: updateProjectInList(
+                  currentState.projects,
+                  freshProject,
+                ),
+                project: freshProject,
+                member: r,
+              ),
+            );
+          },
+        );
+      });
     }
   }
 
@@ -301,32 +296,31 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         ),
       );
 
-      response.fold(
-            (l) {
-          emit(
-            DailyLogUploadFailure(
-              error: l.message,
-              projects: currentState.projects,
-            ),
-          );
-        },
-            (r) {
-          final updatedProjects =
-          currentState.projects.map((project) {
-            final updatedLogs =
-            project.dailyLogs.map((log) {
-              if (log.id == event.dailyLogId) {
-                return log.copyWith(plannedTasks: r);
-              }
-              return log;
-            }).toList();
-
-            return project.copyWith(dailyLogs: updatedLogs);
+      response.fold((l) {
+        emit(
+          DailyLogUploadFailure(
+            error: l.message,
+            projects: currentState.projects,
+          ),
+        );
+      }, (r) {
+        // For task management, we can probably just patch locally to avoid spinner flicker
+        // but if consistency is key, we could refetch.
+        final updatedProjects =
+        currentState.projects.map((project) {
+          final updatedLogs =
+          project.dailyLogs.map((log) {
+            if (log.id == event.dailyLogId) {
+              return log.copyWith(plannedTasks: r);
+            }
+            return log;
           }).toList();
 
-          emit(DailyLogUploadSuccess(updatedProjects));
-        },
-      );
+          return project.copyWith(dailyLogs: updatedLogs);
+        }).toList();
+
+        emit(DailyLogUploadSuccess(updatedProjects));
+      });
     }
   }
 
@@ -381,15 +375,10 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           ),
         ),
             (retrievedProject) {
-          List<Project> updatedProjects;
-          if (currentProjects.any((p) => p.id == retrievedProject.id)) {
-            updatedProjects = currentProjects.map((p) {
-              return p.id == event.project.id ? retrievedProject : p;
-            }).toList();
-          } else {
-            updatedProjects = [...currentProjects, retrievedProject];
-          }
-
+          final updatedProjects = updateProjectInList(
+            currentProjects,
+            retrievedProject,
+          );
           emit(
             ProjectRetrieveSuccessId(
               projects: updatedProjects,
@@ -428,14 +417,10 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           ),
         ),
             (retrievedProject) {
-          List<Project> updatedProjects;
-          if (currentProjects.any((p) => p.id == retrievedProject.id)) {
-            updatedProjects = currentProjects.map((p) {
-              return p.id == retrievedProject.id ? retrievedProject : p;
-            }).toList();
-          } else {
-            updatedProjects = [...currentProjects, retrievedProject];
-          }
+          final updatedProjects = updateProjectInList(
+            currentProjects,
+            retrievedProject,
+          );
           emit(
             ProjectRetrieveSuccessLink(
               projects: updatedProjects,
@@ -475,17 +460,19 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     final currentState = state;
     if (currentState is ProjectRetrieveSuccess) {
       emit(ProjectLoading());
-      final response = await _deleteProject(DeleteProjectParams(projectId: event.projectId));
-      response.fold(
-            (l) {
-          emit(ProjectFailure(l.message));
-          emit(ProjectRetrieveSuccess(currentState.projects));
-        },
-            (r) {
-          final updatedProjects = currentState.projects.where((p) => p.id != event.projectId).toList();
-          emit(ProjectRetrieveSuccess(updatedProjects));
-        },
+      final response = await _deleteProject(
+        DeleteProjectParams(projectId: event.projectId),
       );
+      response.fold((l) {
+        emit(ProjectFailure(l.message));
+        emit(ProjectRetrieveSuccess(currentState.projects));
+      }, (r) {
+        final updatedProjects =
+        currentState.projects
+            .where((p) => p.id != event.projectId)
+            .toList();
+        emit(ProjectRetrieveSuccess(updatedProjects));
+      });
     }
   }
 
@@ -496,18 +483,42 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     final currentState = state;
     if (currentState is ProjectRetrieveSuccess) {
       emit(ProjectLoading());
-      final response = await _leaveProject(LeaveProjectParams(projectId: event.projectId, userId: event.userId));
-      response.fold(
-            (l) {
-          emit(ProjectFailure(l.message));
-          emit(ProjectRetrieveSuccess(currentState.projects));
-        },
-            (r) {
-          final updatedProjects = currentState.projects.where((p) => p.id != event.projectId).toList();
-          emit(ProjectRetrieveSuccess(updatedProjects));
-        },
+      final response = await _leaveProject(
+        LeaveProjectParams(projectId: event.projectId, userId: event.userId),
       );
+      response.fold((l) {
+        emit(ProjectFailure(l.message));
+        emit(ProjectRetrieveSuccess(currentState.projects));
+      }, (r) {
+        final updatedProjects =
+        currentState.projects
+            .where((p) => p.id != event.projectId)
+            .toList();
+        emit(ProjectRetrieveSuccess(updatedProjects));
+      });
     }
+  }
+
+  // Helper method for refetching
+  Future<void> _refetchProject(
+      String projectId,
+      Emitter<ProjectState> emit,
+      List<Project> currentList,
+      ) async {
+    final fetchResponse = await _getProjectById(
+      GetProjectByIdParams(projectId: projectId),
+    );
+
+    fetchResponse.fold(
+          (l) => emit(ProjectRetrieveSuccess(currentList)), // Keep old on error
+          (freshProject) {
+        emit(
+          ProjectRetrieveSuccess(
+            updateProjectInList(currentList, freshProject),
+          ),
+        );
+      },
+    );
   }
 
   List<Project> updateProjectInList(List<Project> projects, Project updated) {

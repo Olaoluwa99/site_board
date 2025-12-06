@@ -6,6 +6,7 @@ abstract interface class ProjectLocalDataSource {
   void uploadRecentProject({required ProjectModel project});
   void uploadOfflineProject({required ProjectModel project});
   List<ProjectModel> loadRecentProjects();
+  void clearData();
 }
 
 class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
@@ -70,5 +71,11 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
       final oldestKey = keys.first;
       offlineBox.delete(oldestKey);
     }
+  }
+
+  @override
+  void clearData() {
+    recentBox.clear();
+    offlineBox.clear();
   }
 }

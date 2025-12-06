@@ -49,7 +49,6 @@ class ProjectHomePage extends StatefulWidget {
 }
 
 class _ProjectHomePageState extends State<ProjectHomePage> {
-
   Project _getCurrentProject() {
     final state = context.read<ProjectBloc>().state;
     if (state is ProjectRetrieveSuccess) {
@@ -57,6 +56,10 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         return state.projects.firstWhere((p) => p.id == widget.project.id);
       } catch (e) {
         return widget.project;
+      }
+    } else if (state is ProjectMemberUpdateSuccess) {
+      if (state.project.id == widget.project.id) {
+        return state.project;
       }
     }
     return widget.project;
@@ -77,16 +80,17 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
   }
 
   List<double> _getChartData(Project project) {
-    final confirmedLogs = project.dailyLogs.where((log) => log.isConfirmed).toList();
+    final confirmedLogs =
+    project.dailyLogs.where((log) => log.isConfirmed).toList();
     // Sort by date descending
-    confirmedLogs.sort((a, b) => b.dateTimeList.first.compareTo(a.dateTimeList.first));
+    confirmedLogs.sort(
+          (a, b) => b.dateTimeList.first.compareTo(a.dateTimeList.first),
+    );
 
     // Take last 7 days (or fewer)
     final recentLogs = confirmedLogs.take(7).toList();
 
     // Reverse to show oldest to newest left to right
-    // FIX: Removed the (* 10) multiplication.
-    // workScore is already 0-100 based on the ConfirmLogPage calculation.
     return recentLogs.reversed.map((log) => log.workScore).toList();
   }
 
@@ -183,15 +187,23 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
             showLoaderDialog(context);
           }
           if (state is DailyLogUploadFailure ||
-              state is ProjectRetrieveSuccess) {
+              state is DailyLogUploadSuccess ||
+              state is ProjectRetrieveSuccess ||
+              state is ProjectMemberUpdateSuccess) {
+            // Dismiss loader if visible
+            // NOTE: We used to pop rootNavigator for dialogs.
+            // Check if we are potentially inside a dialog or just need to clear the loader.
+            // A safer way to clear ONLY the loader is tricky without keys or state management.
+            // But following the pattern, we pop the root navigator.
             Navigator.of(context, rootNavigator: true).pop();
           }
+
           if (state is DailyLogUploadFailure) {
             showSnackBar(context, state.error);
           }
           if (state is ProjectRetrieveSuccess) {
             // Check if user was removed from project
-            if(!state.projects.any((p) => p.id == widget.project.id)) {
+            if (!state.projects.any((p) => p.id == widget.project.id)) {
               Navigator.of(context).pop(); // Go back to Home/Account
               showSnackBar(context, "Project unavailable or deleted.");
             } else {
@@ -218,7 +230,8 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
-                  child: chartValues.isEmpty
+                  child:
+                  chartValues.isEmpty
                       ? Center(child: Text("No confirmed logs yet"))
                       : ShowBarChart(values: chartValues),
                 ),
@@ -286,12 +299,25 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     );
                   }
 
-                  if (state is ProjectRetrieveSuccess) {
-                    Project projectToShow;
-                    try {
-                      projectToShow = state.projects.firstWhere((p) => p.id == widget.project.id);
-                    } catch(e) {
-                      projectToShow = state.projects.isNotEmpty ? state.projects[0] : widget.project;
+                  if (state is ProjectRetrieveSuccess ||
+                      state is ProjectMemberUpdateSuccess) {
+                    // Try to find the specific project in the state list
+                    Project projectToShow = widget.project;
+
+                    if (state is ProjectRetrieveSuccess) {
+                      try {
+                        projectToShow = state.projects.firstWhere(
+                              (p) => p.id == widget.project.id,
+                        );
+                      } catch (e) {
+                        // If not found in list, fall back to current widget.project or first
+                        projectToShow =
+                        state.projects.isNotEmpty
+                            ? state.projects[0]
+                            : widget.project;
+                      }
+                    } else if (state is ProjectMemberUpdateSuccess) {
+                      projectToShow = state.project;
                     }
 
                     final logs = projectToShow.dailyLogs;
