@@ -40,7 +40,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.user == null) throw const ServerException('User is null');
       return UserModel.fromJson(
         response.user!.toJson(),
-      ).copyWith(email: currentUserSession!.user.email);
+      ).copyWith(
+        email: currentUserSession!.user.email,
+        name: response.user!.userMetadata?['name'],
+      );
     } on AuthException catch (e) {
       throw ServerException(e.message);
     } catch (e) {
@@ -63,7 +66,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.user == null) throw const ServerException('User is null');
       return UserModel.fromJson(
         response.user!.toJson(),
-      ).copyWith(email: currentUserSession!.user.email);
+      ).copyWith(
+        email: currentUserSession!.user.email,
+        name: response.user!.userMetadata?['name'],
+      );
     } on AuthException catch (e) {
       throw ServerException(e.message);
     } catch (e) {

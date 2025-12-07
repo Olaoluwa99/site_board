@@ -6,6 +6,7 @@ import 'package:site_board/core/usecases/usecase.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/add_recent_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/create_project.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/delete_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/delete_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_id.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_link.dart';
@@ -38,6 +39,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
   final AddRecentProject _addRecentProject;
   final DeleteProject _deleteProject;
   final LeaveProject _leaveProject;
+  final DeleteDailyLog _deleteDailyLog;
 
   ProjectBloc({
     required GetAllProjects getAllProjects,
@@ -53,6 +55,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     required AddRecentProject addRecentProject,
     required DeleteProject deleteProject,
     required LeaveProject leaveProject,
+    required DeleteDailyLog deleteDailyLog,
   }) : _createProject = createProject,
         _updateProject = updateProject,
         _createDailyLog = createDailyLog,
@@ -66,6 +69,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         _addRecentProject = addRecentProject,
         _deleteProject = deleteProject,
         _leaveProject = leaveProject,
+        _deleteDailyLog = deleteDailyLog,
         super(ProjectInitial()) {
     on<ProjectCreate>(_onProjectCreate);
     on<ProjectUpdate>(_onProjectUpdate);
@@ -80,6 +84,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     on<ProjectAddToRecent>(_onAddRecentProject);
     on<ProjectDeleteEvent>(_onDeleteProject);
     on<ProjectLeaveEvent>(_onLeaveProject);
+    on<DailyLogDelete>(_onDailyLogDelete);
   }
 
   bool isLocalMode = false;
@@ -95,7 +100,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         emit(ProjectFailure(l.message));
         emit(ProjectRetrieveSuccess(currentState.projects));
       }, (r) {
-        // Refetch project to get full details (like auto-created member)
         add(ProjectGetProjectById(project: r));
       });
     } else {
@@ -121,7 +125,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
         emit(ProjectFailure(l.message));
         emit(ProjectRetrieveSuccess(currentState.projects));
       }, (r) async {
-        // Refetch to ensure data consistency
         await _refetchProject(r.id, emit, currentState.projects);
       });
     }
@@ -152,7 +155,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           ),
         );
       }, (r) async {
-        // After log creation, refetch the project to get the updated logs properly structured from backend
         final fetchResult = await _getProjectById(
           GetProjectByIdParams(projectId: event.projectId),
         );
@@ -196,7 +198,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           ),
         );
       }, (r) async {
-        // Refetch project to update UI correctly
         final fetchResult = await _getProjectById(
           GetProjectByIdParams(projectId: event.projectId),
         );
@@ -237,13 +238,11 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           ),
         );
       }, (r) async {
-        // IMPORTANT: Refetch the project to get the complete and fresh list of members from the backend
         final fetchResponse = await _getProjectById(
           GetProjectByIdParams(projectId: event.project.id),
         );
 
         fetchResponse.fold(
-          // If fetch fails, use manual update as fallback
               (l) {
             Project outputProject = event.project;
             final updatedMembers = [
@@ -264,7 +263,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
               ),
             );
           },
-          // If fetch succeeds, use the fresh data
               (freshProject) {
             emit(
               ProjectMemberUpdateSuccess(
@@ -304,8 +302,6 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
           ),
         );
       }, (r) {
-        // For task management, we can probably just patch locally to avoid spinner flicker
-        // but if consistency is key, we could refetch.
         final updatedProjects =
         currentState.projects.map((project) {
           final updatedLogs =
@@ -499,7 +495,42 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     }
   }
 
-  // Helper method for refetching
+  void _onDailyLogDelete(
+      DailyLogDelete event,
+      Emitter<ProjectState> emit,
+      ) async {
+    final currentState = state;
+    if (currentState is ProjectRetrieveSuccess) {
+      emit(ProjectLoading());
+      final response = await _deleteDailyLog(
+        DeleteDailyLogParams(dailyLogId: event.logId),
+      );
+      response.fold((l) {
+        emit(
+          DailyLogUploadFailure(
+            error: l.message,
+            projects: currentState.projects,
+          ),
+        );
+      }, (r) async {
+        // Refetch project to ensure data consistency
+        final fetchResult = await _getProjectById(
+          GetProjectByIdParams(projectId: event.projectId),
+        );
+        fetchResult.fold(
+              (l) => emit(DailyLogUploadSuccess(currentState.projects)),
+              (freshProject) {
+            emit(
+              DailyLogUploadSuccess(
+                updateProjectInList(currentState.projects, freshProject),
+              ),
+            );
+          },
+        );
+      });
+    }
+  }
+
   Future<void> _refetchProject(
       String projectId,
       Emitter<ProjectState> emit,
@@ -510,7 +541,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     );
 
     fetchResponse.fold(
-          (l) => emit(ProjectRetrieveSuccess(currentList)), // Keep old on error
+          (l) => emit(ProjectRetrieveSuccess(currentList)),
           (freshProject) {
         emit(
           ProjectRetrieveSuccess(

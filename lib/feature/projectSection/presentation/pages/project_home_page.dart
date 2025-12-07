@@ -94,6 +94,33 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
     return recentLogs.reversed.map((log) => log.workScore).toList();
   }
 
+  void _showDeleteConfirmation(BuildContext context, String logId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Log'),
+        content: const Text(
+          'Are you sure you want to delete this log? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<ProjectBloc>().add(
+                DailyLogDelete(logId: logId, projectId: widget.project.id),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentProject = _getCurrentProject();
@@ -158,7 +185,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
         ],
       ),
       floatingActionButton:
-      widget.isLocal
+      (widget.isLocal || !canEdit)
           ? SizedBox.shrink()
           : FloatingActionButton.extended(
         onPressed: () {
@@ -190,21 +217,18 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
               state is DailyLogUploadSuccess ||
               state is ProjectRetrieveSuccess ||
               state is ProjectMemberUpdateSuccess) {
-            // Dismiss loader if visible
-            // NOTE: We used to pop rootNavigator for dialogs.
-            // Check if we are potentially inside a dialog or just need to clear the loader.
-            // A safer way to clear ONLY the loader is tricky without keys or state management.
-            // But following the pattern, we pop the root navigator.
             Navigator.of(context, rootNavigator: true).pop();
           }
 
           if (state is DailyLogUploadFailure) {
             showSnackBar(context, state.error);
           }
+          if (state is DailyLogUploadSuccess) {
+            showSnackBar(context, "Log updated successfully");
+          }
           if (state is ProjectRetrieveSuccess) {
-            // Check if user was removed from project
             if (!state.projects.any((p) => p.id == widget.project.id)) {
-              Navigator.of(context).pop(); // Go back to Home/Account
+              Navigator.of(context).pop();
               showSnackBar(context, "Project unavailable or deleted.");
             } else {
               setState(() {});
@@ -301,7 +325,6 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
 
                   if (state is ProjectRetrieveSuccess ||
                       state is ProjectMemberUpdateSuccess) {
-                    // Try to find the specific project in the state list
                     Project projectToShow = widget.project;
 
                     if (state is ProjectRetrieveSuccess) {
@@ -310,7 +333,6 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                               (p) => p.id == widget.project.id,
                         );
                       } catch (e) {
-                        // If not found in list, fall back to current widget.project or first
                         projectToShow =
                         state.projects.isNotEmpty
                             ? state.projects[0]
@@ -340,8 +362,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
 
                         return LogListItem(
                           log: item,
-                          // If confirmed, not editable. If local, not editable.
-                          isEditable: !item.isConfirmed && !widget.isLocal,
+                          isEditable: canEdit && !item.isConfirmed && !widget.isLocal,
                           onEdit: () {
                             showRoundedBottomSheet(
                               context: context,
@@ -361,7 +382,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                               ),
                             );
                           },
-                          onDelete: () {},
+                          onDelete: () => _showDeleteConfirmation(context, item.id),
                           onConfirm: () {
                             showRoundedBottomSheet(
                               context: context,

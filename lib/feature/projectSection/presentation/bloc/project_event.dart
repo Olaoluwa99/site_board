@@ -100,3 +100,9 @@ final class ProjectLeaveEvent extends ProjectEvent {
   final String userId;
   ProjectLeaveEvent({required this.projectId, required this.userId});
 }
+
+final class DailyLogDelete extends ProjectEvent {
+  final String logId;
+  final String projectId;
+  DailyLogDelete({required this.logId, required this.projectId});
+}

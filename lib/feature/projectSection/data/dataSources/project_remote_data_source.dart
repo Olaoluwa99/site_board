@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:site_board/feature/projectSection/data/models/member_model.dart';
 import 'package:site_board/feature/projectSection/data/models/project_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -41,6 +40,9 @@ abstract interface class ProjectRemoteDataSource {
 
   Future<void> deleteProject(String projectId);
   Future<void> leaveProject(String projectId, String userId);
+
+  // New Method
+  Future<void> deleteDailyLog(String dailyLogId);
 }
 
 class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
@@ -115,7 +117,6 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     }
   }
 
-  // Helper method for Upsert Logic
   Future<MemberModel> _upsertMember(MemberModel member) async {
     try {
       final existingMember =
@@ -127,14 +128,7 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
           .maybeSingle();
 
       if (existingMember != null) {
-        // Update existing
-        // FIX: Compare fields and ONLY send changed values.
-        // This avoids RLS errors where a user (e.g., Admin) has permission to update
-        // 'is_accepted' but NOT 'last_viewed' (which belongs to the owner).
-
         final Map<String, dynamic> updateData = {};
-
-        // Check Boolean Flags
         if (member.isAccepted !=
             (existingMember['is_accepted'] as bool? ?? false)) {
           updateData['is_accepted'] = member.isAccepted;
@@ -147,21 +141,16 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
           updateData['is_admin'] = member.isAdmin;
         }
 
-        // Check DateTime (last_viewed)
-        // We parse the DB string to compare. If it's effectively the same time, we don't send it.
         final existingLastViewedStr = existingMember['last_viewed'] as String?;
         if (existingLastViewedStr != null) {
           final existingTime = DateTime.parse(existingLastViewedStr);
-          // Using isAtSameMomentAs to ignore tiny parsing differences if they represent the same time
           if (!member.lastViewed.isAtSameMomentAs(existingTime)) {
             updateData['last_viewed'] = member.lastViewed.toIso8601String();
           }
         } else {
-          // If previously null, and now we have a date, update it.
           updateData['last_viewed'] = member.lastViewed.toIso8601String();
         }
 
-        // If nothing changed, return the existing member to avoid a DB call that might fail RLS
         if (updateData.isEmpty) {
           return MemberModel.fromJson(existingMember);
         }
@@ -181,7 +170,6 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
 
         return MemberModel.fromJson(updatedData.first);
       } else {
-        // Insert new
         final newData =
         await supabaseClient
             .from('members')
@@ -254,7 +242,6 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     required ProjectModel project,
   }) async {
     try {
-      // Use a consistent path for project images
       final filePath = 'covers/${project.id}';
 
       await supabaseClient.storage.from('project_images').upload(
@@ -276,10 +263,6 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   @override
   Future<List<ProjectModel>> getAllProjects({required String userId}) async {
     try {
-      // FIX: Fetch all projects where user is a member OR creator
-      // We rely on the Members table. Since creators are added as members,
-      // querying the Members table for the userId gives us all project IDs.
-      // Filter out members who have left.
       final membersResponse =
       await supabaseClient
           .from('members')
@@ -419,8 +402,6 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   @override
   Future<void> deleteProject(String projectId) async {
     try {
-      // Requires Cascade Delete on DB or manual deletion of children.
-      // Assuming Cascade is ON in Supabase for foreign keys.
       await supabaseClient.from('projects').delete().eq('id', projectId);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
@@ -432,12 +413,22 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   @override
   Future<void> leaveProject(String projectId, String userId) async {
     try {
-      // Soft delete: Mark has_left = true, is_accepted = false
       await supabaseClient
           .from('members')
           .update({'has_left': true, 'is_accepted': false})
           .eq('project_id', projectId)
           .eq('user_id', userId);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteDailyLog(String dailyLogId) async {
+    try {
+      await supabaseClient.from('daily_logs').delete().eq('id', dailyLogId);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {

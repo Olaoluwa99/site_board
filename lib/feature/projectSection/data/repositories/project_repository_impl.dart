@@ -122,7 +122,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
         projectPassword: project.projectPassword,
       );
 
-      // FIX: Handle Image Upload Logic HERE
       if (image != null) {
         final imageUrl = await projectRemoteDataSource.uploadProjectCoverImage(
             image: image,
@@ -542,6 +541,19 @@ class ProjectRepositoryImpl implements ProjectRepository {
         return left(Failure(Constants.noConnectionErrorMessage));
       }
       await projectRemoteDataSource.leaveProject(projectId, userId);
+      return right(null);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteDailyLog(String dailyLogId) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      await projectRemoteDataSource.deleteDailyLog(dailyLogId);
       return right(null);
     } on ServerException catch (e) {
       return left(Failure(e.message));

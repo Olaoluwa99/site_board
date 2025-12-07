@@ -70,4 +70,7 @@ abstract interface class ProjectRepository {
   Future<Either<Failure, void>> deleteProject(String projectId);
 
   Future<Either<Failure, void>> leaveProject(String projectId, String userId);
+
+  // New Method
+  Future<Either<Failure, void>> deleteDailyLog(String dailyLogId);
 }

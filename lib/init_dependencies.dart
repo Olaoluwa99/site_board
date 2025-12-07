@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/add_recent_project.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/delete_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/delete_project.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/generate_project_summary.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/leave_project.dart';
@@ -139,6 +140,7 @@ void _initProject() {
     ..registerFactory(() => GenerateProjectSummary(serviceLocator()))
     ..registerFactory(() => DeleteProject(serviceLocator()))
     ..registerFactory(() => LeaveProject(serviceLocator()))
+    ..registerFactory(() => DeleteDailyLog(serviceLocator())) // NEW
   // Bloc
     ..registerLazySingleton(
           () => ProjectBloc(
@@ -155,6 +157,7 @@ void _initProject() {
         addRecentProject: serviceLocator(),
         deleteProject: serviceLocator(),
         leaveProject: serviceLocator(),
+        deleteDailyLog: serviceLocator(), // NEW
       ),
     )
     ..registerFactory(

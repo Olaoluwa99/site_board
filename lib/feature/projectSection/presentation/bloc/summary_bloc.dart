@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -48,9 +46,14 @@ class SummaryBloc extends Bloc<SummaryEvent, SummaryState> {
       final pdf = pw.Document();
       final summary = event.summary;
 
+      // Load a standard font (OpenSans) to ensure text renders correctly
+      // This fixes the issue where only headers appear if the default font isn't supported
+      final font = await PdfGoogleFonts.openSansRegular();
+
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
+          theme: pw.ThemeData.withFont(base: font), // Apply the font to the page
           build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -66,28 +69,28 @@ class SummaryBloc extends Bloc<SummaryEvent, SummaryState> {
                   ),
                 ),
                 pw.SizedBox(height: 10),
-                pw.Text('Date Range: ${summary.dateRange}'),
+                pw.Text('Date Range: ${summary.dateRange}', style: const pw.TextStyle(fontSize: 12)),
                 pw.Divider(),
                 pw.SizedBox(height: 20),
 
                 _buildSectionHeader('Overview'),
-                pw.Text(summary.overview),
+                pw.Text(summary.overview, style: const pw.TextStyle(fontSize: 12)),
                 pw.SizedBox(height: 20),
 
                 _buildSectionHeader('Completed Tasks'),
                 ...summary.completedTasks.map(
-                      (task) => pw.Bullet(text: task),
+                      (task) => pw.Bullet(text: task, style: const pw.TextStyle(fontSize: 12)),
                 ),
                 pw.SizedBox(height: 20),
 
                 _buildSectionHeader('Issues / Challenges'),
                 ...summary.issuesRaised.map(
-                      (issue) => pw.Bullet(text: issue),
+                      (issue) => pw.Bullet(text: issue, style: const pw.TextStyle(fontSize: 12)),
                 ),
                 pw.SizedBox(height: 20),
 
                 _buildSectionHeader('Upcoming Plans'),
-                pw.Text(summary.upcomingPlans),
+                pw.Text(summary.upcomingPlans, style: const pw.TextStyle(fontSize: 12)),
               ],
             );
           },
