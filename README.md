@@ -36,7 +36,7 @@ Engineered with an **Offline-First** mindset, the app ensures critical data rema
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
   <tr>
     <td align="left" width="120">
-      <img src="https://via.placeholder.com/120?text=Logo" width="100" alt="SiteBoard Logo" />
+      <img src="https://github.com/user-attachments/assets/ed9a1bdc-c609-4453-9df3-e37d00e72e29" width="100" alt="SiteBoard Logo" />
     </td>
     <td align="right" valign="middle">
       <img src="https://img.shields.io/badge/Status-Work_In_Progress-orange?style=flat-square&height=30" height="30" alt="WIP" />
@@ -49,17 +49,19 @@ Engineered with an **Offline-First** mindset, the app ensures critical data rema
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
   <tr>
     <td width="50%" align="center">
-        <img src="https://via.placeholder.com/400x800?text=Dashboard+Screen" width="95%" alt="Dashboard" />
+        <img src="https://github.com/user-attachments/assets/ad635f6c-b620-4afc-b679-401fe19fa6d8" width="95%" alt="Screen 1" />
     </td>
     <td width="50%" align="center">
-        <img src="https://via.placeholder.com/400x800?text=AI+Summary+Screen" width="95%" alt="AI Summary" />
+        <img src="https://github.com/user-attachments/assets/f7b3487a-6333-485a-8ad1-2c4193b94ac4" width="95%" alt="Screen 2" />
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-        <img src="https://via.placeholder.com/400x800?text=Chart+Analytics" width="95%" alt="Charts" />
+        <img src="https://github.com/user-attachments/assets/39662a25-6e1d-43bc-819d-922ed393768d" width="95%" alt="Screen 3" />
     </td>
-    <td width="50%"></td>
+    <td width="50%" align="center">
+        <img src="https://github.com/user-attachments/assets/a1855a5e-33a1-4c80-af79-b112be990d12" width="95%" alt="Screen 4" />
+    </td>
   </tr>
 </table>
 
@@ -70,7 +72,7 @@ Engineered with an **Offline-First** mindset, the app ensures critical data rema
 ### 🏗 Architecture: Clean Architecture + Functional Programming
 This project enforces strict separation of concerns using Clean Architecture, enhanced by **Functional Programming** concepts.
 * **fpdart Integration:** Utilized the `Either<Failure, Success>` monad to handle errors gracefully without `try-catch` blocks cluttering the domain layer.
-* **Type Safety:** strictly typed entity modeling ensures data integrity across the UI, Domain, and Data layers.
+* **Type Safety:** Strictly typed entity modeling ensures data integrity across the UI, Domain, and Data layers.
 
 ### ⚡ Offline-First Strategy (Hive)
 To support users in remote areas:
