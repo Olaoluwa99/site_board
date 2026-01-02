@@ -1,16 +1,98 @@
-# site_board
+# SiteBoard: Intelligent Site Monitoring & AI Analytics
 
-SiteBoard is a smart mobile app that simplifies daily reporting on construction sites. Create and manage project groups, assign tasks, track progress, and generate detailed work reports with photos and AI-powered summaries—all in one place.
+<div align="center">
 
-## Getting Started
+**Senior Mobile Engineer | Flutter & AI Integration**
+*An offline-first, intelligent dashboard for on-site management and data visualization.*
 
-This project is a starting point for a Flutter application.
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Olaoluwa%20Odewale-blue?style=flat&logo=linkedin)](https://linkedin.com/in/olaoluwa-odewale)
+[![GitHub](https://img.shields.io/badge/GitHub-Olaoluwa99-black?style=flat&logo=github)](https://github.com/Olaoluwa99/site_board)
+[![Email](https://img.shields.io/badge/Email-Contact%20Me-red?style=flat&logo=gmail)](mailto:Olaoluwadaniel99@gmail.com)
 
-A few resources to get you started if this is your first Flutter project:
+</div>
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 📖 Project Overview
+**SiteBoard** is a robust cross-platform mobile application designed to streamline site management and reporting. It leverages **Generative AI** to convert raw data into actionable summaries and visualizes complex metrics through interactive charts.
+
+Engineered with an **Offline-First** mindset, the app ensures critical data remains accessible even in remote locations with poor connectivity, syncing seamlessly once the connection is restored.
+
+---
+
+## 🛠 Tech Stack & Architecture
+
+![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
+![BLoC](https://img.shields.io/badge/State-BLoC-red?style=for-the-badge&logo=code&logoColor=white)
+![Hive](https://img.shields.io/badge/DB-Hive%20NoSQL-orange?style=for-the-badge&logo=firebase&logoColor=white)
+![fpdart](https://img.shields.io/badge/FP-fpdart-green?style=for-the-badge&logo=haskell&logoColor=white)
+![Clean Architecture](https://img.shields.io/badge/Arch-Clean-blueviolet?style=for-the-badge)
+
+---
+
+## 📱 Application Showcase
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td align="left" width="120">
+      <img src="https://via.placeholder.com/120?text=Logo" width="100" alt="SiteBoard Logo" />
+    </td>
+    <td align="right" valign="middle">
+      <img src="https://img.shields.io/badge/Status-Work_In_Progress-orange?style=flat-square&height=30" height="30" alt="WIP" />
+      <br/>
+      <sub>Target Platform: Android & iOS</sub>
+    </td>
+  </tr>
+</table>
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="50%" align="center">
+        <img src="https://via.placeholder.com/400x800?text=Dashboard+Screen" width="95%" alt="Dashboard" />
+    </td>
+    <td width="50%" align="center">
+        <img src="https://via.placeholder.com/400x800?text=AI+Summary+Screen" width="95%" alt="AI Summary" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+        <img src="https://via.placeholder.com/400x800?text=Chart+Analytics" width="95%" alt="Charts" />
+    </td>
+    <td width="50%"></td>
+  </tr>
+</table>
+
+---
+
+## 🔍 Technical Deep Dive
+
+### 🏗 Architecture: Clean Architecture + Functional Programming
+This project enforces strict separation of concerns using Clean Architecture, enhanced by **Functional Programming** concepts.
+* **fpdart Integration:** Utilized the `Either<Failure, Success>` monad to handle errors gracefully without `try-catch` blocks cluttering the domain layer.
+* **Type Safety:** strictly typed entity modeling ensures data integrity across the UI, Domain, and Data layers.
+
+### ⚡ Offline-First Strategy (Hive)
+To support users in remote areas:
+* **Local Caching:** All data is persisted locally using **Hive**, a lightweight and fast NoSQL database.
+* **Sync Logic:** A repository pattern mediates between the local data source and remote API, serving cached data immediately while fetching updates in the background.
+
+### 🤖 AI & Visualization
+* **AI Summaries:** Integrated LLMs to process site logs and generate concise, human-readable daily reports.
+* **Data Viz:** Custom-built charts provide real-time visual feedback on site progress and resource allocation.
+
+---
+
+## 🤝 Roadmap
+- [x] Core Architecture Setup (Clean Arch + BLoC)
+- [x] Local Database Implementation (Hive)
+- [x] AI Summary Generation
+- [ ] Push Notifications
+- [ ] iOS Production Build
+- [ ] Dark Mode Polish
+
+---
+
+<div align="center">
+  <sub>Created by Olaoluwa Daniel Odewale - 2026</sub>
+</div>
