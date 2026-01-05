@@ -12,7 +12,7 @@ import 'package:site_board/init_dependencies.dart';
 
 import '../../../../../core/utils/show_rounded_bottom_sheet.dart';
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
-import '../../../../core/common/widgets/loader.dart';
+
 import '../../../../core/utils/show_snackbar.dart';
 import '../../domain/entities/project.dart';
 import '../bloc/project_bloc.dart';
@@ -32,10 +32,10 @@ class ProjectHomePage extends StatefulWidget {
   }) => MaterialPageRoute(
     builder:
         (context) => ProjectHomePage(
-      project: project,
-      projectIndex: projectIndex,
-      isLocal: isLocal,
-    ),
+          project: project,
+          projectIndex: projectIndex,
+          isLocal: isLocal,
+        ),
   );
   const ProjectHomePage({
     required this.project,
@@ -81,10 +81,10 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
 
   List<double> _getChartData(Project project) {
     final confirmedLogs =
-    project.dailyLogs.where((log) => log.isConfirmed).toList();
+        project.dailyLogs.where((log) => log.isConfirmed).toList();
     // Sort by date descending
     confirmedLogs.sort(
-          (a, b) => b.dateTimeList.first.compareTo(a.dateTimeList.first),
+      (a, b) => b.dateTimeList.first.compareTo(a.dateTimeList.first),
     );
 
     // Take last 7 days (or fewer)
@@ -97,27 +97,31 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
   void _showDeleteConfirmation(BuildContext context, String logId) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Log'),
-        content: const Text(
-          'Are you sure you want to delete this log? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Log'),
+            content: const Text(
+              'Are you sure you want to delete this log? This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.read<ProjectBloc>().add(
+                    DailyLogDelete(logId: logId, projectId: widget.project.id),
+                  );
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.read<ProjectBloc>().add(
-                DailyLogDelete(logId: logId, projectId: widget.project.id),
-              );
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -134,92 +138,82 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
           widget.isLocal
               ? SizedBox.shrink()
               : IconButton(
-            onPressed: () {
-              final currentProject = _getCurrentProject();
+                onPressed: () {
+                  final currentProject = _getCurrentProject();
 
-              showRoundedBottomSheet(
-                context: context,
-                backgroundColor: AppPalette.backgroundColor,
-                builder:
-                    (context) => BlocProvider(
-                  create: (context) => serviceLocator<SummaryBloc>(),
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height,
-                    child: ProjectSummarizer(
-                      project: currentProject,
-                      onClose: () => Navigator.pop(context),
-                      onCompleted: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                ),
-              );
-            },
-            icon: Icon(Icons.note),
-          ),
+                  showRoundedBottomSheet(
+                    context: context,
+                    backgroundColor: AppPalette.backgroundColor,
+                    builder:
+                        (context) => BlocProvider(
+                          create: (context) => serviceLocator<SummaryBloc>(),
+                          child: SizedBox(
+                            height: MediaQuery.of(context).size.height,
+                            child: ProjectSummarizer(
+                              project: currentProject,
+                              onClose: () => Navigator.pop(context),
+                              onCompleted: () {
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ),
+                        ),
+                  );
+                },
+                icon: Icon(Icons.note),
+              ),
           (widget.isLocal || !canEdit)
               ? SizedBox.shrink()
               : IconButton(
-            onPressed: () {
-              final currentProject = _getCurrentProject();
+                onPressed: () {
+                  final currentProject = _getCurrentProject();
 
-              showRoundedBottomSheet(
-                context: context,
-                backgroundColor: AppPalette.backgroundColor,
-                builder:
-                    (context) => SizedBox(
-                  height: MediaQuery.of(context).size.height,
-                  child: ProjectSettings(
-                    project: currentProject,
-                    onClose: () => Navigator.pop(context),
-                    onCompleted: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
-              );
-            },
-            icon: Icon(Icons.settings),
-          ),
+                  showRoundedBottomSheet(
+                    context: context,
+                    backgroundColor: AppPalette.backgroundColor,
+                    builder:
+                        (context) => SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          child: ProjectSettings(
+                            project: currentProject,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
+                  );
+                },
+                icon: Icon(Icons.settings),
+              ),
         ],
       ),
       floatingActionButton:
-      (widget.isLocal || !canEdit)
-          ? SizedBox.shrink()
-          : FloatingActionButton.extended(
-        onPressed: () {
-          showRoundedBottomSheet(
-            context: context,
-            backgroundColor: AppPalette.backgroundColor,
-            builder:
-                (context) => SizedBox(
-              height: MediaQuery.of(context).size.height,
-              child: CreateLogPage(
-                projectId: widget.project.id,
-                onClose: () => Navigator.pop(context),
-                onCompleted: () {
-                  Navigator.pop(context);
+          (widget.isLocal || !canEdit)
+              ? SizedBox.shrink()
+              : FloatingActionButton.extended(
+                onPressed: () {
+                  showRoundedBottomSheet(
+                    context: context,
+                    backgroundColor: AppPalette.backgroundColor,
+                    builder:
+                        (context) => SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          child: CreateLogPage(
+                            projectId: widget.project.id,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
+                  );
                 },
+                label: const Text('Create Log'),
+                icon: const Icon(Icons.add),
               ),
-            ),
-          );
-        },
-        label: const Text('Create Log'),
-        icon: const Icon(Icons.add),
-      ),
       body: BlocListener<ProjectBloc, ProjectState>(
         listener: (context, state) {
-          if (state is ProjectLoading) {
-            showLoaderDialog(context);
-          }
-          if (state is DailyLogUploadFailure ||
-              state is DailyLogUploadSuccess ||
-              state is ProjectRetrieveSuccess ||
-              state is ProjectMemberUpdateSuccess) {
-            Navigator.of(context, rootNavigator: true).pop();
-          }
-
           if (state is DailyLogUploadFailure) {
             showSnackBar(context, state.error);
           }
@@ -233,6 +227,9 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
             } else {
               setState(() {});
             }
+          }
+          if (state is ProjectFailure) {
+            showSnackBar(context, state.error);
           }
         },
         child: SingleChildScrollView(
@@ -255,9 +252,9 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 child: Padding(
                   padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
                   child:
-                  chartValues.isEmpty
-                      ? Center(child: Text("No confirmed logs yet"))
-                      : ShowBarChart(values: chartValues),
+                      chartValues.isEmpty
+                          ? Center(child: Text("No confirmed logs yet"))
+                          : ShowBarChart(values: chartValues),
                 ),
               ),
               const SizedBox(height: 20),
@@ -277,15 +274,15 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     backgroundColor: AppPalette.backgroundColor,
                     builder:
                         (context) => SizedBox(
-                      height: MediaQuery.of(context).size.height,
-                      child: ViewProjectDetail(
-                        project: currentProject,
-                        onClose: () => Navigator.pop(context),
-                        onCompleted: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
+                          height: MediaQuery.of(context).size.height,
+                          child: ViewProjectDetail(
+                            project: currentProject,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
                   );
                 },
                 onEditClicked: () {
@@ -295,15 +292,15 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     backgroundColor: AppPalette.backgroundColor,
                     builder:
                         (context) => SizedBox(
-                      height: MediaQuery.of(context).size.height,
-                      child: EditProjectDetail(
-                        project: currentProject,
-                        onClose: () => Navigator.pop(context),
-                        onCompleted: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
+                          height: MediaQuery.of(context).size.height,
+                          child: EditProjectDetail(
+                            project: currentProject,
+                            onClose: () => Navigator.pop(context),
+                            onCompleted: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
                   );
                 },
               ),
@@ -330,13 +327,13 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     if (state is ProjectRetrieveSuccess) {
                       try {
                         projectToShow = state.projects.firstWhere(
-                              (p) => p.id == widget.project.id,
+                          (p) => p.id == widget.project.id,
                         );
                       } catch (e) {
                         projectToShow =
-                        state.projects.isNotEmpty
-                            ? state.projects[0]
-                            : widget.project;
+                            state.projects.isNotEmpty
+                                ? state.projects[0]
+                                : widget.project;
                       }
                     } else if (state is ProjectMemberUpdateSuccess) {
                       projectToShow = state.project;
@@ -346,90 +343,95 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
 
                     return logs.isNotEmpty
                         ? ListView.builder(
-                      itemCount: logs.length,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        final item = logs[index];
-                        IconData weatherIcon;
-                        if (item.weatherCondition == 'Rainy') {
-                          weatherIcon = Icons.thunderstorm;
-                        } else if (item.weatherCondition == 'Cloudy') {
-                          weatherIcon = Icons.cloud;
-                        } else {
-                          weatherIcon = Icons.sunny;
-                        }
+                          itemCount: logs.length,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemBuilder: (context, index) {
+                            final item = logs[index];
+                            IconData weatherIcon;
+                            if (item.weatherCondition == 'Rainy') {
+                              weatherIcon = Icons.thunderstorm;
+                            } else if (item.weatherCondition == 'Cloudy') {
+                              weatherIcon = Icons.cloud;
+                            } else {
+                              weatherIcon = Icons.sunny;
+                            }
 
-                        return LogListItem(
-                          log: item,
-                          isEditable: canEdit && !item.isConfirmed && !widget.isLocal,
-                          onEdit: () {
-                            showRoundedBottomSheet(
-                              context: context,
-                              backgroundColor: AppPalette.backgroundColor,
-                              builder:
-                                  (context) => SizedBox(
-                                height:
-                                MediaQuery.of(context).size.height,
-                                child: CreateLogPage(
-                                  projectId: widget.project.id,
-                                  log: item,
-                                  onCompleted: () {
-                                    Navigator.pop(context);
-                                  },
-                                  onClose: () => Navigator.pop(context),
-                                ),
-                              ),
+                            return LogListItem(
+                              log: item,
+                              isEditable:
+                                  canEdit &&
+                                  !item.isConfirmed &&
+                                  !widget.isLocal,
+                              onEdit: () {
+                                showRoundedBottomSheet(
+                                  context: context,
+                                  backgroundColor: AppPalette.backgroundColor,
+                                  builder:
+                                      (context) => SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height,
+                                        child: CreateLogPage(
+                                          projectId: widget.project.id,
+                                          log: item,
+                                          onCompleted: () {
+                                            Navigator.pop(context);
+                                          },
+                                          onClose: () => Navigator.pop(context),
+                                        ),
+                                      ),
+                                );
+                              },
+                              onDelete:
+                                  () =>
+                                      _showDeleteConfirmation(context, item.id),
+                              onConfirm: () {
+                                showRoundedBottomSheet(
+                                  context: context,
+                                  backgroundColor: AppPalette.backgroundColor,
+                                  builder:
+                                      (context) => SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height,
+                                        child: ConfirmLogPage(
+                                          projectId: widget.project.id,
+                                          log: item,
+                                          onCompleted: () {
+                                            Navigator.pop(context);
+                                          },
+                                          onClose: () => Navigator.pop(context),
+                                        ),
+                                      ),
+                                );
+                              },
+                              onOpen: () {
+                                showRoundedBottomSheet(
+                                  context: context,
+                                  backgroundColor: AppPalette.backgroundColor,
+                                  builder:
+                                      (context) => SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height,
+                                        child: ViewLogPage(
+                                          log: item,
+                                          onClose: () => Navigator.pop(context),
+                                        ),
+                                      ),
+                                );
+                              },
+                              weatherIcon: weatherIcon,
                             );
                           },
-                          onDelete: () => _showDeleteConfirmation(context, item.id),
-                          onConfirm: () {
-                            showRoundedBottomSheet(
-                              context: context,
-                              backgroundColor: AppPalette.backgroundColor,
-                              builder:
-                                  (context) => SizedBox(
-                                height:
-                                MediaQuery.of(context).size.height,
-                                child: ConfirmLogPage(
-                                  projectId: widget.project.id,
-                                  log: item,
-                                  onCompleted: () {
-                                    Navigator.pop(context);
-                                  },
-                                  onClose: () => Navigator.pop(context),
-                                ),
-                              ),
-                            );
-                          },
-                          onOpen: () {
-                            showRoundedBottomSheet(
-                              context: context,
-                              backgroundColor: AppPalette.backgroundColor,
-                              builder:
-                                  (context) => SizedBox(
-                                height:
-                                MediaQuery.of(context).size.height,
-                                child: ViewLogPage(
-                                  log: item,
-                                  onClose: () => Navigator.pop(context),
-                                ),
-                              ),
-                            );
-                          },
-                          weatherIcon: weatherIcon,
-                        );
-                      },
-                    )
+                        )
                         : SizedBox(
-                      height: 180,
-                      child: Center(
-                        child: Text(
-                          'Project Logs are currently empty. Click \'Create Log\' to Start a Log for the Day',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    );
+                          height: 180,
+                          child: Center(
+                            child: Text(
+                              'Project Logs are currently empty. Click \'Create Log\' to Start a Log for the Day',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        );
                   }
 
                   return const Center(child: Text('Something went wrong'));
