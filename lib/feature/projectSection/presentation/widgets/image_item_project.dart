@@ -26,7 +26,7 @@ class ImageItemProject extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: Image.file(
           imageAsFile!,
-          fit: BoxFit.fitWidth,
+          fit: BoxFit.cover,
           width: double.infinity,
         ),
       );
@@ -35,7 +35,7 @@ class ImageItemProject extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: Image.network(
           imageAsLink,
-          fit: BoxFit.fitWidth,
+          fit: BoxFit.cover,
           width: double.infinity,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
@@ -64,10 +64,13 @@ class ImageItemProject extends StatelessWidget {
 
     return GestureDetector(
       onTap: onSelect,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.only(bottom: 12.0),
-        child: imageWidget,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: imageWidget,
+        ),
       ),
     );
   }

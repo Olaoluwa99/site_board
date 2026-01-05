@@ -479,7 +479,18 @@ class _CreateLogPageState extends State<CreateLogPage> {
                     SizedBox(height: 24),
                     GradientButton(
                       onClick: () {
-                        //final dateTimeInput = DateTime.now();
+                        final workersText =
+                            _numberOfWorkersController.text.trim();
+                        final workersCount = int.tryParse(workersText);
+
+                        if (workersCount == null) {
+                          showSnackBar(
+                            context,
+                            'Please enter a valid number of workers',
+                          );
+                          return;
+                        }
+
                         final List<DateTime> newDateTimeInputList = [];
                         if (widget.log == null) {
                           newDateTimeInputList.add(DateTime.now());
@@ -487,15 +498,12 @@ class _CreateLogPageState extends State<CreateLogPage> {
                           newDateTimeInputList.addAll(widget.log!.dateTimeList);
                           newDateTimeInputList.add(DateTime.now());
                         }
-                        //final dailyLogId = newDateTimeInputList[0].toIso8601String();
 
                         finishedDailyLog = DailyLog(
                           id: toUseAsDailyLogId!,
                           projectId: widget.projectId,
                           dateTimeList: newDateTimeInputList,
-                          numberOfWorkers: int.parse(
-                            _numberOfWorkersController.text.trim(),
-                          ),
+                          numberOfWorkers: workersCount,
                           weatherCondition:
                               _weatherConditionController.text.trim(),
                           materialsAvailable:
