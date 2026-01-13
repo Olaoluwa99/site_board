@@ -90,7 +90,8 @@ class GenerateProjectSummary
       buffer.writeln("--------------------------------------------------");
     }
 
-    buffer.writeln("Output ONLY valid JSON matching this schema:");
+    // buffer.writeln("Output ONLY valid JSON matching this schema:");
+    buffer.writeln("Analyze the logs above and generate a summary based on the provided data schema.:");
     buffer.writeln("""
     {
       "title": "A concise title for the summary",

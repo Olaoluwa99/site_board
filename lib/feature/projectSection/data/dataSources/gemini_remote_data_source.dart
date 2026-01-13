@@ -12,6 +12,50 @@ class GeminiRemoteDataSourceImpl implements GeminiRemoteDataSource {
   final GenerativeModel _model;
 
   GeminiRemoteDataSourceImpl()
+      : _model = GenerativeModel(
+    // verify this model name exists in your current region/access level
+    model: 'gemini-3-flash-preview',
+    apiKey: AppSecrets.geminiApiKey,
+    generationConfig: GenerationConfig(
+      responseMimeType: 'application/json',
+      temperature: 0.2, // Lower temperature reduces "creativity" and hallucinations
+      maxOutputTokens: 1000,
+      responseSchema: Schema.object(
+        properties: {
+          "title": Schema.string(
+            description: "A concise title for the summary",
+          ),
+          "date_range": Schema.string(
+            description: "The formatted date range (e.g., '12 Oct - 15 Oct 2023')",
+          ),
+          "overview": Schema.string(
+            description: "A professional paragraph summarizing progress, weather impact, and workforce.",
+          ),
+          "completed_tasks": Schema.array(
+            items: Schema.string(),
+            description: "List of tasks that reached 100% completion",
+          ),
+          "issues_raised": Schema.array(
+            items: Schema.string(),
+            description: "List of challenges, delays, or critical observations",
+          ),
+          "upcoming_plans": Schema.string(
+            description: "Suggestions for next steps based on unfinished tasks",
+          ),
+        },
+        requiredProperties: [
+          "title",
+          "date_range",
+          "overview",
+          "completed_tasks",
+          "issues_raised",
+          "upcoming_plans"
+        ],
+      ),
+    ),
+  );
+
+  /*GeminiRemoteDataSourceImpl()
     : _model = GenerativeModel(
         // model: 'gemini-1.5-flash',
         model: 'gemini-3-flash-preview',
@@ -29,7 +73,7 @@ class GeminiRemoteDataSourceImpl implements GeminiRemoteDataSource {
             },
           ),
         ),
-      );
+      );*/
 
   @override
   Future<ProjectSummaryModel> generateSummary({
@@ -41,7 +85,7 @@ class GeminiRemoteDataSourceImpl implements GeminiRemoteDataSource {
       final response = await _model
           .generateContent(content)
           .timeout(
-            const Duration(seconds: 300),
+            const Duration(seconds: 60),
             onTimeout:
                 () =>
                     throw ServerException(

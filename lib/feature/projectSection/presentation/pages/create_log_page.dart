@@ -6,6 +6,7 @@ import 'package:site_board/core/common/widgets/gradient_button.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/image_item.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/utils/pick_image.dart';
 import '../../../../core/common/widgets/loader.dart';
@@ -15,6 +16,9 @@ import '../bloc/project_bloc.dart';
 import '../widgets/field_editor.dart';
 import '../widgets/pseudo_editor.dart';
 import '../widgets/task_list_item.dart';
+import '../widgets/material_selector.dart';
+import '../bloc/inventory_bloc.dart';
+import 'package:site_board/init_dependencies.dart';
 
 class CreateLogPage extends StatefulWidget {
   final String projectId;
@@ -61,7 +65,10 @@ class _CreateLogPageState extends State<CreateLogPage> {
   List<LogTask> currentTaskList = [];
 
   List<TextEditingController> currentTaskListControllers = [];
-  List<TextEditingController> materialsControllers = [];
+
+  // New Structured Data
+  List<MaterialUsageItem> selectedMaterialItems = [];
+  List<String> selectedMaterialStrings = [];
 
   List<WeatherItem> weatherModes = [
     WeatherItem(tag: 'Rainy', iconData: Icons.thunderstorm_rounded),
@@ -103,17 +110,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
     }
 
     //
-    if (widget.log != null) {
-      if (widget.log!.materialsAvailable.isNotEmpty) {
-        for (String material in widget.log!.materialsAvailable) {
-          addNewMaterial(material);
-        }
-      } else {
-        addNewMaterial(' ');
-      }
-    } else {
-      addNewMaterial(' ');
-    }
+    // addNewMaterial(' '); // Logic moved to widget
 
     //
     final inputLog = widget.log;
@@ -134,10 +131,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
     setState(() {});
   }
 
-  void addNewMaterial(String material) {
-    materialsControllers.add(TextEditingController(text: material));
-    setState(() {});
-  }
+  // Material logic moved to MaterialSelector widget
 
   void removeTask(int index) {
     if (currentTaskList.length > 1) {
@@ -151,16 +145,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
     }
   }
 
-  void removeMaterial(int index) {
-    if (materialsControllers.length > 1) {
-      materialsControllers.removeAt(index);
-      setState(() {});
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('At least one material is required.')),
-      );
-    }
-  }
+  // Material logic moved to MaterialSelector widget
 
   void uploadDailyLog(DailyLog log) {
     final updatedTasks = getUpdatedLogTasks(
@@ -198,346 +183,360 @@ class _CreateLogPageState extends State<CreateLogPage> {
     _weatherConditionController.dispose();
     _observationsController.dispose();
     currentTaskListControllers.clear();
-    materialsControllers.clear();
+    // materialsControllers.clear(); // Removed
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.log != null ? 'Edit Log' : 'Create Log'),
-        automaticallyImplyLeading: false,
-        leading: null,
-        actions: [
-          IconButton(onPressed: widget.onClose, icon: Icon(Icons.close)),
-        ],
-      ),
-      body: BlocListener<ProjectBloc, ProjectState>(
-        listener: (context, state) {
-          if (state is ProjectLoading) {
-            showLoaderDialog(context);
-          }
-          if (state is DailyLogUploadFailure) {
-            Navigator.of(context, rootNavigator: true).pop();
-            showSnackBar(context, state.error);
-          }
-          if (state is DailyLogUploadSuccess) {
-            Navigator.of(context, rootNavigator: true).pop();
-            showSnackBar(context, 'File has been saved!');
-            widget.onCompleted();
-          }
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 16),
-                    Text(
-                      'Input the required details into the fields.',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    widget.log != null
-                        ? SizedBox(height: 24)
-                        : SizedBox.shrink(),
-                    SizedBox(height: 16),
-                    FieldEditor(
-                      hintText: 'Number of Workers',
-                      controller: _numberOfWorkersController,
-                      textInputType: TextInputType.number,
-                    ),
-                    SizedBox(height: 16),
-                    PseudoEditor(
-                      preText: 'Weather Condition : ',
-                      text: weatherShowText,
-                      onTap: () {
-                        setState(() {
-                          dropdownOpen = !dropdownOpen;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 16),
+    return BlocProvider(
+      create: (_) => serviceLocator<InventoryBloc>(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.log != null ? 'Edit Log' : 'Create Log'),
+          automaticallyImplyLeading: false,
+          leading: null,
+          actions: [
+            IconButton(onPressed: widget.onClose, icon: Icon(Icons.close)),
+          ],
+        ),
+        body: BlocListener<ProjectBloc, ProjectState>(
+          listener: (context, state) {
+            if (state is ProjectLoading) {
+              showLoaderDialog(context);
+            }
+            if (state is DailyLogUploadFailure) {
+              Navigator.of(context, rootNavigator: true).pop();
+              showSnackBar(context, state.error);
+            }
+            if (state is DailyLogUploadSuccess) {
+              Navigator.of(context, rootNavigator: true).pop();
+              showSnackBar(context, 'File has been saved!');
+              widget.onCompleted();
+            }
+          },
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 16),
+                      Text(
+                        'Input the required details into the fields.',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      widget.log != null
+                          ? SizedBox(height: 24)
+                          : SizedBox.shrink(),
+                      SizedBox(height: 16),
+                      FieldEditor(
+                        hintText: 'Number of Workers',
+                        controller: _numberOfWorkersController,
+                        textInputType: TextInputType.number,
+                      ),
+                      SizedBox(height: 16),
+                      PseudoEditor(
+                        preText: 'Weather Condition : ',
+                        text: weatherShowText,
+                        onTap: () {
+                          setState(() {
+                            dropdownOpen = !dropdownOpen;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
 
-                    /// Dropdown (Visible only when dropdownOpen is true)
-                    if (dropdownOpen)
-                      Column(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children:
-                                weatherModes.map((mode) {
-                                  return ListTile(
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    title: Text(mode.tag),
-                                    onTap: () {
-                                      setState(() {
-                                        _weatherConditionController.text =
-                                            mode.tag;
-                                        weatherShowText = mode.tag;
-                                        dropdownOpen = false;
-                                      });
-                                    },
-                                    trailing: Icon(mode.iconData),
-                                  );
-                                }).toList(),
-                          ),
-                        ],
-                      ),
-                    Divider(),
-                    SizedBox(height: 16),
-                    Text(
-                      'Materials Available',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    ...List.generate(materialsControllers.length, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: TaskListItem(
-                          index: index,
-                          controller: materialsControllers[index],
-                          isRemovable: materialsControllers.length > 1,
-                          onRemove: () => removeMaterial(index),
+                      /// Dropdown (Visible only when dropdownOpen is true)
+                      if (dropdownOpen)
+                        Column(
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children:
+                                  weatherModes.map((mode) {
+                                    return ListTile(
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      title: Text(mode.tag),
+                                      onTap: () {
+                                        setState(() {
+                                          _weatherConditionController.text =
+                                              mode.tag;
+                                          weatherShowText = mode.tag;
+                                          dropdownOpen = false;
+                                        });
+                                      },
+                                      trailing: Icon(mode.iconData),
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
                         ),
-                      );
-                    }),
-                    SizedBox(height: 16),
-                    InkWell(
-                      onTap: () {
-                        addNewMaterial(' ');
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        alignment: Alignment.center,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppPalette.borderColor,
-                            width: 3,
-                          ),
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(6),
-                          child: Text(
-                            'Add another material',
-                            style: TextStyle(fontSize: 16),
-                          ),
+                      Divider(),
+                      SizedBox(height: 16),
+                      Text(
+                        'Materials Available',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    SizedBox(height: 32),
-                    Text(
-                      'Scheduling Planned tasks',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      SizedBox(height: 16),
+                      MaterialSelector(
+                        projectId: widget.projectId,
+                        onChanged: (items, strings) {
+                          selectedMaterialItems = items;
+                          selectedMaterialStrings = strings;
+                        },
                       ),
-                    ),
-                    SizedBox(height: 16),
-                    ...List.generate(currentTaskList.length, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: TaskListItem(
-                          index: index,
-                          controller: currentTaskListControllers[index],
-                          isRemovable: currentTaskListControllers.length > 1,
-                          onRemove: () => removeTask(index),
-                        ),
-                      );
-                    }),
-                    SizedBox(height: 16),
-                    InkWell(
-                      onTap: () {
-                        addNewTask(
-                          LogTask(
-                            id: const Uuid().v1(),
-                            dailyLogId: toUseAsDailyLogId!,
-                            plannedTask: ' ',
-                            percentCompleted: 0.0,
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        alignment: Alignment.center,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppPalette.borderColor,
-                            width: 3,
-                          ),
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(6),
-                          child: Text(
-                            'Add another task',
-                            style: TextStyle(fontSize: 16),
-                          ),
+                      SizedBox(height: 32),
+                      Text(
+                        'Scheduling Planned tasks',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    SizedBox(height: 24),
-                    Divider(),
-                    SizedBox(height: 16),
-                    Text(
-                      'Select pre-work Images',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: SizedBox(
-                  height: 150, // Square height
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: List.generate(5, (index) {
-                        final image = startingImages[index];
-                        return ImageItem(
-                          index: index,
-                          imageAsFile: image,
-                          imageAsLink:
-                              widget.log?.startingImageUrl[index] ?? '',
-                          onSelect: () => selectImage(index, false),
+                      SizedBox(height: 16),
+                      ...List.generate(currentTaskList.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: TaskListItem(
+                            index: index,
+                            controller: currentTaskListControllers[index],
+                            isRemovable: currentTaskListControllers.length > 1,
+                            onRemove: () => removeTask(index),
+                          ),
                         );
                       }),
-                    ),
-                  ),
-                ),
-              ),
-
-              widget.log == null
-                  ? SizedBox.shrink()
-                  : Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 16),
-                        Text(
-                          'Select post-work Images',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                      SizedBox(height: 16),
+                      InkWell(
+                        onTap: () {
+                          addNewTask(
+                            LogTask(
+                              id: const Uuid().v1(),
+                              dailyLogId: toUseAsDailyLogId!,
+                              plannedTask: ' ',
+                              percentCompleted: 0.0,
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          alignment: Alignment.center,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppPalette.borderColor,
+                              width: 3,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 32),
-                        SizedBox(
-                          height: 150, // Square height
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: List.generate(5, (index) {
-                                final image = endingImages[index];
-                                return ImageItem(
-                                  index: index,
-                                  imageAsFile: image,
-                                  imageAsLink:
-                                      widget.log?.endingImageUrl[index] ?? '',
-                                  onSelect: () => selectImage(index, true),
-                                );
-                              }),
+                          child: const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: Text(
+                              'Add another task',
+                              style: TextStyle(fontSize: 16),
                             ),
                           ),
                         ),
-                      ],
+                      ),
+                      SizedBox(height: 24),
+                      Divider(),
+                      SizedBox(height: 16),
+                      Text(
+                        'Select pre-work Images',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 16.0),
+                  child: SizedBox(
+                    height: 150, // Square height
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: List.generate(5, (index) {
+                          final image = startingImages[index];
+                          return ImageItem(
+                            index: index,
+                            imageAsFile: image,
+                            imageAsLink:
+                                widget.log?.startingImageUrl[index] ?? '',
+                            onSelect: () => selectImage(index, false),
+                          );
+                        }),
+                      ),
                     ),
                   ),
-
-              SizedBox(height: 16),
-              Divider(indent: 16, endIndent: 16),
-
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    //SizedBox(height: 16),
-                    FieldEditor(
-                      hintText: 'Observation & Notes',
-                      controller: _observationsController,
-                      minLines: 5,
-                    ),
-                    SizedBox(height: 24),
-                    GradientButton(
-                      onClick: () {
-                        final workersText =
-                            _numberOfWorkersController.text.trim();
-                        final workersCount = int.tryParse(workersText);
-
-                        if (workersCount == null) {
-                          showSnackBar(
-                            context,
-                            'Please enter a valid number of workers',
-                          );
-                          return;
-                        }
-
-                        final List<DateTime> newDateTimeInputList = [];
-                        if (widget.log == null) {
-                          newDateTimeInputList.add(DateTime.now());
-                        } else {
-                          newDateTimeInputList.addAll(widget.log!.dateTimeList);
-                          newDateTimeInputList.add(DateTime.now());
-                        }
-
-                        finishedDailyLog = DailyLog(
-                          id: toUseAsDailyLogId!,
-                          projectId: widget.projectId,
-                          dateTimeList: newDateTimeInputList,
-                          numberOfWorkers: workersCount,
-                          weatherCondition:
-                              _weatherConditionController.text.trim(),
-                          materialsAvailable:
-                              materialsControllers
-                                  .map((controller) => controller.text)
-                                  .toList(),
-                          plannedTasks: getUpdatedLogTasks(
-                            currentTaskListControllers,
-                            currentTaskList,
-                          ),
-                          startingImageUrl:
-                              widget.log == null
-                                  ? List.filled(5, '')
-                                  : widget.log!.startingImageUrl,
-                          endingImageUrl:
-                              widget.log == null
-                                  ? List.filled(5, '')
-                                  : widget.log!.endingImageUrl,
-                          observations: '${_observationsController.text}\n\n\n',
-                          isConfirmed: false,
-                        );
-                        uploadDailyLog(finishedDailyLog!);
-                      },
-                      text: 'Upload',
-                    ),
-                    SizedBox(height: 36),
-                  ],
                 ),
-              ),
-            ],
+
+                widget.log == null
+                    ? SizedBox.shrink()
+                    : Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 16),
+                          Text(
+                            'Select post-work Images',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 32),
+                          SizedBox(
+                            height: 150, // Square height
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: List.generate(5, (index) {
+                                  final image = endingImages[index];
+                                  return ImageItem(
+                                    index: index,
+                                    imageAsFile: image,
+                                    imageAsLink:
+                                        widget.log?.endingImageUrl[index] ?? '',
+                                    onSelect: () => selectImage(index, true),
+                                  );
+                                }),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                SizedBox(height: 16),
+                Divider(indent: 16, endIndent: 16),
+
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      //SizedBox(height: 16),
+                      FieldEditor(
+                        hintText: 'Observation & Notes',
+                        controller: _observationsController,
+                        minLines: 5,
+                      ),
+                      SizedBox(height: 24),
+                      GradientButton(
+                        onClick: () {
+                          // Strict Validation Check
+                          // 1. Ensure all items have valid quantities <= available
+                          for (final item in selectedMaterialItems) {
+                            if (item.quantityUsed >
+                                item.material.currentQuantity) {
+                              showSnackBar(
+                                context,
+                                "Error: ${item.material.name} usage exceeds current stock (${item.material.currentQuantity}).",
+                              );
+                              return;
+                            }
+                          }
+
+                          final workersText =
+                              _numberOfWorkersController.text.trim();
+                          final workersCount = int.tryParse(workersText);
+
+                          if (workersCount == null) {
+                            showSnackBar(
+                              context,
+                              'Please enter a valid number of workers',
+                            );
+                            return;
+                          }
+
+                          final List<DateTime> newDateTimeInputList = [];
+                          if (widget.log == null) {
+                            newDateTimeInputList.add(DateTime.now());
+                          } else {
+                            newDateTimeInputList.addAll(
+                              widget.log!.dateTimeList,
+                            );
+                            newDateTimeInputList.add(DateTime.now());
+                          }
+
+                          // Use the generated ID
+                          final logId = toUseAsDailyLogId!;
+
+                          finishedDailyLog = DailyLog(
+                            id: logId,
+                            projectId: widget.projectId,
+                            dateTimeList: newDateTimeInputList,
+                            numberOfWorkers: workersCount,
+                            weatherCondition:
+                                _weatherConditionController.text.trim(),
+                            materialsAvailable:
+                                selectedMaterialStrings, // Stores readable text
+                            plannedTasks: getUpdatedLogTasks(
+                              currentTaskListControllers,
+                              currentTaskList,
+                            ),
+                            startingImageUrl:
+                                widget.log == null
+                                    ? List.filled(5, '')
+                                    : widget.log!.startingImageUrl,
+                            endingImageUrl:
+                                widget.log == null
+                                    ? List.filled(5, '')
+                                    : widget.log!.endingImageUrl,
+                            observations:
+                                '${_observationsController.text}\n\n\n',
+                            isConfirmed: false,
+                          );
+
+                          // 2. Dispatch Log Upload
+                          uploadDailyLog(finishedDailyLog!);
+
+                          // 3. Dispatch Inventory Transactions (Fire and Forget or parallel)
+                          // Note: For strict consistency, we should ideally do this on the server side via a trigger or a single API call,
+                          // but sticking to the plan: App Logic & Rules.
+                          // We iterate and deduct.
+                          final userId =
+                              serviceLocator<SupabaseClient>()
+                                  .auth
+                                  .currentUser!
+                                  .id;
+                          for (final item in selectedMaterialItems) {
+                            context.read<InventoryBloc>().add(
+                              InventoryUseMaterial(
+                                projectId: widget.projectId,
+                                materialId: item.material.id,
+                                quantity: item.quantityUsed,
+                                dailyLogId: logId,
+                                actorId: userId,
+                              ),
+                            );
+                          }
+                        },
+                        text: 'Upload',
+                      ),
+                      SizedBox(height: 36),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
+    ); // Close BlocProvider
   }
 
   List<LogTask> getUpdatedLogTasks(
