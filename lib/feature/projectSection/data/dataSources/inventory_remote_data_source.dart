@@ -16,6 +16,7 @@ abstract interface class InventoryRemoteDataSource {
     required String transactionType, // "IN" or "OUT"
     String? dailyLogId,
     required String actorId,
+    double? unitPrice,
   });
 
   Future<List<MaterialTransactionModel>> getTransactions(String projectId);
@@ -85,6 +86,7 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
     required String transactionType,
     String? dailyLogId,
     required String actorId,
+    double? unitPrice,
   }) async {
     try {
       await supabaseClient.rpc(
@@ -95,6 +97,7 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
           'p_transaction_type': transactionType,
           'p_daily_log_id': dailyLogId,
           'p_actor_id': actorId,
+          'p_unit_price': unitPrice,
         },
       );
     } on PostgrestException catch (e) {

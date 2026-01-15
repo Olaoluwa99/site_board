@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/theme/app_palette.dart';
-import 'package:site_board/feature/projectSection/presentation/pages/edit_project_detail.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/project_settings.dart';
-import 'package:site_board/feature/projectSection/presentation/pages/project_summarizer.dart';
-import 'package:site_board/feature/projectSection/presentation/pages/view_log_page.dart';
-import 'package:site_board/feature/projectSection/presentation/pages/view_project_detail.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/about_project_card.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/view_project_detail.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/edit_project_detail.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/project_summarizer.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/show_bar_chart.dart';
 import 'package:site_board/init_dependencies.dart';
 
@@ -17,9 +16,10 @@ import '../../../../core/utils/show_snackbar.dart';
 import '../../domain/entities/project.dart';
 import '../bloc/project_bloc.dart';
 import '../bloc/summary_bloc.dart';
-import '../widgets/log_list_item.dart';
-import 'confirm_log_page.dart';
-import 'create_log_page.dart';
+
+import 'inventory_manager_page.dart';
+import 'material_analysis_page.dart';
+import 'project_logs_page.dart';
 
 class ProjectHomePage extends StatefulWidget {
   final Project project;
@@ -94,37 +94,6 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
     return recentLogs.reversed.map((log) => log.workScore).toList();
   }
 
-  void _showDeleteConfirmation(BuildContext context, String logId) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Log'),
-            content: const Text(
-              'Are you sure you want to delete this log? This action cannot be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  context.read<ProjectBloc>().add(
-                    DailyLogDelete(logId: logId, projectId: widget.project.id),
-                  );
-                },
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentProject = _getCurrentProject();
@@ -135,33 +104,6 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
       appBar: AppBar(
         title: Text(widget.project.projectName),
         actions: [
-          widget.isLocal
-              ? SizedBox.shrink()
-              : IconButton(
-                onPressed: () {
-                  final currentProject = _getCurrentProject();
-
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => BlocProvider(
-                          create: (context) => serviceLocator<SummaryBloc>(),
-                          child: SizedBox(
-                            height: MediaQuery.of(context).size.height,
-                            child: ProjectSummarizer(
-                              project: currentProject,
-                              onClose: () => Navigator.pop(context),
-                              onCompleted: () {
-                                Navigator.pop(context);
-                              },
-                            ),
-                          ),
-                        ),
-                  );
-                },
-                icon: Icon(Icons.note),
-              ),
           (widget.isLocal || !canEdit)
               ? SizedBox.shrink()
               : IconButton(
@@ -188,30 +130,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
               ),
         ],
       ),
-      floatingActionButton:
-          (widget.isLocal || !canEdit)
-              ? SizedBox.shrink()
-              : FloatingActionButton.extended(
-                onPressed: () {
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: CreateLogPage(
-                            projectId: widget.project.id,
-                            onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              Navigator.pop(context);
-                            },
-                          ),
-                        ),
-                  );
-                },
-                label: const Text('Create Log'),
-                icon: const Icon(Icons.add),
-              ),
+      floatingActionButton: null,
       body: BlocListener<ProjectBloc, ProjectState>(
         listener: (context, state) {
           if (state is DailyLogUploadFailure) {
@@ -306,139 +225,152 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Previous Logs',
+                'Quick Actions',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 20),
-
-              BlocBuilder<ProjectBloc, ProjectState>(
-                builder: (context, state) {
-                  if (state is ProjectLoading) {
-                    return SizedBox(
-                      height: 180,
-                      child: const Center(child: CircularProgressIndicator()),
-                    );
-                  }
-
-                  if (state is ProjectRetrieveSuccess ||
-                      state is ProjectMemberUpdateSuccess) {
-                    Project projectToShow = widget.project;
-
-                    if (state is ProjectRetrieveSuccess) {
-                      try {
-                        projectToShow = state.projects.firstWhere(
-                          (p) => p.id == widget.project.id,
+              const SizedBox(height: 16),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 1.3,
+                children: [
+                  _ActionCard(
+                    title: "Project Logs",
+                    icon: Icons.history_edu,
+                    color: Colors.blueAccent,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => ProjectLogsPage(
+                                project: currentProject,
+                                isLocal: widget.isLocal,
+                              ),
+                        ),
+                      );
+                    },
+                  ),
+                  _ActionCard(
+                    title: "Materials",
+                    icon: Icons.inventory_2,
+                    color: Colors.orangeAccent,
+                    onTap: () {
+                      // Inventory Manager requires isAdmin?
+                      // Let's pass isAdmin from canEdit (assuming Admin == CanEdit for now, or check team member role strictly if needed).
+                      // Codebase usually checks specifically.
+                      // `_canEdit` checks creator OR admin. So passing `canEdit` roughly matches "Admin-like" privileges for now,
+                      // InventoryManagerPage checks isAdmin for editing, viewing is for everyone?
+                      // Wait, Inventory Manager: "Admin Controls: ... create/restock". Consuming allowed by "Consumer".
+                      // InventoryManagerPage takes `isAdmin`.
+                      // If not admin, they can probably View. The implementation handles it.
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => InventoryManagerPage(
+                                projectId: widget.project.id,
+                                isAdmin: canEdit,
+                              ),
+                        ),
+                      );
+                    },
+                  ),
+                  _ActionCard(
+                    title: "Summarizer",
+                    icon: Icons.auto_awesome,
+                    color: Colors.purpleAccent,
+                    onTap: () {
+                      if (widget.isLocal) {
+                        showSnackBar(
+                          context,
+                          "Not available for offline projects",
                         );
-                      } catch (e) {
-                        projectToShow =
-                            state.projects.isNotEmpty
-                                ? state.projects[0]
-                                : widget.project;
+                        return;
                       }
-                    } else if (state is ProjectMemberUpdateSuccess) {
-                      projectToShow = state.project;
-                    }
-
-                    final logs = projectToShow.dailyLogs;
-
-                    return logs.isNotEmpty
-                        ? ListView.builder(
-                          itemCount: logs.length,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemBuilder: (context, index) {
-                            final item = logs[index];
-                            IconData weatherIcon;
-                            if (item.weatherCondition == 'Rainy') {
-                              weatherIcon = Icons.thunderstorm;
-                            } else if (item.weatherCondition == 'Cloudy') {
-                              weatherIcon = Icons.cloud;
-                            } else {
-                              weatherIcon = Icons.sunny;
-                            }
-
-                            return LogListItem(
-                              log: item,
-                              isEditable:
-                                  canEdit &&
-                                  !item.isConfirmed &&
-                                  !widget.isLocal,
-                              onEdit: () {
-                                showRoundedBottomSheet(
-                                  context: context,
-                                  backgroundColor: AppPalette.backgroundColor,
-                                  builder:
-                                      (context) => SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.height,
-                                        child: CreateLogPage(
-                                          projectId: widget.project.id,
-                                          log: item,
-                                          onCompleted: () {
-                                            Navigator.pop(context);
-                                          },
-                                          onClose: () => Navigator.pop(context),
-                                        ),
-                                      ),
-                                );
-                              },
-                              onDelete:
-                                  () =>
-                                      _showDeleteConfirmation(context, item.id),
-                              onConfirm: () {
-                                showRoundedBottomSheet(
-                                  context: context,
-                                  backgroundColor: AppPalette.backgroundColor,
-                                  builder:
-                                      (context) => SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.height,
-                                        child: ConfirmLogPage(
-                                          projectId: widget.project.id,
-                                          log: item,
-                                          onCompleted: () {
-                                            Navigator.pop(context);
-                                          },
-                                          onClose: () => Navigator.pop(context),
-                                        ),
-                                      ),
-                                );
-                              },
-                              onOpen: () {
-                                showRoundedBottomSheet(
-                                  context: context,
-                                  backgroundColor: AppPalette.backgroundColor,
-                                  builder:
-                                      (context) => SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.height,
-                                        child: ViewLogPage(
-                                          log: item,
-                                          onClose: () => Navigator.pop(context),
-                                        ),
-                                      ),
-                                );
-                              },
-                              weatherIcon: weatherIcon,
-                            );
-                          },
-                        )
-                        : SizedBox(
-                          height: 180,
-                          child: Center(
-                            child: Text(
-                              'Project Logs are currently empty. Click \'Create Log\' to Start a Log for the Day',
-                              textAlign: TextAlign.center,
+                      showRoundedBottomSheet(
+                        context: context,
+                        backgroundColor: AppPalette.backgroundColor,
+                        builder:
+                            (context) => BlocProvider(
+                              create:
+                                  (context) => serviceLocator<SummaryBloc>(),
+                              child: SizedBox(
+                                height: MediaQuery.of(context).size.height,
+                                child: ProjectSummarizer(
+                                  project: currentProject,
+                                  onClose: () => Navigator.pop(context),
+                                  onCompleted: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ),
                             ),
-                          ),
-                        );
-                  }
-
-                  return const Center(child: Text('Something went wrong'));
-                },
+                      );
+                    },
+                  ),
+                  _ActionCard(
+                    title: "Analysis",
+                    icon: Icons.analytics,
+                    color: Colors.teal,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MaterialAnalysisPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
+              const SizedBox(height: 32),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 32),
+            ),
+            const SizedBox(height: 12),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
         ),
       ),
     );

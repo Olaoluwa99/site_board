@@ -184,8 +184,23 @@ class _InventoryManagerPageState extends State<InventoryManagerPage> {
 
   void _showRestockDialog(BuildContext context, ProjectMaterial material) {
     final quantityController = TextEditingController();
+    final unitPriceController = TextEditingController();
     final noteController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+
+    // To display total cost dynamically
+    // We can use a ValueNotifier or setState if we were in a Stateful widget.
+    // Or just simple listener.
+    final totalCostNotifier = ValueNotifier<double>(0.0);
+
+    void calculateTotal() {
+      final qty = double.tryParse(quantityController.text) ?? 0;
+      final price = double.tryParse(unitPriceController.text) ?? 0;
+      totalCostNotifier.value = qty * price;
+    }
+
+    quantityController.addListener(calculateTotal);
+    unitPriceController.addListener(calculateTotal);
 
     showDialog(
       context: context,
@@ -214,6 +229,36 @@ class _InventoryManagerPageState extends State<InventoryManagerPage> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  controller: unitPriceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Price Per Unit (Cost)',
+                    prefixText: '\$',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Required';
+                    final num = double.tryParse(value);
+                    if (num == null || num < 0) return 'Must be positive';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                ValueListenableBuilder<double>(
+                  valueListenable: totalCostNotifier,
+                  builder: (context, total, child) {
+                    return Text(
+                      'Total Cost: \$${total.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: noteController,
                   decoration: const InputDecoration(
                     labelText: 'Note (Optional)',
@@ -231,14 +276,6 @@ class _InventoryManagerPageState extends State<InventoryManagerPage> {
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  // We need the actor ID.
-                  // Since we are in a widget, we can access AppUserCubit via context if available
-                  // or pass it in.
-                  // Assuming AppUserCubit or similar Auth state is available up the tree.
-                  // Wait, context.read<InventoryBloc> needs to be dispatched.
-                  // BUT we need the actorId (User ID).
-                  // I'll grab it from Supabase auth instance directly or assume passed.
-                  // Using Supabase instance is easiest for now if Bloc doesn't have it.
                   final userId =
                       serviceLocator<SupabaseClient>().auth.currentUser!.id;
 
@@ -247,6 +284,7 @@ class _InventoryManagerPageState extends State<InventoryManagerPage> {
                       projectId: widget.projectId,
                       materialId: material.id,
                       quantity: double.parse(quantityController.text),
+                      unitPrice: double.parse(unitPriceController.text),
                       actorId: userId,
                       note:
                           noteController.text.trim().isEmpty

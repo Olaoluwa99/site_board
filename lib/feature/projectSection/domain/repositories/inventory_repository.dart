@@ -18,6 +18,7 @@ abstract interface class InventoryRepository {
   Future<Either<Failure, void>> restockMaterial({
     required String materialId,
     required double quantity,
+    required double unitPrice,
     required String actorId,
     String? note,
   });

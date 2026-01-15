@@ -41,6 +41,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
   Future<Either<Failure, void>> restockMaterial({
     required String materialId,
     required double quantity,
+    required double unitPrice,
     required String actorId,
     String? note,
   }) async {
@@ -50,6 +51,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
         quantityChange: quantity,
         transactionType: 'IN',
         actorId: actorId,
+        unitPrice: unitPrice,
         // Optional: We could log the note if we added a field for it to txn table
       );
       return const Right(null);

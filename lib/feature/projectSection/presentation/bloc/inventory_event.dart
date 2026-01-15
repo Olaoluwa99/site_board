@@ -24,6 +24,7 @@ final class InventoryCreateMaterial extends InventoryEvent {
 final class InventoryRestockMaterial extends InventoryEvent {
   final String materialId;
   final double quantity;
+  final double unitPrice;
   final String actorId;
   final String? note;
   final String projectId; // Needed to refresh the list
@@ -31,6 +32,7 @@ final class InventoryRestockMaterial extends InventoryEvent {
   InventoryRestockMaterial({
     required this.materialId,
     required this.quantity,
+    required this.unitPrice,
     required this.actorId,
     this.note,
     required this.projectId,

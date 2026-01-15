@@ -94,6 +94,14 @@ class MaterialReportsPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(dateStr),
+                            if (isIN && transaction.unitPrice != null)
+                              Text(
+                                "Price: \$${transaction.unitPrice!.toStringAsFixed(2)} / unit",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                ),
+                              ),
                             if (transaction.dailyLogId != null)
                               const Text(
                                 "Source: Daily Log",

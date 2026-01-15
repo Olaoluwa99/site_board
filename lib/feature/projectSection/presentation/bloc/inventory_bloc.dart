@@ -127,6 +127,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     final result = await _inventoryRepository.restockMaterial(
       materialId: event.materialId,
       quantity: event.quantity,
+      unitPrice: event.unitPrice,
       actorId: event.actorId,
       note: event.note,
     );

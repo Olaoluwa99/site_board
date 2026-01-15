@@ -10,6 +10,7 @@ class MaterialTransactionModel extends MaterialTransaction {
     super.actorId,
     required super.timestamp,
     super.materialName,
+    super.unitPrice,
   });
 
   factory MaterialTransactionModel.fromJson(Map<String, dynamic> json) {
@@ -28,10 +29,16 @@ class MaterialTransactionModel extends MaterialTransaction {
           json['project_materials'] != null
               ? json['project_materials']['name'] as String?
               : null,
+      unitPrice:
+          json['unit_price'] != null
+              ? (json['unit_price'] as num).toDouble()
+              : null,
     );
   }
 
   Map<String, dynamic> toJson() {
+    // Note: This toJson is likely used for inserts/updates if we were using it that way.
+    // But transactions are inserted via RPC.
     return {
       'id': id,
       'material_id': materialId,
@@ -40,6 +47,7 @@ class MaterialTransactionModel extends MaterialTransaction {
       'daily_log_id': dailyLogId,
       'actor_id': actorId,
       'timestamp': timestamp.toIso8601String(),
+      'unit_price': unitPrice,
     };
   }
 
@@ -53,6 +61,7 @@ class MaterialTransactionModel extends MaterialTransaction {
       actorId: entity.actorId,
       timestamp: entity.timestamp,
       materialName: entity.materialName,
+      unitPrice: entity.unitPrice,
     );
   }
 }
