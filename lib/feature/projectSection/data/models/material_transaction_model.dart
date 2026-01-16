@@ -11,6 +11,7 @@ class MaterialTransactionModel extends MaterialTransaction {
     required super.timestamp,
     super.materialName,
     super.unitPrice,
+    super.actorName,
   });
 
   factory MaterialTransactionModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +34,8 @@ class MaterialTransactionModel extends MaterialTransaction {
           json['unit_price'] != null
               ? (json['unit_price'] as num).toDouble()
               : null,
+      actorName:
+          json['profiles'] != null ? json['profiles']['name'] as String? : null,
     );
   }
 
@@ -62,6 +65,7 @@ class MaterialTransactionModel extends MaterialTransaction {
       timestamp: entity.timestamp,
       materialName: entity.materialName,
       unitPrice: entity.unitPrice,
+      actorName: entity.actorName,
     );
   }
 }

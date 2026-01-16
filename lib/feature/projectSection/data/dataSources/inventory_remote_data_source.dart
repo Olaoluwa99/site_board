@@ -123,7 +123,44 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
           .eq('project_materials.project_id', projectId)
           .order('timestamp', ascending: false);
 
-      return (data as List)
+      final List<dynamic> transactionsData = List.from(data);
+
+      if (transactionsData.isNotEmpty) {
+        // Safe Fallback: Manually fetch actor names if the join fails or isn't possible
+        final actorIds =
+            transactionsData
+                .map((t) => t['actor_id'] as String?)
+                .where((id) => id != null)
+                .toSet()
+                .toList();
+
+        if (actorIds.isNotEmpty) {
+          try {
+            final profilesData = await supabaseClient
+                .from('profiles')
+                .select('id, name')
+                .inFilter('id', actorIds);
+
+            final Map<String, String> profileNames = {
+              for (var p in profilesData)
+                p['id'] as String: p['name'] as String,
+            };
+
+            for (var t in transactionsData) {
+              final aId = t['actor_id'] as String?;
+              if (aId != null && profileNames.containsKey(aId)) {
+                t['profiles'] = {'name': profileNames[aId]};
+              }
+            }
+          } catch (e) {
+            // If separate profile fetch fails, we just show "Unknown" (handled by Model)
+            // This prevents the whole list from crashing.
+            print("Failed to fetch profiles separately: $e");
+          }
+        }
+      }
+
+      return transactionsData
           .map((e) => MaterialTransactionModel.fromJson(e))
           .toList();
     } on PostgrestException catch (e) {

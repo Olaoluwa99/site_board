@@ -10,6 +10,7 @@ class MaterialTransaction {
   final DateTime timestamp;
   final String? materialName;
   final double? unitPrice;
+  final String? actorName;
 
   const MaterialTransaction({
     required this.id,
@@ -21,6 +22,7 @@ class MaterialTransaction {
     required this.timestamp,
     this.materialName,
     this.unitPrice,
+    this.actorName,
   });
 
   MaterialTransaction copyWith({
@@ -31,6 +33,9 @@ class MaterialTransaction {
     String? dailyLogId,
     String? actorId,
     DateTime? timestamp,
+    String? materialName,
+    double? unitPrice,
+    String? actorName,
   }) {
     return MaterialTransaction(
       id: id ?? this.id,
@@ -41,6 +46,8 @@ class MaterialTransaction {
       actorId: actorId ?? this.actorId,
       timestamp: timestamp ?? this.timestamp,
       materialName: materialName ?? this.materialName,
+      unitPrice: unitPrice ?? this.unitPrice,
+      actorName: actorName ?? this.actorName,
     );
   }
 }

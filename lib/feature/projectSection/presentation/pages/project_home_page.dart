@@ -320,7 +320,10 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const MaterialAnalysisPage(),
+                          builder:
+                              (context) => MaterialAnalysisPage(
+                                projectId: widget.project.id,
+                              ),
                         ),
                       );
                     },
