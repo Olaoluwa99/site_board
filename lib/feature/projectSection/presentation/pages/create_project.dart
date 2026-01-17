@@ -1,31 +1,38 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
+import 'package:site_board/core/utils/pick_image.dart';
 import 'package:site_board/core/utils/show_snackbar.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/image_item_project.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/project_security_item.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/pseudo_editor.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 import '../../../../core/constants/constants.dart';
 import '../widgets/field_editor.dart';
 
-class CreateProjectDialog extends StatefulWidget {
-  final void Function(Project project) onCompleted;
-  const CreateProjectDialog({required this.onCompleted, super.key});
+class CreateProjectPage extends StatefulWidget {
+  final void Function(Project project, File? coverImage) onCompleted;
+  const CreateProjectPage({required this.onCompleted, super.key});
 
   @override
-  State<CreateProjectDialog> createState() => _CreateProjectDialogState();
+  State<CreateProjectPage> createState() => _CreateProjectPageState();
 }
 
-class _CreateProjectDialogState extends State<CreateProjectDialog> {
+class _CreateProjectPageState extends State<CreateProjectPage> {
   final TextEditingController _projectPasswordController =
       TextEditingController();
   final TextEditingController _projectNameController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
   final TextEditingController _projectDescriptionController =
       TextEditingController();
   String? selectedMode;
 
+  File? image;
   bool dropdownOpen = false;
   late final String userId;
 
@@ -35,9 +42,19 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
     userId = (context.read<AppUserCubit>().state as AppUserLoggedIn).user.id;
   }
 
+  void selectImage() async {
+    final pickedImage = await pickImage();
+    if (pickedImage != null) {
+      setState(() {
+        image = pickedImage;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _projectNameController.dispose();
+    _locationController.dispose();
     _projectDescriptionController.dispose();
     _projectPasswordController.dispose();
     super.dispose();
@@ -45,128 +62,152 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Create Project!'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FieldEditor(
-            hintText: 'Enter a Project name',
-            controller: _projectNameController,
-          ),
-          SizedBox(height: 16),
-          FieldEditor(
-            hintText: 'Enter a Project description',
-            controller: _projectDescriptionController,
-            minLines: 3,
-          ),
-          SizedBox(height: 16),
-
-          /// Choose Mode Button with Dropdown
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                dropdownOpen = !dropdownOpen;
-              });
-            },
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    selectedMode ?? 'Choose Mode',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  Icon(
-                    dropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  ),
-                ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Create Project'),
+        leading: IconButton(
+          icon: Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ImageItemProject(
+                imageAsFile: image,
+                imageAsLink: '',
+                onSelect: selectImage,
               ),
-            ),
-          ),
-          Divider(),
-          ProjectSecurityItem(
-            dropdownOpen: dropdownOpen,
-            onCompleted: (outputMode) {
-              setState(() {
-                selectedMode = outputMode;
-                dropdownOpen = false; // Close after selection
-              });
-            },
-          ),
+              SizedBox(height: 16),
+              Divider(),
+              SizedBox(height: 16),
+              FieldEditor(
+                hintText: 'Project Name',
+                controller: _projectNameController,
+              ),
+              SizedBox(height: 16),
+              FieldEditor(
+                hintText: 'Location (Optional)',
+                controller: _locationController,
+              ),
+              SizedBox(height: 16),
+              FieldEditor(
+                hintText: 'Description',
+                controller: _projectDescriptionController,
+                minLines: 3,
+              ),
+              SizedBox(height: 16),
+              Divider(),
+              SizedBox(height: 16),
+              Text(
+                'Access Type',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              PseudoEditor(
+                text: selectedMode ?? 'Choose Security Mode',
+                onTap: () {
+                  setState(() {
+                    dropdownOpen = !dropdownOpen;
+                  });
+                },
+              ),
+              SizedBox(height: 16),
+              ProjectSecurityItem(
+                dropdownOpen: dropdownOpen,
+                onCompleted: (outputMode) {
+                  setState(() {
+                    selectedMode = outputMode;
+                    dropdownOpen = false; // Close after selection
+                  });
+                },
+              ),
 
-          selectedMode == Constants.securityPassword
-              ? Column(
-                children: [
-                  SizedBox(height: 16),
-                  FieldEditor(
-                    hintText: 'Input Password',
-                    controller: _projectPasswordController,
-                  ),
-                ],
-              )
-              : SizedBox.shrink(),
-
-          SizedBox(height: 20),
-
-          /// Create Button
-          GradientButton(
-            onClick: () {
-              // Close dropdown if open
-              if (dropdownOpen) {
-                setState(() {
-                  dropdownOpen = false;
-                });
-              } else {
-                // Close dialog
-                if (_projectNameController.text.isNotEmpty &&
-                    _projectDescriptionController.text.isNotEmpty &&
-                    selectedMode != null) {
-                  final projectId = const Uuid().v4();
-                  widget.onCompleted(
-                    Project(
-                      id: projectId,
-                      projectName: _projectNameController.text,
-                      creatorId: userId,
-                      createdDate: DateTime.now(),
-                      endDate: null,
-                      lastUpdated: DateTime.now(),
-                      isActive: true,
-                      dailyLogs: [],
-                      location: '',
-                      coverPhotoUrl: '',
-                      teamAdminIds: [projectId],
-                      teamMembers: [],
-                      description: _projectDescriptionController.text,
-                      projectLink: 'https://site-board.com/$projectId/',
-                      projectSecurityType:
-                          selectedMode ?? Constants.securityNone,
-                      projectPassword:
-                          selectedMode == Constants.securityPassword
-                              ? _projectPasswordController.text.trim()
-                              : '',
+              if (selectedMode == Constants.securityPassword)
+                Column(
+                  children: [
+                    SizedBox(height: 16),
+                    FieldEditor(
+                      hintText: 'Input Password',
+                      controller: _projectPasswordController,
+                      textInputType: TextInputType.visiblePassword,
                     ),
-                  );
-                  Navigator.of(context).pop();
-                } else {
-                  showSnackBar(
-                    context,
-                    'Ensure a fields are filled and Try again',
-                  );
-                }
-              }
-            },
-            text: 'Create Project',
+                  ],
+                ),
+
+              SizedBox(height: 32),
+
+              /// Create Button
+              GradientButton(
+                onClick: () {
+                  // Close dropdown if open
+                  if (dropdownOpen) {
+                    setState(() {
+                      dropdownOpen = false;
+                    });
+                  } else {
+                    // Validation
+                    if (_projectNameController.text.isNotEmpty &&
+                        _projectDescriptionController.text.isNotEmpty &&
+                        selectedMode != null) {
+                      if (selectedMode == Constants.securityPassword &&
+                          _projectPasswordController.text.isEmpty) {
+                        showSnackBar(
+                          context,
+                          'Password is required for Password Security Mode',
+                        );
+                        return;
+                      }
+
+                      final projectId = const Uuid().v4();
+                      final newProject = Project(
+                        id: projectId,
+                        projectName: _projectNameController.text.trim(),
+                        creatorId: userId,
+                        createdDate: DateTime.now(),
+                        endDate: null,
+                        lastUpdated: DateTime.now(),
+                        isActive: true,
+                        dailyLogs: [],
+                        location: _locationController.text.trim(),
+                        coverPhotoUrl:
+                            '', // Will be handled by Bloc if image provided
+                        teamAdminIds: [
+                          projectId,
+                        ], // Logic from existing code, verified?
+                        teamMembers: [],
+                        description: _projectDescriptionController.text.trim(),
+                        projectLink: 'https://site-board.com/$projectId/',
+                        projectSecurityType:
+                            selectedMode ?? Constants.securityNone,
+                        projectPassword:
+                            selectedMode == Constants.securityPassword
+                                ? _projectPasswordController.text.trim()
+                                : '',
+                      );
+
+                      widget.onCompleted(newProject, image);
+                      Navigator.of(context).pop();
+                    } else {
+                      showSnackBar(
+                        context,
+                        'Please fill in all required fields (Name, Description, Mode)',
+                      );
+                    }
+                  }
+                },
+                text: 'Create Project',
+              ),
+              SizedBox(height: 40),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
-
-//
-//  Name of Project
-//  Join Group type - None, Password, Approval by Admin
-//  If password, Field to Input password - Field to Confirm password

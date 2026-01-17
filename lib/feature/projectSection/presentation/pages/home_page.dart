@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/accountSection/presentation/account_page.dart';
 import 'package:site_board/feature/auth/presentation/pages/login_page.dart';
+import 'package:site_board/feature/auth/presentation/bloc/auth_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/project_home_page.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/admin_permission_notifier.dart';
@@ -10,6 +13,7 @@ import 'package:site_board/feature/projectSection/presentation/widgets/offline_d
 import 'package:site_board/feature/projectSection/presentation/widgets/project_list_item.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/project_password.dart';
 import 'package:uuid/uuid.dart';
+import 'package:site_board/feature/settings/presentation/pages/settings_page.dart';
 
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 import '../../../../core/common/entities/user.dart';
@@ -50,14 +54,18 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showCustomDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => CreateProjectDialog(
-        onCompleted: (Project project) {
-          context.read<ProjectBloc>().add(ProjectCreate(project: project));
-          linkController.text = project.projectLink ?? '';
-        },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => CreateProjectPage(
+              onCompleted: (Project project, File? coverImage) {
+                context.read<ProjectBloc>().add(
+                  ProjectCreate(project: project, coverImage: coverImage),
+                );
+                linkController.text = project.projectLink ?? '';
+              },
+            ),
       ),
     );
   }
@@ -102,10 +110,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _uploadMemberStatus(
-      Project currentProject,
-      bool isLocal,
-      int index,
-      ) async {
+    Project currentProject,
+    bool isLocal,
+    int index,
+  ) async {
     if (!isLocal) {
       bool isOldUser = false;
       Member? soughtMember;
@@ -123,14 +131,17 @@ class _HomePageState extends State<HomePage> {
       Member? uploadMember;
       if (isOldUser) {
         // Issue 2 Fix: Check if they are actually accepted, even if they are in the list
-        if (soughtMember != null && !soughtMember.isAccepted && !soughtMember.isBlocked) {
+        if (soughtMember != null &&
+            !soughtMember.isAccepted &&
+            !soughtMember.isBlocked) {
           showDialog(
             context: context,
-            builder: (context) => AdminPermissionNotifier(
-              onCompleted: () {
-                Navigator.pop(context);
-              },
-            ),
+            builder:
+                (context) => AdminPermissionNotifier(
+                  onCompleted: () {
+                    Navigator.pop(context);
+                  },
+                ),
           );
           return;
         }
@@ -138,11 +149,12 @@ class _HomePageState extends State<HomePage> {
         if (soughtMember != null && soughtMember.isBlocked) {
           showDialog(
             context: context,
-            builder: (context) => BlockedNotifier(
-              onCompleted: () {
-                Navigator.pop(context);
-              },
-            ),
+            builder:
+                (context) => BlockedNotifier(
+                  onCompleted: () {
+                    Navigator.pop(context);
+                  },
+                ),
           );
           return;
         }
@@ -188,10 +200,10 @@ class _HomePageState extends State<HomePage> {
             context: context,
             builder:
                 (context) => ProjectPasswordDialog(
-              onCompleted: (passwordText) {
-                Navigator.pop(context, passwordText);
-              },
-            ),
+                  onCompleted: (passwordText) {
+                    Navigator.pop(context, passwordText);
+                  },
+                ),
           );
 
           if (passwordText == null) {
@@ -269,33 +281,65 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(
+          'SiteBoard',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        ),
+        centerTitle: false,
+        elevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         actions: [
           IconButton(
             onPressed: () {
-              widget.isLoggedIn
-                  ? Navigator.push(
-                context,
-                AccountPage.route(user: retrievedUser!),
-              )
-                  : Navigator.push(context, LoginPage.route());
+              Navigator.push(context, SettingsPage.route());
             },
-            icon:
-            widget.isLoggedIn
-                ? Icon(Icons.account_circle)
-                : Icon(Icons.account_circle_outlined),
+            icon: const Icon(Icons.settings_outlined),
           ),
+          BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is AuthLoading) {
+                return const Padding(
+                  padding: EdgeInsets.only(right: 16.0),
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              }
+              return IconButton(
+                onPressed: () {
+                  retrievedUser != null
+                      ? Navigator.push(
+                        context,
+                        AccountPage.route(user: retrievedUser!),
+                      )
+                      : Navigator.push(context, LoginPage.route());
+                },
+                icon:
+                    retrievedUser != null
+                        ? CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.1),
+                          child: const Icon(Icons.person, size: 18),
+                        )
+                        : const Icon(Icons.account_circle_outlined),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       floatingActionButton:
-      widget.isLoggedIn
-          ? FloatingActionButton.extended(
-        onPressed: _showCustomDialog,
-        label: const Text('Create Project'),
-        icon: const Icon(Icons.add),
-      )
-          : SizedBox.shrink(),
+          widget.isLoggedIn
+              ? FloatingActionButton.extended(
+                onPressed: _showCustomDialog,
+                label: const Text('Create Project'),
+                icon: const Icon(Icons.add),
+              )
+              : SizedBox.shrink(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -330,23 +374,23 @@ class _HomePageState extends State<HomePage> {
                       context: context,
                       builder:
                           (context) => OfflineDialog(
-                        onCompleted: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            ProjectHomePage.route(
-                              project: state.oldProject,
-                              projectIndex: state.projects.indexOf(
-                                state.oldProject,
-                              ),
-                              isLocal: true,
-                            ),
-                          );
-                        },
-                        onDismiss: () {
-                          Navigator.pop(context);
-                        },
-                      ),
+                            onCompleted: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                ProjectHomePage.route(
+                                  project: state.oldProject,
+                                  projectIndex: state.projects.indexOf(
+                                    state.oldProject,
+                                  ),
+                                  isLocal: true,
+                                ),
+                              );
+                            },
+                            onDismiss: () {
+                              Navigator.pop(context);
+                            },
+                          ),
                     );
                   }
                   if (state is ProjectRetrieveByLinkFailure) {
@@ -354,13 +398,13 @@ class _HomePageState extends State<HomePage> {
                       context: context,
                       builder:
                           (context) => MainAlertDialog(
-                        title: 'Error Loading Project',
-                        text:
-                        '${state.error}\n\nWe encountered an error while trying to retrieve data from this project link. Please verify that the link is correct and check your internet connection. If the issue continues, contact the project administrator for assistance.',
-                        onDismiss: () {
-                          Navigator.pop(context);
-                        },
-                      ),
+                            title: 'Error Loading Project',
+                            text:
+                                '${state.error}\n\nWe encountered an error while trying to retrieve data from this project link. Please verify that the link is correct and check your internet connection. If the issue continues, contact the project administrator for assistance.',
+                            onDismiss: () {
+                              Navigator.pop(context);
+                            },
+                          ),
                     );
                   }
                   // Check generic success to show divider
@@ -374,13 +418,13 @@ class _HomePageState extends State<HomePage> {
                       context: context,
                       builder:
                           (context) => MainAlertDialog(
-                        title: 'Error Loading Project',
-                        text:
-                        '${state.error}\n\nWe encountered an error while updating your membership status.',
-                        onDismiss: () {
-                          Navigator.pop(context);
-                        },
-                      ),
+                            title: 'Error Loading Project',
+                            text:
+                                '${state.error}\n\nWe encountered an error while updating your membership status.',
+                            onDismiss: () {
+                              Navigator.pop(context);
+                            },
+                          ),
                     );
                   }
                   if (state is ProjectMemberUpdateSuccess) {
@@ -389,20 +433,20 @@ class _HomePageState extends State<HomePage> {
                         context: context,
                         builder:
                             (context) => BlockedNotifier(
-                          onCompleted: () {
-                            Navigator.pop(context);
-                          },
-                        ),
+                              onCompleted: () {
+                                Navigator.pop(context);
+                              },
+                            ),
                       );
                     } else if (!state.member.isAccepted) {
                       showDialog(
                         context: context,
                         builder:
                             (context) => AdminPermissionNotifier(
-                          onCompleted: () {
-                            Navigator.pop(context);
-                          },
-                        ),
+                              onCompleted: () {
+                                Navigator.pop(context);
+                              },
+                            ),
                       );
                     } else {
                       _proceedToProject(
@@ -443,21 +487,21 @@ class _HomePageState extends State<HomePage> {
                     return state.projects.isEmpty
                         ? const SizedBox()
                         : Column(
-                      children:
-                      state.projects.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final project = entry.value;
+                          children:
+                              state.projects.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final project = entry.value;
 
-                        return ProjectListItem(
-                          projectName: project.projectName,
-                          onClicked: () {
-                            context.read<ProjectBloc>().add(
-                              ProjectGetProjectById(project: project),
-                            );
-                          },
+                                return ProjectListItem(
+                                  projectName: project.projectName,
+                                  onClicked: () {
+                                    context.read<ProjectBloc>().add(
+                                      ProjectGetProjectById(project: project),
+                                    );
+                                  },
+                                );
+                              }).toList(),
                         );
-                      }).toList(),
-                    );
                   }
 
                   return const SizedBox();

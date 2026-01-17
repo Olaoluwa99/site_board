@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
@@ -10,12 +12,16 @@ class CreateProject implements UserCase<Project, CreateProjectParams> {
   CreateProject(this.projectRepository);
   @override
   Future<Either<Failure, Project>> call(CreateProjectParams params) async {
-    return await projectRepository.createProject(project: params.project);
+    return await projectRepository.createProject(
+      project: params.project,
+      coverImage: params.coverImage,
+    );
   }
 }
 
 class CreateProjectParams {
   final Project project;
+  final File? coverImage;
 
-  CreateProjectParams({required this.project});
+  CreateProjectParams({required this.project, this.coverImage});
 }

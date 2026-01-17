@@ -11,6 +11,7 @@ import 'package:site_board/feature/projectSection/domain/useCases/manage_log_tas
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_member.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/summary_bloc.dart';
+import 'package:site_board/core/common/bloc/theme/theme_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/common/cubits/app_user/app_user_cubit.dart';
@@ -38,12 +39,18 @@ import 'feature/projectSection/domain/useCases/get_project_by_link.dart';
 import 'feature/projectSection/domain/useCases/get_recent_projects.dart';
 import 'feature/projectSection/domain/useCases/update_project.dart';
 import 'feature/projectSection/presentation/bloc/project_bloc.dart';
+import 'feature/projectSection/data/dataSources/inventory_remote_data_source.dart';
+import 'feature/projectSection/domain/repositories/inventory_repository.dart';
+import 'feature/projectSection/data/repositories/inventory_repository_impl.dart';
+import 'feature/projectSection/presentation/bloc/inventory_bloc.dart';
 
 final serviceLocator = GetIt.instance;
 
 Future<void> initDependencies() async {
   _initAuth();
   _initProject();
+  _initInventory();
+  _initTheme();
 
   final supabase = await Supabase.initialize(
     url: AppSecrets.supabaseUrl,
@@ -55,31 +62,32 @@ Future<void> initDependencies() async {
 
   final recentProjectBox = await Hive.openBox('recent_projects');
   final offlineProjectBox = await Hive.openBox('offline_projects');
+  await Hive.openBox('settings'); // Open stored settings box
 
   serviceLocator.registerLazySingleton(() => supabase.client);
   serviceLocator.registerLazySingleton<Box>(
-        () => recentProjectBox,
+    () => recentProjectBox,
     instanceName: 'recent',
   );
   serviceLocator.registerLazySingleton<Box>(
-        () => offlineProjectBox,
+    () => offlineProjectBox,
     instanceName: 'offline',
   );
 
   serviceLocator.registerLazySingleton(() => AppUserCubit());
   serviceLocator.registerFactory(() => InternetConnection());
   serviceLocator.registerFactory<ConnectionChecker>(
-        () => ConnectionCheckerImpl(serviceLocator()),
+    () => ConnectionCheckerImpl(serviceLocator()),
   );
 }
 
 void _initAuth() {
   serviceLocator
     ..registerFactory<AuthRemoteDataSource>(
-          () => AuthRemoteDataSourceImpl(serviceLocator()),
+      () => AuthRemoteDataSourceImpl(serviceLocator()),
     )
     ..registerFactory<AuthRepository>(
-          () => AuthRepositoryImpl(
+      () => AuthRepositoryImpl(
         serviceLocator(),
         serviceLocator(),
         serviceLocator(),
@@ -91,7 +99,7 @@ void _initAuth() {
     ..registerFactory(() => UserLogout(serviceLocator()))
     ..registerFactory(() => DeleteAccount(serviceLocator()))
     ..registerLazySingleton(
-          () => AuthBloc(
+      () => AuthBloc(
         userSignUp: serviceLocator(),
         userLogin: serviceLocator(),
         currentUser: serviceLocator(),
@@ -104,28 +112,28 @@ void _initAuth() {
 
 void _initProject() {
   serviceLocator
-  // DataSource
+    // DataSource
     ..registerFactory<ProjectRemoteDataSource>(
-          () => ProjectRemoteDataSourceImpl(serviceLocator()),
+      () => ProjectRemoteDataSourceImpl(serviceLocator()),
     )
     ..registerFactory<GeminiRemoteDataSource>(
-          () => GeminiRemoteDataSourceImpl(),
+      () => GeminiRemoteDataSourceImpl(),
     )
     ..registerLazySingleton<ProjectLocalDataSource>(
-          () => ProjectLocalDataSourceImpl(
+      () => ProjectLocalDataSourceImpl(
         serviceLocator<Box>(instanceName: 'recent'),
         serviceLocator<Box>(instanceName: 'offline'),
       ),
     )
     ..registerFactory<ProjectRepository>(
-          () => ProjectRepositoryImpl(
+      () => ProjectRepositoryImpl(
         serviceLocator(),
         serviceLocator(),
         serviceLocator(),
         serviceLocator(),
       ),
     )
-  // UseCases
+    // UseCases
     ..registerFactory(() => CreateProject(serviceLocator()))
     ..registerFactory(() => UpdateProject(serviceLocator()))
     ..registerFactory(() => CreateDailyLog(serviceLocator()))
@@ -141,9 +149,9 @@ void _initProject() {
     ..registerFactory(() => DeleteProject(serviceLocator()))
     ..registerFactory(() => LeaveProject(serviceLocator()))
     ..registerFactory(() => DeleteDailyLog(serviceLocator())) // NEW
-  // Bloc
+    // Bloc
     ..registerLazySingleton(
-          () => ProjectBloc(
+      () => ProjectBloc(
         createProject: serviceLocator(),
         updateProject: serviceLocator(),
         createDailyLog: serviceLocator(),
@@ -161,6 +169,23 @@ void _initProject() {
       ),
     )
     ..registerFactory(
-          () => SummaryBloc(generateProjectSummary: serviceLocator()),
+      () => SummaryBloc(generateProjectSummary: serviceLocator()),
     );
+}
+
+void _initInventory() {
+  serviceLocator
+    ..registerFactory<InventoryRemoteDataSource>(
+      () => InventoryRemoteDataSourceImpl(serviceLocator()),
+    )
+    ..registerFactory<InventoryRepository>(
+      () => InventoryRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory(
+      () => InventoryBloc(inventoryRepository: serviceLocator()),
+    );
+}
+
+void _initTheme() {
+  serviceLocator.registerLazySingleton(() => ThemeBloc());
 }

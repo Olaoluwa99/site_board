@@ -15,7 +15,10 @@ class ViewLogPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('View log')),
+      appBar: AppBar(
+        title: Text('View log'),
+        leading: IconButton(icon: Icon(Icons.close), onPressed: onClose),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +51,10 @@ class ViewLogPage extends StatelessWidget {
                   SizedBox(height: 16),
                   Text(
                     'Materials Available:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   SizedBox(height: 16),
                   ...log.materialsAvailable.asMap().entries.map((entry) {
@@ -60,7 +66,10 @@ class ViewLogPage extends StatelessWidget {
                   SizedBox(height: 16),
                   Text(
                     'Planned Tasks:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   SizedBox(height: 16),
                   ...log.plannedTasks.asMap().entries.map((entry) {
@@ -81,7 +90,10 @@ class ViewLogPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Starting Images',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             SizedBox(height: 16),
@@ -110,7 +122,10 @@ class ViewLogPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Ending Images',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             SizedBox(height: 16),
@@ -144,7 +159,10 @@ class ViewLogPage extends StatelessWidget {
                   SizedBox(height: 16),
                   Text(
                     'Observations and Notes',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(log.observations, style: TextStyle(fontSize: 16)),
                   SizedBox(height: 180),

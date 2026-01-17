@@ -26,7 +26,7 @@ class ImageItemProject extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: Image.file(
           imageAsFile!,
-          fit: BoxFit.fitWidth,
+          fit: BoxFit.cover,
           width: double.infinity,
         ),
       );
@@ -35,7 +35,7 @@ class ImageItemProject extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: Image.network(
           imageAsLink,
-          fit: BoxFit.fitWidth,
+          fit: BoxFit.cover,
           width: double.infinity,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
@@ -54,25 +54,28 @@ class ImageItemProject extends StatelessWidget {
             );
           },
           errorBuilder: (context, error, stackTrace) {
-            return _buildDefaultPlaceholder();
+            return _buildDefaultPlaceholder(context);
           },
         ),
       );
     } else {
-      imageWidget = _buildDefaultPlaceholder();
+      imageWidget = _buildDefaultPlaceholder(context);
     }
 
     return GestureDetector(
       onTap: onSelect,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.only(bottom: 12.0),
-        child: imageWidget,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: imageWidget,
+        ),
       ),
     );
   }
 
-  Widget _buildDefaultPlaceholder() {
+  Widget _buildDefaultPlaceholder(BuildContext context) {
     return DottedBorder(
       options: RoundedRectDottedBorderOptions(
         color: AppPalette.borderColor,
@@ -91,9 +94,17 @@ class ImageItemProject extends StatelessWidget {
             Icon(Icons.folder_open, size: 44),
             SizedBox(height: 15),
             Text(
-              'Select image',
+              'Select Cover Image',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14),
+            ),
+            Text(
+              '(Optional)',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
             ),
           ],
         ),

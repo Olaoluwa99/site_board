@@ -28,15 +28,16 @@ class ProjectRepositoryImpl implements ProjectRepository {
   final ConnectionChecker connectionChecker;
 
   ProjectRepositoryImpl(
-      this.projectRemoteDataSource,
-      this.projectLocalDataSource,
-      this.geminiRemoteDataSource,
-      this.connectionChecker,
-      );
+    this.projectRemoteDataSource,
+    this.projectLocalDataSource,
+    this.geminiRemoteDataSource,
+    this.connectionChecker,
+  );
 
   @override
   Future<Either<Failure, Project>> createProject({
     required Project project,
+    File? coverImage,
   }) async {
     try {
       if (!await (connectionChecker.isConnected)) {
@@ -61,6 +62,14 @@ class ProjectRepositoryImpl implements ProjectRepository {
         projectPassword: project.projectPassword,
       );
 
+      if (coverImage != null) {
+        final imageUrl = await projectRemoteDataSource.uploadProjectCoverImage(
+          image: coverImage,
+          project: projectModel,
+        );
+        projectModel = projectModel.copyWithModel(coverPhotoUrl: imageUrl);
+      }
+
       final uploadedProject = await projectRemoteDataSource.createProject(
         projectModel,
       );
@@ -81,8 +90,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
           );
 
           await projectRemoteDataSource.createMember(creatorMember);
-
-        } catch(e) {
+        } catch (e) {
           debugPrint("Warning: Auto-member creation failed: $e");
         }
       }
@@ -90,6 +98,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(uploadedProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -124,8 +134,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
       if (image != null) {
         final imageUrl = await projectRemoteDataSource.uploadProjectCoverImage(
-            image: image,
-            project: projectModel
+          image: image,
+          project: projectModel,
         );
         projectModel = projectModel.copyWithModel(coverPhotoUrl: imageUrl);
       }
@@ -136,6 +146,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(uploadedProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -168,10 +180,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       );
       final modifiedStartingImageUrlList = await projectRemoteDataSource
           .uploadDailyLogImages(
-        isEndingImages: false,
-        images: startingTaskImageList,
-        dailyLogModel: dailyLogModel,
-      );
+            isEndingImages: false,
+            images: startingTaskImageList,
+            dailyLogModel: dailyLogModel,
+          );
 
       dailyLogModel = DailyLogModel(
         id: dailyLogModel.id,
@@ -206,6 +218,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(uploadedDailyLog.copyWith(plannedTasks: currentTasks));
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -242,10 +256,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       if (hasAtLeastOneFile(startingTaskImageList)) {
         final modifiedStartingImageUrlList = await projectRemoteDataSource
             .uploadDailyLogImages(
-          isEndingImages: false,
-          images: startingTaskImageList,
-          dailyLogModel: dailyLogModel,
-        );
+              isEndingImages: false,
+              images: startingTaskImageList,
+              dailyLogModel: dailyLogModel,
+            );
 
         dailyLogModel = DailyLogModel(
           id: dailyLogModel.id,
@@ -270,10 +284,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       if (hasAtLeastOneFile(endingTaskImageList)) {
         final modifiedEndingTaskImageUrlList = await projectRemoteDataSource
             .uploadDailyLogImages(
-          isEndingImages: true,
-          images: endingTaskImageList,
-          dailyLogModel: dailyLogModel,
-        );
+              isEndingImages: true,
+              images: endingTaskImageList,
+              dailyLogModel: dailyLogModel,
+            );
 
         dailyLogModel = DailyLogModel(
           id: dailyLogModel.id,
@@ -307,6 +321,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(uploadedDailyLog.copyWith(plannedTasks: currentTasks));
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -338,6 +354,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(uploadedMember);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -369,6 +387,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(uploadedMember);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -390,6 +410,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(setupCurrentTasks);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -421,6 +443,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return Right(null);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -439,6 +463,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(RetrievedProjects(projects: projects));
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -449,6 +475,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(projects);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -518,6 +546,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(summary);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -531,11 +561,16 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(null);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, void>> leaveProject(String projectId, String userId) async {
+  Future<Either<Failure, void>> leaveProject(
+    String projectId,
+    String userId,
+  ) async {
     try {
       if (!await connectionChecker.isConnected) {
         return left(Failure(Constants.noConnectionErrorMessage));
@@ -544,6 +579,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(null);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -557,6 +594,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return right(null);
     } on ServerException catch (e) {
       return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
     }
   }
 
@@ -601,9 +640,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   List<String> imageModifier(
-      List<String> currentImageUrls,
-      List<String> newImageUrls,
-      ) {
+    List<String> currentImageUrls,
+    List<String> newImageUrls,
+  ) {
     List<String> updatedStartingList = List.from(currentImageUrls);
 
     for (int index = 0; index < newImageUrls.length; index++) {

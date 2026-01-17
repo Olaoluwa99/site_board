@@ -28,7 +28,7 @@ class _ProjectSettingsState extends State<ProjectSettings> {
   // Accept a pending member
   void _acceptMember(Project currentProject, String userId) {
     final member = currentProject.teamMembers.firstWhere(
-          (m) => m.userId == userId,
+      (m) => m.userId == userId,
     );
     final updatedMember = member.copyWith(isAccepted: true);
 
@@ -47,45 +47,45 @@ class _ProjectSettingsState extends State<ProjectSettings> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: Text("Block Member"),
-        content: Text(
-          "Are you sure you want to block this member? They will lose access to the project.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              final member = currentProject.teamMembers.firstWhere(
+            title: Text("Block Member"),
+            content: Text(
+              "Are you sure you want to block this member? They will lose access to the project.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  final member = currentProject.teamMembers.firstWhere(
                     (m) => m.userId == userId,
-              );
-              final updatedMember = member.copyWith(
-                isBlocked: true,
-                isAccepted: false,
-              );
+                  );
+                  final updatedMember = member.copyWith(
+                    isBlocked: true,
+                    isAccepted: false,
+                  );
 
-              context.read<ProjectBloc>().add(
-                UpdateMemberEvent(
-                  project: currentProject,
-                  member: updatedMember,
-                  isCreateMember: false,
-                ),
-              );
-            },
-            child: Text("Block", style: TextStyle(color: Colors.red)),
+                  context.read<ProjectBloc>().add(
+                    UpdateMemberEvent(
+                      project: currentProject,
+                      member: updatedMember,
+                      isCreateMember: false,
+                    ),
+                  );
+                },
+                child: Text("Block", style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   // Unblock a member
   void _unblockMember(Project currentProject, String userId) {
     final member = currentProject.teamMembers.firstWhere(
-          (m) => m.userId == userId,
+      (m) => m.userId == userId,
     );
     // When unblocking, we set isBlocked to false and isAccepted to true
     final updatedMember = member.copyWith(isBlocked: false, isAccepted: true);
@@ -102,7 +102,7 @@ class _ProjectSettingsState extends State<ProjectSettings> {
   // Toggle Admin Status (Creator Only)
   void _toggleAdmin(Project currentProject, String userId) {
     final member = currentProject.teamMembers.firstWhere(
-          (m) => m.userId == userId,
+      (m) => m.userId == userId,
     );
     final updatedMember = member.copyWith(isAdmin: !member.isAdmin);
 
@@ -131,27 +131,27 @@ class _ProjectSettingsState extends State<ProjectSettings> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: Text("Delete Project"),
-        content: Text(
-          "Are you sure you want to delete this project? This cannot be undone.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
+            title: Text("Delete Project"),
+            content: Text(
+              "Are you sure you want to delete this project? This cannot be undone.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.read<ProjectBloc>().add(
+                    ProjectDeleteEvent(projectId: currentProject.id),
+                  );
+                  Navigator.pop(context);
+                },
+                child: Text("Delete", style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.read<ProjectBloc>().add(
-                ProjectDeleteEvent(projectId: currentProject.id),
-              );
-              Navigator.pop(context);
-            },
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -160,29 +160,29 @@ class _ProjectSettingsState extends State<ProjectSettings> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: Text("Leave Project"),
-        content: Text("Are you sure you want to leave this project?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
+            title: Text("Leave Project"),
+            content: Text("Are you sure you want to leave this project?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Send event but don't manually pop settings yet.
+                  // Let the Listener handle navigation on success.
+                  context.read<ProjectBloc>().add(
+                    ProjectLeaveEvent(
+                      projectId: currentProject.id,
+                      userId: userId,
+                    ),
+                  );
+                },
+                child: Text("Leave", style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Send event but don't manually pop settings yet.
-              // Let the Listener handle navigation on success.
-              context.read<ProjectBloc>().add(
-                ProjectLeaveEvent(
-                  projectId: currentProject.id,
-                  userId: userId,
-                ),
-              );
-            },
-            child: Text("Leave", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -222,14 +222,15 @@ class _ProjectSettingsState extends State<ProjectSettings> {
 
           // Check if this success was due to a LEAVE or DELETE event
           // If the current project is no longer in the list OR user is marked as left
-          bool projectExists = state.projects.any((p) => p.id == widget.project.id);
+          bool projectExists = state.projects.any(
+            (p) => p.id == widget.project.id,
+          );
 
           if (!projectExists) {
             // Project deleted or access lost
-            Navigator.of(context).pushAndRemoveUntil(
-                HomePage.route(true),
-                    (route) => false
-            );
+            Navigator.of(
+              context,
+            ).pushAndRemoveUntil(HomePage.route(true), (route) => false);
             return;
           }
 
@@ -239,15 +240,16 @@ class _ProjectSettingsState extends State<ProjectSettings> {
             // Note: Our remote source filters out 'has_left' members from getProjectById
             // So if I am missing from teamMembers list, or I am there but has_left is true
             // (though backend shouldn't return me if filtering is on, but let's be safe)
-            bool isMember = p.teamMembers.any((m) => m.userId == currentUserId && !m.hasLeft);
+            bool isMember = p.teamMembers.any(
+              (m) => m.userId == currentUserId && !m.hasLeft,
+            );
             if (!isMember && p.creatorId != currentUserId) {
               // I have left the project
-              Navigator.of(context).pushAndRemoveUntil(
-                  HomePage.route(true),
-                      (route) => false
-              );
+              Navigator.of(
+                context,
+              ).pushAndRemoveUntil(HomePage.route(true), (route) => false);
             }
-          } catch(e) {
+          } catch (e) {
             // Error checking member status
           }
         }
@@ -258,7 +260,7 @@ class _ProjectSettingsState extends State<ProjectSettings> {
         if (state is ProjectRetrieveSuccess) {
           try {
             currentProject = state.projects.firstWhere(
-                  (p) => p.id == widget.project.id,
+              (p) => p.id == widget.project.id,
             );
           } catch (e) {
             // Fallback if project not found
@@ -273,7 +275,7 @@ class _ProjectSettingsState extends State<ProjectSettings> {
         // Check Admin Status
         try {
           final me = currentProject.teamMembers.firstWhere(
-                (m) => m.userId == currentUserId,
+            (m) => m.userId == currentUserId,
           );
           isAdmin = me.isAdmin;
         } catch (e) {
@@ -284,23 +286,23 @@ class _ProjectSettingsState extends State<ProjectSettings> {
 
         // Pending Members (Not accepted, Not blocked, Not left)
         final pendingMembers =
-        currentProject.teamMembers
-            .where((m) => !m.isAccepted && !m.isBlocked && !m.hasLeft)
-            .toList();
+            currentProject.teamMembers
+                .where((m) => !m.isAccepted && !m.isBlocked && !m.hasLeft)
+                .toList();
 
         // Active Team Members (Accepted, Not Blocked, Not Left)
         final teamMembers =
-        currentProject.teamMembers
-            .where((m) => m.isAccepted && !m.isBlocked && !m.hasLeft)
-            .toList();
+            currentProject.teamMembers
+                .where((m) => m.isAccepted && !m.isBlocked && !m.hasLeft)
+                .toList();
 
         // Blocked Members
         final blockedMembers =
-        currentProject.teamMembers.where((m) => m.isBlocked).toList();
+            currentProject.teamMembers.where((m) => m.isBlocked).toList();
 
         // Previous Members (Has Left)
         final previousMembers =
-        currentProject.teamMembers.where((m) => m.hasLeft).toList();
+            currentProject.teamMembers.where((m) => m.hasLeft).toList();
 
         return Scaffold(
           appBar: AppBar(title: Text('Project settings')),
@@ -317,46 +319,46 @@ class _ProjectSettingsState extends State<ProjectSettings> {
                   SizedBox(height: 8),
                   pendingMembers.isEmpty
                       ? Text(
-                    "No pending requests.",
-                    style: TextStyle(color: Colors.grey),
-                  )
+                        "No pending requests.",
+                        style: TextStyle(color: Colors.grey),
+                      )
                       : ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: pendingMembers.length,
-                    itemBuilder: (context, index) {
-                      final member = pendingMembers[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(member.name),
-                        subtitle: Text(member.email),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                              ),
-                              onPressed:
-                                  () => _acceptMember(
-                                currentProject,
-                                member.userId,
-                              ),
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: pendingMembers.length,
+                        itemBuilder: (context, index) {
+                          final member = pendingMembers[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(member.name),
+                            subtitle: Text(member.email),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  ),
+                                  onPressed:
+                                      () => _acceptMember(
+                                        currentProject,
+                                        member.userId,
+                                      ),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.cancel, color: Colors.red),
+                                  onPressed:
+                                      () => _blockMember(
+                                        currentProject,
+                                        member.userId,
+                                      ),
+                                ),
+                              ],
                             ),
-                            IconButton(
-                              icon: Icon(Icons.cancel, color: Colors.red),
-                              onPressed:
-                                  () => _blockMember(
-                                currentProject,
-                                member.userId,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
                   SizedBox(height: 16),
                   Divider(),
                   SizedBox(height: 16),
@@ -369,84 +371,84 @@ class _ProjectSettingsState extends State<ProjectSettings> {
                   SizedBox(height: 8),
                   teamMembers.isEmpty
                       ? Text(
-                    "No other team members.",
-                    style: TextStyle(color: Colors.grey),
-                  )
+                        "No other team members.",
+                        style: TextStyle(color: Colors.grey),
+                      )
                       : ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: teamMembers.length,
-                    itemBuilder: (context, index) {
-                      final member = teamMembers[index];
-                      final bool isTargetCreator =
-                          member.userId == currentProject.creatorId;
-                      final bool isTargetAdmin = member.isAdmin;
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: teamMembers.length,
+                        itemBuilder: (context, index) {
+                          final member = teamMembers[index];
+                          final bool isTargetCreator =
+                              member.userId == currentProject.creatorId;
+                          final bool isTargetAdmin = member.isAdmin;
 
-                      bool canBlock = false;
-                      if (isCreator &&
-                          !isTargetCreator &&
-                          member.userId != currentUserId) {
-                        canBlock = true;
-                      } else if (isAdmin && !isCreator) {
-                        if (!isTargetCreator &&
-                            !isTargetAdmin &&
-                            member.userId != currentUserId) {
-                          canBlock = true;
-                        }
-                      }
+                          bool canBlock = false;
+                          if (isCreator &&
+                              !isTargetCreator &&
+                              member.userId != currentUserId) {
+                            canBlock = true;
+                          } else if (isAdmin && !isCreator) {
+                            if (!isTargetCreator &&
+                                !isTargetAdmin &&
+                                member.userId != currentUserId) {
+                              canBlock = true;
+                            }
+                          }
 
-                      bool canManageAdmin =
-                          isCreator &&
+                          bool canManageAdmin =
+                              isCreator &&
                               !isTargetCreator &&
                               member.userId != currentUserId;
 
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(member.name),
-                        subtitle: Text(
-                          isTargetCreator
-                              ? 'Creator'
-                              : (isTargetAdmin ? 'Admin' : 'Member'),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (canManageAdmin)
-                              IconButton(
-                                icon: Icon(
-                                  member.isAdmin
-                                      ? Icons.remove_moderator
-                                      : Icons.add_moderator,
-                                  color:
-                                  member.isAdmin
-                                      ? Colors.orange
-                                      : Colors.blue,
-                                ),
-                                tooltip:
-                                member.isAdmin
-                                    ? "Remove Admin"
-                                    : "Make Admin",
-                                onPressed:
-                                    () => _toggleAdmin(
-                                  currentProject,
-                                  member.userId,
-                                ),
-                              ),
-                            if (canBlock)
-                              IconButton(
-                                icon: Icon(Icons.block, color: Colors.red),
-                                tooltip: "Block Member",
-                                onPressed:
-                                    () => _blockMember(
-                                  currentProject,
-                                  member.userId,
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(member.name),
+                            subtitle: Text(
+                              isTargetCreator
+                                  ? 'Creator'
+                                  : (isTargetAdmin ? 'Admin' : 'Member'),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (canManageAdmin)
+                                  IconButton(
+                                    icon: Icon(
+                                      member.isAdmin
+                                          ? Icons.remove_moderator
+                                          : Icons.add_moderator,
+                                      color:
+                                          member.isAdmin
+                                              ? Colors.orange
+                                              : Colors.blue,
+                                    ),
+                                    tooltip:
+                                        member.isAdmin
+                                            ? "Remove Admin"
+                                            : "Make Admin",
+                                    onPressed:
+                                        () => _toggleAdmin(
+                                          currentProject,
+                                          member.userId,
+                                        ),
+                                  ),
+                                if (canBlock)
+                                  IconButton(
+                                    icon: Icon(Icons.block, color: Colors.red),
+                                    tooltip: "Block Member",
+                                    onPressed:
+                                        () => _blockMember(
+                                          currentProject,
+                                          member.userId,
+                                        ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
 
                   SizedBox(height: 16),
                   Divider(),
@@ -460,37 +462,37 @@ class _ProjectSettingsState extends State<ProjectSettings> {
                   SizedBox(height: 8),
                   blockedMembers.isEmpty
                       ? Text(
-                    "No blocked users.",
-                    style: TextStyle(color: Colors.grey),
-                  )
+                        "No blocked users.",
+                        style: TextStyle(color: Colors.grey),
+                      )
                       : ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: blockedMembers.length,
-                    itemBuilder: (context, index) {
-                      final member = blockedMembers[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          member.name,
-                          style: TextStyle(
-                            decoration: TextDecoration.lineThrough,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        subtitle: Text(member.email),
-                        trailing: IconButton(
-                          icon: Icon(Icons.refresh, color: Colors.green),
-                          tooltip: "Unblock User",
-                          onPressed:
-                              () => _unblockMember(
-                            currentProject,
-                            member.userId,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: blockedMembers.length,
+                        itemBuilder: (context, index) {
+                          final member = blockedMembers[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              member.name,
+                              style: TextStyle(
+                                decoration: TextDecoration.lineThrough,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            subtitle: Text(member.email),
+                            trailing: IconButton(
+                              icon: Icon(Icons.refresh, color: Colors.green),
+                              tooltip: "Unblock User",
+                              onPressed:
+                                  () => _unblockMember(
+                                    currentProject,
+                                    member.userId,
+                                  ),
+                            ),
+                          );
+                        },
+                      ),
 
                   SizedBox(height: 16),
                   Divider(),
@@ -504,29 +506,32 @@ class _ProjectSettingsState extends State<ProjectSettings> {
                   SizedBox(height: 8),
                   previousMembers.isEmpty
                       ? Text(
-                    "No previous members.",
-                    style: TextStyle(color: Colors.grey),
-                  )
+                        "No previous members.",
+                        style: TextStyle(color: Colors.grey),
+                      )
                       : ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: previousMembers.length,
-                    itemBuilder: (context, index) {
-                      final member = previousMembers[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          member.name,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        subtitle: Text(member.email),
-                        trailing: Text(
-                          "Left",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                      );
-                    },
-                  ),
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: previousMembers.length,
+                        itemBuilder: (context, index) {
+                          final member = previousMembers[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              member.name,
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            subtitle: Text(member.email),
+                            trailing: Text(
+                              "Left",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
 
                   SizedBox(height: 16),
                   Divider(),
@@ -592,8 +597,7 @@ class _ProjectSettingsState extends State<ProjectSettings> {
                   ),
                   SizedBox(height: 16),
                   DefaultButton(
-                    onClick:
-                        () => _leaveProject(currentProject, currentUserId),
+                    onClick: () => _leaveProject(currentProject, currentUserId),
                     text: 'Leave Project',
                   ),
                 ],

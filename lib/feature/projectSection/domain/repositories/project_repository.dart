@@ -10,7 +10,10 @@ import '../entities/daily_log.dart';
 import '../entities/retrieved_projects.dart';
 
 abstract interface class ProjectRepository {
-  Future<Either<Failure, Project>> createProject({required Project project});
+  Future<Either<Failure, Project>> createProject({
+    required Project project,
+    File? coverImage,
+  });
 
   Future<Either<Failure, Project>> updateProject({
     required Project project,
