@@ -194,11 +194,10 @@ class _CreateLogPageState extends State<CreateLogPage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.log != null ? 'Edit Log' : 'Create Log'),
-          automaticallyImplyLeading: false,
-          leading: null,
-          actions: [
-            IconButton(onPressed: widget.onClose, icon: Icon(Icons.close)),
-          ],
+          leading: IconButton(
+            icon: Icon(Icons.close),
+            onPressed: widget.onClose,
+          ),
         ),
         body: MultiBlocListener(
           listeners: [

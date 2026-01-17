@@ -13,15 +13,16 @@ class TextWithPrefix extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return RichText(
       text: TextSpan(
-        //style: const TextStyle(fontSize: 16),
+        style: theme.textTheme.bodyMedium?.copyWith(fontSize: textSize),
         children: [
           TextSpan(
             text: '$prefix: ',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: textSize),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          TextSpan(text: text, style: TextStyle(fontSize: textSize)),
+          TextSpan(text: text),
         ],
       ),
     );

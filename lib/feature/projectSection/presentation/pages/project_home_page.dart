@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:site_board/core/theme/app_palette.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/project_settings.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/about_project_card.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/view_project_detail.dart';
@@ -9,7 +8,6 @@ import 'package:site_board/feature/projectSection/presentation/pages/project_sum
 import 'package:site_board/feature/projectSection/presentation/widgets/show_bar_chart.dart';
 import 'package:site_board/init_dependencies.dart';
 
-import '../../../../../core/utils/show_rounded_bottom_sheet.dart';
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 
 import '../../../../core/utils/show_snackbar.dart';
@@ -109,21 +107,16 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
               : IconButton(
                 onPressed: () {
                   final currentProject = _getCurrentProject();
-
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: ProjectSettings(
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ProjectSettings(
                             project: currentProject,
                             onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              Navigator.pop(context);
-                            },
+                            onCompleted: () => Navigator.pop(context),
                           ),
-                        ),
+                    ),
                   );
                 },
                 icon: Icon(Icons.settings),
@@ -165,8 +158,11 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 width: double.infinity,
                 height: 240,
                 decoration: BoxDecoration(
-                  color: AppPalette.borderColor,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor.withOpacity(0.1),
+                  ),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
@@ -188,38 +184,30 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                 canEdit: canEdit,
                 onViewClicked: () {
                   final currentProject = _getCurrentProject();
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: ViewProjectDetail(
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ViewProjectDetail(
                             project: currentProject,
                             onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              Navigator.pop(context);
-                            },
+                            onCompleted: () => Navigator.pop(context),
                           ),
-                        ),
+                    ),
                   );
                 },
                 onEditClicked: () {
                   final currentProject = _getCurrentProject();
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: EditProjectDetail(
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => EditProjectDetail(
                             project: currentProject,
                             onClose: () => Navigator.pop(context),
-                            onCompleted: () {
-                              Navigator.pop(context);
-                            },
+                            onCompleted: () => Navigator.pop(context),
                           ),
-                        ),
+                    ),
                   );
                 },
               ),
@@ -255,18 +243,10 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     },
                   ),
                   _ActionCard(
-                    title: "Materials",
+                    title: "Inventory Manager",
                     icon: Icons.inventory_2,
                     color: Colors.orangeAccent,
                     onTap: () {
-                      // Inventory Manager requires isAdmin?
-                      // Let's pass isAdmin from canEdit (assuming Admin == CanEdit for now, or check team member role strictly if needed).
-                      // Codebase usually checks specifically.
-                      // `_canEdit` checks creator OR admin. So passing `canEdit` roughly matches "Admin-like" privileges for now,
-                      // InventoryManagerPage checks isAdmin for editing, viewing is for everyone?
-                      // Wait, Inventory Manager: "Admin Controls: ... create/restock". Consuming allowed by "Consumer".
-                      // InventoryManagerPage takes `isAdmin`.
-                      // If not admin, they can probably View. The implementation handles it.
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -280,7 +260,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     },
                   ),
                   _ActionCard(
-                    title: "Summarizer",
+                    title: "AI Summarizer",
                     icon: Icons.auto_awesome,
                     color: Colors.purpleAccent,
                     onTap: () {
@@ -291,29 +271,25 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                         );
                         return;
                       }
-                      showRoundedBottomSheet(
-                        context: context,
-                        backgroundColor: AppPalette.backgroundColor,
-                        builder:
-                            (context) => BlocProvider(
-                              create:
-                                  (context) => serviceLocator<SummaryBloc>(),
-                              child: SizedBox(
-                                height: MediaQuery.of(context).size.height,
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => BlocProvider(
+                                create:
+                                    (context) => serviceLocator<SummaryBloc>(),
                                 child: ProjectSummarizer(
                                   project: currentProject,
                                   onClose: () => Navigator.pop(context),
-                                  onCompleted: () {
-                                    Navigator.pop(context);
-                                  },
+                                  onCompleted: () => Navigator.pop(context),
                                 ),
                               ),
-                            ),
+                        ),
                       );
                     },
                   ),
                   _ActionCard(
-                    title: "Analysis",
+                    title: "Site ledger",
                     icon: Icons.analytics,
                     color: Colors.teal,
                     onTap: () {

@@ -94,7 +94,10 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     if (currentState is ProjectRetrieveSuccess) {
       emit(ProjectLoading());
       final response = await _createProject(
-        CreateProjectParams(project: event.project),
+        CreateProjectParams(
+          project: event.project,
+          coverImage: event.coverImage,
+        ),
       );
       response.fold(
         (l) {
@@ -108,7 +111,10 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     } else {
       emit(ProjectLoading());
       final response = await _createProject(
-        CreateProjectParams(project: event.project),
+        CreateProjectParams(
+          project: event.project,
+          coverImage: event.coverImage,
+        ),
       );
       response.fold(
         (l) => emit(ProjectFailure(l.message)),

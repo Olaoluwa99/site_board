@@ -108,7 +108,10 @@ class _ConfirmLogPageState extends State<ConfirmLogPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Confirm log')),
+      appBar: AppBar(
+        title: Text('Confirm log'),
+        leading: IconButton(icon: Icon(Icons.close), onPressed: widget.onClose),
+      ),
       body: BlocListener<ProjectBloc, ProjectState>(
         listener: (context, state) {
           if (state is ProjectLoading) {

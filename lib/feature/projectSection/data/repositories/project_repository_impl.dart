@@ -37,6 +37,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Either<Failure, Project>> createProject({
     required Project project,
+    File? coverImage,
   }) async {
     try {
       if (!await (connectionChecker.isConnected)) {
@@ -60,6 +61,14 @@ class ProjectRepositoryImpl implements ProjectRepository {
         projectSecurityType: project.projectSecurityType,
         projectPassword: project.projectPassword,
       );
+
+      if (coverImage != null) {
+        final imageUrl = await projectRemoteDataSource.uploadProjectCoverImage(
+          image: coverImage,
+          project: projectModel,
+        );
+        projectModel = projectModel.copyWithModel(coverPhotoUrl: imageUrl);
+      }
 
       final uploadedProject = await projectRemoteDataSource.createProject(
         projectModel,

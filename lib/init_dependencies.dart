@@ -11,6 +11,7 @@ import 'package:site_board/feature/projectSection/domain/useCases/manage_log_tas
 import 'package:site_board/feature/projectSection/domain/useCases/update_daily_log.dart';
 import 'package:site_board/feature/projectSection/domain/useCases/update_member.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/summary_bloc.dart';
+import 'package:site_board/core/common/bloc/theme/theme_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/common/cubits/app_user/app_user_cubit.dart';
@@ -49,6 +50,7 @@ Future<void> initDependencies() async {
   _initAuth();
   _initProject();
   _initInventory();
+  _initTheme();
 
   final supabase = await Supabase.initialize(
     url: AppSecrets.supabaseUrl,
@@ -60,6 +62,7 @@ Future<void> initDependencies() async {
 
   final recentProjectBox = await Hive.openBox('recent_projects');
   final offlineProjectBox = await Hive.openBox('offline_projects');
+  await Hive.openBox('settings'); // Open stored settings box
 
   serviceLocator.registerLazySingleton(() => supabase.client);
   serviceLocator.registerLazySingleton<Box>(
@@ -181,4 +184,8 @@ void _initInventory() {
     ..registerFactory(
       () => InventoryBloc(inventoryRepository: serviceLocator()),
     );
+}
+
+void _initTheme() {
+  serviceLocator.registerLazySingleton(() => ThemeBloc());
 }

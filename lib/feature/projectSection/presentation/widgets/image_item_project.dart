@@ -54,12 +54,12 @@ class ImageItemProject extends StatelessWidget {
             );
           },
           errorBuilder: (context, error, stackTrace) {
-            return _buildDefaultPlaceholder();
+            return _buildDefaultPlaceholder(context);
           },
         ),
       );
     } else {
-      imageWidget = _buildDefaultPlaceholder();
+      imageWidget = _buildDefaultPlaceholder(context);
     }
 
     return GestureDetector(
@@ -75,7 +75,7 @@ class ImageItemProject extends StatelessWidget {
     );
   }
 
-  Widget _buildDefaultPlaceholder() {
+  Widget _buildDefaultPlaceholder(BuildContext context) {
     return DottedBorder(
       options: RoundedRectDottedBorderOptions(
         color: AppPalette.borderColor,
@@ -94,9 +94,17 @@ class ImageItemProject extends StatelessWidget {
             Icon(Icons.folder_open, size: 44),
             SizedBox(height: 15),
             Text(
-              'Select image',
+              'Select Cover Image',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14),
+            ),
+            Text(
+              '(Optional)',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
             ),
           ],
         ),

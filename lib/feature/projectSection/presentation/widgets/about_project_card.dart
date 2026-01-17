@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/text_with_prefix.dart';
 
-import '../../../../core/theme/app_palette.dart';
 import '../../../../core/utils/format_date.dart';
 
 class AboutProjectCard extends StatelessWidget {
@@ -22,6 +21,7 @@ class AboutProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Stack(
       alignment: Alignment.topRight,
       children: [
@@ -32,8 +32,9 @@ class AboutProjectCard extends StatelessWidget {
             width: double.infinity,
             //height: 240,
             decoration: BoxDecoration(
-              color: AppPalette.borderColor,
+              color: theme.cardTheme.color,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -62,12 +63,19 @@ class AboutProjectCard extends StatelessWidget {
                     '${project.description}\n',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium,
                     //textAlign: TextAlign.justify,
                   ),
                   SizedBox(height: 6),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Text('Show more...'),
+                    child: Text(
+                      'Show more...',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -77,24 +85,35 @@ class AboutProjectCard extends StatelessWidget {
         (isLocal || !canEdit)
             ? SizedBox.shrink()
             : SizedBox(
-          child: InkWell(
-            onTap: onEditClicked,
-            borderRadius: BorderRadius.circular(30),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color:
-                  AppPalette
-                      .backgroundColor, //Colors.black.withOpacity(0.6),
-                  shape: BoxShape.circle,
+              child: InkWell(
+                onTap: onEditClicked,
+                borderRadius: BorderRadius.circular(30),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color:
+                          theme
+                              .canvasColor, // Use canvas/scaffold bg for contrast against card
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    padding: EdgeInsets.all(12), // space around the icon
+                    child: Icon(
+                      Icons.edit,
+                      size: 20,
+                      color: theme.iconTheme.color,
+                    ),
+                  ),
                 ),
-                padding: EdgeInsets.all(12), // space around the icon
-                child: Icon(Icons.edit, size: 20),
               ),
             ),
-          ),
-        ),
       ],
     );
   }

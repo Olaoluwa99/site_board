@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:site_board/core/theme/app_palette.dart';
 
 class PseudoEditor extends StatelessWidget {
   final String preText;
@@ -14,6 +13,11 @@ class PseudoEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final border =
+        theme.inputDecorationTheme.enabledBorder?.borderSide.color ??
+        theme.dividerColor;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -21,7 +25,8 @@ class PseudoEditor extends StatelessWidget {
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppPalette.borderColor, width: 3),
+          border: Border.all(color: border, width: 3),
+          color: theme.inputDecorationTheme.fillColor,
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -32,13 +37,13 @@ class PseudoEditor extends StatelessWidget {
                 preText != ''
                     ? Text(
                       preText,
-                      style: TextStyle(fontSize: 16),
+                      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
                       overflow: TextOverflow.ellipsis,
                     )
                     : SizedBox.shrink(),
                 Text(
                   text,
-                  style: TextStyle(fontSize: 16),
+                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

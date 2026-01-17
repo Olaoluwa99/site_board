@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/accountSection/presentation/account_page.dart';
@@ -11,6 +13,7 @@ import 'package:site_board/feature/projectSection/presentation/widgets/offline_d
 import 'package:site_board/feature/projectSection/presentation/widgets/project_list_item.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/project_password.dart';
 import 'package:uuid/uuid.dart';
+import 'package:site_board/feature/settings/presentation/pages/settings_page.dart';
 
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 import '../../../../core/common/entities/user.dart';
@@ -51,15 +54,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showCustomDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => CreateProjectDialog(
-            onCompleted: (Project project) {
-              context.read<ProjectBloc>().add(ProjectCreate(project: project));
-              linkController.text = project.projectLink ?? '';
-            },
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => CreateProjectPage(
+              onCompleted: (Project project, File? coverImage) {
+                context.read<ProjectBloc>().add(
+                  ProjectCreate(project: project, coverImage: coverImage),
+                );
+                linkController.text = project.projectLink ?? '';
+              },
+            ),
+      ),
     );
   }
 
@@ -274,9 +281,20 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(
+          'SiteBoard',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        ),
+        centerTitle: false,
+        elevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, SettingsPage.route());
+            },
+            icon: const Icon(Icons.settings_outlined),
+          ),
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               if (state is AuthLoading) {
@@ -300,11 +318,18 @@ class _HomePageState extends State<HomePage> {
                 },
                 icon:
                     retrievedUser != null
-                        ? Icon(Icons.account_circle)
-                        : Icon(Icons.account_circle_outlined),
+                        ? CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.1),
+                          child: const Icon(Icons.person, size: 18),
+                        )
+                        : const Icon(Icons.account_circle_outlined),
               );
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       floatingActionButton:

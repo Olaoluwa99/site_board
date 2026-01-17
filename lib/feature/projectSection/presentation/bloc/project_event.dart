@@ -5,8 +5,9 @@ sealed class ProjectEvent {}
 
 final class ProjectCreate extends ProjectEvent {
   final Project project;
+  final File? coverImage;
 
-  ProjectCreate({required this.project});
+  ProjectCreate({required this.project, this.coverImage});
 }
 
 final class ProjectUpdate extends ProjectEvent {

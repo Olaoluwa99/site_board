@@ -15,7 +15,8 @@ Future<T?> showRoundedBottomSheet<T>({
     showDragHandle: showDragHandle,
     isDismissible: isDismissible,
     useSafeArea: useSafeArea,
-    backgroundColor: backgroundColor ?? Colors.white,
+    backgroundColor:
+        backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.only(
         topLeft: Radius.circular(40),

@@ -10,4 +10,11 @@ class AppPalette {
   static const Color greyColor = Colors.grey;
   static const Color errorColor = Colors.redAccent;
   static const Color transparentColor = Colors.transparent;
+
+  // Light Mode Specifics
+  static const Color lightBackgroundColor = Color.fromRGBO(248, 249, 252, 1);
+  static const Color lightSurfaceColor = Colors.white;
+  static const Color lightBorderColor = Color.fromRGBO(220, 220, 230, 1);
+  static const Color lightTextPrimary = Color.fromRGBO(30, 30, 40, 1);
+  static const Color lightTextSecondary = Color.fromRGBO(100, 100, 110, 1);
 }

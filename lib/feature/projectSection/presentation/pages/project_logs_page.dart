@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:site_board/core/theme/app_palette.dart';
+
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/confirm_log_page.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/create_log_page.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/view_log_page.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/log_list_item.dart';
-import 'package:site_board/core/utils/show_rounded_bottom_sheet.dart';
+
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 
 class ProjectLogsPage extends StatefulWidget {
@@ -98,20 +98,18 @@ class _ProjectLogsPageState extends State<ProjectLogsPage> {
               ? null
               : FloatingActionButton.extended(
                 onPressed: () {
-                  showRoundedBottomSheet(
-                    context: context,
-                    backgroundColor: AppPalette.backgroundColor,
-                    builder:
-                        (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          child: CreateLogPage(
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => CreateLogPage(
                             projectId: widget.project.id,
                             onClose: () => Navigator.pop(context),
                             onCompleted: () {
                               Navigator.pop(context);
                             },
                           ),
-                        ),
+                    ),
                   );
                 },
                 label: const Text('Create Log'),
@@ -164,13 +162,11 @@ class _ProjectLogsPageState extends State<ProjectLogsPage> {
                       isEditable:
                           canEdit && !item.isConfirmed && !widget.isLocal,
                       onEdit: () {
-                        showRoundedBottomSheet(
-                          context: context,
-                          backgroundColor: AppPalette.backgroundColor,
-                          builder:
-                              (context) => SizedBox(
-                                height: MediaQuery.of(context).size.height,
-                                child: CreateLogPage(
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => CreateLogPage(
                                   projectId: widget.project.id,
                                   log: item,
                                   onCompleted: () {
@@ -178,18 +174,16 @@ class _ProjectLogsPageState extends State<ProjectLogsPage> {
                                   },
                                   onClose: () => Navigator.pop(context),
                                 ),
-                              ),
+                          ),
                         );
                       },
                       onDelete: () => _showDeleteConfirmation(context, item.id),
                       onConfirm: () {
-                        showRoundedBottomSheet(
-                          context: context,
-                          backgroundColor: AppPalette.backgroundColor,
-                          builder:
-                              (context) => SizedBox(
-                                height: MediaQuery.of(context).size.height,
-                                child: ConfirmLogPage(
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => ConfirmLogPage(
                                   projectId: widget.project.id,
                                   log: item,
                                   onCompleted: () {
@@ -197,21 +191,19 @@ class _ProjectLogsPageState extends State<ProjectLogsPage> {
                                   },
                                   onClose: () => Navigator.pop(context),
                                 ),
-                              ),
+                          ),
                         );
                       },
                       onOpen: () {
-                        showRoundedBottomSheet(
-                          context: context,
-                          backgroundColor: AppPalette.backgroundColor,
-                          builder:
-                              (context) => SizedBox(
-                                height: MediaQuery.of(context).size.height,
-                                child: ViewLogPage(
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => ViewLogPage(
                                   log: item,
                                   onClose: () => Navigator.pop(context),
                                 ),
-                              ),
+                          ),
                         );
                       },
                       weatherIcon: weatherIcon,

@@ -56,7 +56,7 @@ class _AccountPageState extends State<AccountPage> {
     Member? myMember;
     try {
       myMember = project.teamMembers.firstWhere(
-            (m) => m.userId == widget.user.id,
+        (m) => m.userId == widget.user.id,
       );
     } catch (e) {
       myMember = null;
@@ -68,9 +68,9 @@ class _AccountPageState extends State<AccountPage> {
       if (myMember.isBlocked) {
         showDialog(
           context: context,
-          builder: (context) => BlockedNotifier(
-            onCompleted: () => Navigator.pop(context),
-          ),
+          builder:
+              (context) =>
+                  BlockedNotifier(onCompleted: () => Navigator.pop(context)),
         );
         return;
       }
@@ -79,9 +79,10 @@ class _AccountPageState extends State<AccountPage> {
       if (!myMember.isAccepted) {
         showDialog(
           context: context,
-          builder: (context) => AdminPermissionNotifier(
-            onCompleted: () => Navigator.pop(context),
-          ),
+          builder:
+              (context) => AdminPermissionNotifier(
+                onCompleted: () => Navigator.pop(context),
+              ),
         );
         return;
       }
@@ -100,11 +101,12 @@ class _AccountPageState extends State<AccountPage> {
     if (project.projectSecurityType == Constants.securityPassword) {
       final String? passwordText = await showDialog<String>(
         context: context,
-        builder: (context) => ProjectPasswordDialog(
-          onCompleted: (passwordText) {
-            Navigator.pop(context, passwordText);
-          },
-        ),
+        builder:
+            (context) => ProjectPasswordDialog(
+              onCompleted: (passwordText) {
+                Navigator.pop(context, passwordText);
+              },
+            ),
       );
 
       if (passwordText == null) return;
@@ -120,9 +122,10 @@ class _AccountPageState extends State<AccountPage> {
       // Notify user
       showDialog(
         context: context,
-        builder: (context) => AdminPermissionNotifier(
-          onCompleted: () => Navigator.pop(context),
-        ),
+        builder:
+            (context) => AdminPermissionNotifier(
+              onCompleted: () => Navigator.pop(context),
+            ),
       );
     } else {
       // No security
@@ -164,11 +167,7 @@ class _AccountPageState extends State<AccountPage> {
   void _proceedToProject(Project project) {
     Navigator.push(
       context,
-      ProjectHomePage.route(
-        project: project,
-        projectIndex: 0,
-        isLocal: false,
-      ),
+      ProjectHomePage.route(project: project, projectIndex: 0, isLocal: false),
     );
   }
 
@@ -177,24 +176,24 @@ class _AccountPageState extends State<AccountPage> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: Text('Delete Account'),
-        content: Text(
-          'Are you sure you want to delete your account? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            title: Text('Delete Account'),
+            content: Text(
+              'Are you sure you want to delete your account? This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.read<AuthBloc>().add(AuthDeleteAccount());
+                },
+                child: Text('Delete', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.read<AuthBloc>().add(AuthDeleteAccount());
-            },
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -216,7 +215,7 @@ class _AccountPageState extends State<AccountPage> {
               Navigator.pushAndRemoveUntil(
                 context,
                 HomePage.route(false),
-                    (route) => false,
+                (route) => false,
               );
             }
           },
@@ -251,8 +250,8 @@ class _AccountPageState extends State<AccountPage> {
                       Tab(text: "Joined Projects"),
                     ],
                     indicatorColor: AppPalette.gradient2,
-                    labelColor: AppPalette.whiteColor,
-                    unselectedLabelColor: AppPalette.greyColor,
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Theme.of(context).hintColor,
                   ),
                   SizedBox(height: 16),
 
@@ -271,7 +270,8 @@ class _AccountPageState extends State<AccountPage> {
 
                         if (state is ProjectMemberUpdateSuccess) {
                           // If we just joined a project (rare case for AccountPage), navigate
-                          if (state.member.isAccepted && !state.member.isBlocked) {
+                          if (state.member.isAccepted &&
+                              !state.member.isBlocked) {
                             _proceedToProject(state.project);
                           }
                         }
@@ -296,13 +296,13 @@ class _AccountPageState extends State<AccountPage> {
 
                         if (state is ProjectRetrieveSuccess) {
                           final createdProjects =
-                          state.projects
-                              .where((p) => p.creatorId == widget.user.id)
-                              .toList();
+                              state.projects
+                                  .where((p) => p.creatorId == widget.user.id)
+                                  .toList();
                           final joinedProjects =
-                          state.projects
-                              .where((p) => p.creatorId != widget.user.id)
-                              .toList();
+                              state.projects
+                                  .where((p) => p.creatorId != widget.user.id)
+                                  .toList();
 
                           return TabBarView(
                             children: [
@@ -310,35 +310,35 @@ class _AccountPageState extends State<AccountPage> {
                               createdProjects.isEmpty
                                   ? Center(child: Text("No created projects."))
                                   : ListView.builder(
-                                itemCount: createdProjects.length,
-                                itemBuilder: (context, index) {
-                                  return ProjectListItem(
-                                    projectName:
-                                    createdProjects[index].projectName,
-                                    onClicked:
-                                        () => _handleProjectClick(
-                                      createdProjects[index],
-                                    ),
-                                  );
-                                },
-                              ),
+                                    itemCount: createdProjects.length,
+                                    itemBuilder: (context, index) {
+                                      return ProjectListItem(
+                                        projectName:
+                                            createdProjects[index].projectName,
+                                        onClicked:
+                                            () => _handleProjectClick(
+                                              createdProjects[index],
+                                            ),
+                                      );
+                                    },
+                                  ),
 
                               // Joined Projects List
                               joinedProjects.isEmpty
                                   ? Center(child: Text("No joined projects."))
                                   : ListView.builder(
-                                itemCount: joinedProjects.length,
-                                itemBuilder: (context, index) {
-                                  return ProjectListItem(
-                                    projectName:
-                                    joinedProjects[index].projectName,
-                                    onClicked:
-                                        () => _handleProjectClick(
-                                      joinedProjects[index],
-                                    ),
-                                  );
-                                },
-                              ),
+                                    itemCount: joinedProjects.length,
+                                    itemBuilder: (context, index) {
+                                      return ProjectListItem(
+                                        projectName:
+                                            joinedProjects[index].projectName,
+                                        onClicked:
+                                            () => _handleProjectClick(
+                                              joinedProjects[index],
+                                            ),
+                                      );
+                                    },
+                                  ),
                             ],
                           );
                         }
@@ -384,7 +384,11 @@ class _AccountPageState extends State<AccountPage> {
                     style: TextStyle(fontSize: 16),
                   ),
                   SizedBox(height: 16),
-                  DefaultButton(onClick: _deleteAccount, text: 'Delete'),
+                  DefaultButton(
+                    onClick: _deleteAccount,
+                    text: 'Delete',
+                    textColor: Colors.redAccent,
+                  ),
                   SizedBox(height: 40),
                 ],
               ),

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
 // import 'package:site_board/feature/projectSection/presentation/bloc/summary_bloc.dart'; // Remove this import if not used elsewhere or keep if needed for type reference, but usually safe to remove if only used in provider.
 
+import 'core/common/bloc/theme/theme_bloc.dart';
 import 'core/common/cubits/app_user/app_user_cubit.dart';
 import 'core/theme/theme.dart';
 import 'feature/auth/presentation/bloc/auth_bloc.dart';
@@ -18,7 +19,9 @@ void main() async {
         BlocProvider(create: (_) => serviceLocator<AppUserCubit>()),
         BlocProvider(create: (_) => serviceLocator<AuthBloc>()),
         BlocProvider(create: (_) => serviceLocator<ProjectBloc>()),
-        // BlocProvider(create: (_) => serviceLocator<SummaryBloc>()), // REMOVE THIS LINE
+        BlocProvider(
+          create: (_) => serviceLocator<ThemeBloc>()..add(ThemeLoad()),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -41,18 +44,24 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SiteBoard',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkThemeMode,
-      home: BlocSelector<AppUserCubit, AppUserState, bool>(
-        selector: (state) {
-          return state is AppUserLoggedIn;
-        },
-        builder: (context, isLoggedIn) {
-          return HomePage(isLoggedIn: isLoggedIn);
-        },
-      ),
+    return BlocBuilder<ThemeBloc, ThemeState>(
+      builder: (context, themeState) {
+        return MaterialApp(
+          title: 'SiteBoard',
+          debugShowCheckedModeBanner: false,
+          themeMode: themeState.themeMode,
+          theme: AppTheme.lightThemeMode,
+          darkTheme: AppTheme.darkThemeMode,
+          home: BlocSelector<AppUserCubit, AppUserState, bool>(
+            selector: (state) {
+              return state is AppUserLoggedIn;
+            },
+            builder: (context, isLoggedIn) {
+              return HomePage(isLoggedIn: isLoggedIn);
+            },
+          ),
+        );
+      },
     );
   }
 }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:site_board/core/theme/app_palette.dart';
-
 import '../../../../core/utils/format_date.dart';
 import '../../domain/entities/daily_log.dart';
 
@@ -32,8 +30,11 @@ class LogListItem extends StatelessWidget {
         onTap: onOpen,
         child: Container(
           decoration: BoxDecoration(
-            color: AppPalette.borderColor,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withOpacity(0.1),
+            ),
           ),
           child: Padding(
             padding: const EdgeInsets.all(12.0),

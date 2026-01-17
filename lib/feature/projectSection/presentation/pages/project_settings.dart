@@ -8,7 +8,6 @@ import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 import '../../../../core/common/widgets/loader.dart';
 import '../../domain/entities/project.dart';
 import 'home_page.dart';
-import 'inventory_manager_page.dart';
 
 class ProjectSettings extends StatefulWidget {
   final Project project;
@@ -313,41 +312,6 @@ class _ProjectSettingsState extends State<ProjectSettings> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (isAdmin) ...[
-                  Text(
-                    'Inventory & Materials',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 16),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.inventory_2, color: Colors.blue),
-                    ),
-                    title: const Text('Inventory Manager'),
-                    subtitle: const Text('Manage materials and stock'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => InventoryManagerPage(
-                                projectId: currentProject.id,
-                                isAdmin: isAdmin,
-                              ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: 16),
-                  Divider(),
-                  SizedBox(height: 16),
-
                   Text(
                     'Pending Access Requests',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
