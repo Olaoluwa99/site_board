@@ -53,6 +53,18 @@ class MaterialReportFilterBar extends StatelessWidget {
               ),
               const SizedBox(width: 8),
 
+              // Materials Filter
+              FilterChip(
+                label: Text(
+                  state.selectedMaterialIds.isEmpty
+                      ? "Materials"
+                      : "${state.selectedMaterialIds.length} Selected",
+                ),
+                selected: state.selectedMaterialIds.isNotEmpty,
+                onSelected: (_) => _showMaterialFilterDialog(context, state),
+              ),
+              const SizedBox(width: 8),
+
               // Financials Toggle
               FilterChip(
                 label: const Text('Show Money'),
@@ -126,5 +138,81 @@ class MaterialReportFilterBar extends StatelessWidget {
           "${DateFormat('MMM d').format(picked.start)} - ${DateFormat('MMM d').format(picked.end)}";
       cubit.updateDateRange(picked.start, picked.end, label);
     }
+  }
+
+  void _showMaterialFilterDialog(
+    BuildContext context,
+    MaterialReportControlState initialState,
+  ) {
+    // Extract unique materials from all transactions
+    final Map<String, String> materialMap = {};
+    for (var t in initialState.allTransactions) {
+      if (t.materialName != null) {
+        materialMap[t.materialId] = t.materialName!;
+      } else {
+        materialMap.putIfAbsent(
+          t.materialId,
+          () => "Unknown (${t.materialId.substring(0, 4)}...)",
+        );
+      }
+    }
+
+    if (materialMap.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No material records found to filter.")),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        // We use BlocBuilder here so the dialog rebuilds when selection changes.
+        // We capture the cubit from the parent context.
+        final cubit = context.read<MaterialReportControlCubit>();
+
+        return BlocProvider.value(
+          value: cubit,
+          child: BlocBuilder<
+            MaterialReportControlCubit,
+            MaterialReportControlState
+          >(
+            builder: (context, state) {
+              return AlertDialog(
+                title: const Text("Filter by Material"),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: ListView(
+                    shrinkWrap: true,
+                    children:
+                        materialMap.entries.map((entry) {
+                          final isSelected = state.selectedMaterialIds.contains(
+                            entry.key,
+                          );
+                          return CheckboxListTile(
+                            title: Text(entry.value),
+                            value: isSelected,
+                            activeColor: Colors.blueGrey,
+                            onChanged: (val) {
+                              cubit.toggleMaterial(entry.key);
+                            },
+                          );
+                        }).toList(),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text("Done"),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 }

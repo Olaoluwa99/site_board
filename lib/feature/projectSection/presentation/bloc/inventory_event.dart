@@ -56,6 +56,20 @@ final class InventoryUseMaterial extends InventoryEvent {
   });
 }
 
+final class InventoryBatchUseMaterial extends InventoryEvent {
+  final List<Map<String, dynamic>> usageList;
+  final String dailyLogId;
+  final String actorId;
+  final String projectId;
+
+  InventoryBatchUseMaterial({
+    required this.usageList,
+    required this.dailyLogId,
+    required this.actorId,
+    required this.projectId,
+  });
+}
+
 final class InventoryGetTransactions extends InventoryEvent {
   final String projectId;
 

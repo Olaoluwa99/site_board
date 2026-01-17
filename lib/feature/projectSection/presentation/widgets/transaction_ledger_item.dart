@@ -76,7 +76,7 @@ class TransactionLedgerItem extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            "$qtyPrefix${_formatQty(transaction.quantityChange)}",
+                            "$qtyPrefix${_formatQty(transaction.quantityChange.abs())}",
                             style: TextStyle(
                               color: color,
                               fontWeight: FontWeight.bold,

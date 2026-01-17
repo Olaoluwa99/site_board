@@ -32,6 +32,14 @@ abstract interface class InventoryRepository {
     required String actorId,
   });
 
+  /// Consumes stock from multiple materials in a single batch.
+  Future<Either<Failure, void>> useMaterialsBatch({
+    required List<Map<String, dynamic>>
+    usageList, // List of {materialId, quantity}
+    required String dailyLogId,
+    required String actorId,
+  });
+
   /// Gets the transaction history for a project.
   Future<Either<Failure, List<MaterialTransaction>>> getTransactions({
     required String projectId,

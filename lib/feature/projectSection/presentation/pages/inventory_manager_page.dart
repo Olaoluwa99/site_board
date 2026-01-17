@@ -5,10 +5,10 @@ import 'package:site_board/core/common/widgets/loader.dart';
 import 'package:site_board/core/theme/app_palette.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project_material.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/inventory_bloc.dart';
+import 'package:site_board/feature/projectSection/presentation/pages/material_analysis_page.dart';
 import 'package:site_board/init_dependencies.dart';
 import 'package:site_board/core/utils/show_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'material_reports_page.dart';
 
 class InventoryManagerPage extends StatefulWidget {
   final String projectId;
@@ -38,14 +38,14 @@ class _InventoryManagerPageState extends State<InventoryManagerPage> {
           actions: [
             IconButton(
               icon: const Icon(Icons.receipt_long),
-              tooltip: "View Reports",
+              tooltip: "View Analysis",
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
                         (context) =>
-                            MaterialReportsPage(projectId: widget.projectId),
+                            MaterialAnalysisPage(projectId: widget.projectId),
                   ),
                 );
               },

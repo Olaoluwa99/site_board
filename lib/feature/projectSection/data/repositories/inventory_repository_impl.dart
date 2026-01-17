@@ -70,11 +70,39 @@ class InventoryRepositoryImpl implements InventoryRepository {
     try {
       await remoteDataSource.recordTransaction(
         materialId: materialId,
-        quantityChange: quantity,
+        quantityChange: -quantity,
         transactionType: 'OUT',
         dailyLogId: dailyLogId,
         actorId: actorId,
       );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> useMaterialsBatch({
+    required List<Map<String, dynamic>> usageList,
+    required String dailyLogId,
+    required String actorId,
+  }) async {
+    try {
+      // Ideally, this should be a single RPC call or transaction on the backend.
+      // For now, we iterate. If one fails, we might have partial state.
+      // TODO: Move to backend transaction for atomicity.
+      for (final usage in usageList) {
+        final mid = usage['materialId'] as String;
+        final qty = usage['quantity'] as double;
+
+        await remoteDataSource.recordTransaction(
+          materialId: mid,
+          quantityChange: -qty,
+          transactionType: 'OUT',
+          dailyLogId: dailyLogId,
+          actorId: actorId,
+        );
+      }
       return const Right(null);
     } on ServerException catch (e) {
       return Left(Failure(e.message));

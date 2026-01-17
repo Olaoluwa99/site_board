@@ -68,7 +68,7 @@ class MaterialReportControlState extends Equatable {
   double get totalUsed {
     return filteredTransactions
         .where((t) => t.type == TransactionType.OUT)
-        .fold(0.0, (sum, t) => sum + t.quantityChange);
+        .fold(0.0, (sum, t) => sum + t.quantityChange.abs());
   }
 
   double get netChange => totalAdded - totalUsed;
@@ -117,7 +117,7 @@ class MaterialReportControlState extends Equatable {
   double get previousTotalUsed {
     return previousFilteredTransactions
         .where((t) => t.type == TransactionType.OUT)
-        .fold(0.0, (sum, t) => sum + t.quantityChange);
+        .fold(0.0, (sum, t) => sum + t.quantityChange.abs());
   }
 
   double get previousTotalAdded {

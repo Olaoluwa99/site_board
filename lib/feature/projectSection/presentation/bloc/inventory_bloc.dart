@@ -17,6 +17,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     on<InventoryCreateMaterial>(_onCreateMaterial);
     on<InventoryRestockMaterial>(_onRestockMaterial);
     on<InventoryUseMaterial>(_onUseMaterial);
+    on<InventoryBatchUseMaterial>(_onBatchUseMaterial);
     on<InventoryGetTransactions>(_onGetTransactions);
   }
 
@@ -152,6 +153,23 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
     result.fold((failure) => emit(InventoryFailure(failure.message)), (_) {
       emit(InventorySuccess('Material usage recorded'));
+      add(InventoryGetMaterials(projectId: event.projectId));
+    });
+  }
+
+  Future<void> _onBatchUseMaterial(
+    InventoryBatchUseMaterial event,
+    Emitter<InventoryState> emit,
+  ) async {
+    emit(InventoryLoading());
+    final result = await _inventoryRepository.useMaterialsBatch(
+      usageList: event.usageList,
+      dailyLogId: event.dailyLogId,
+      actorId: event.actorId,
+    );
+
+    result.fold((failure) => emit(InventoryFailure(failure.message)), (_) {
+      emit(InventorySuccess('Materials usage recorded'));
       add(InventoryGetMaterials(projectId: event.projectId));
     });
   }

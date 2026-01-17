@@ -200,21 +200,74 @@ class _CreateLogPageState extends State<CreateLogPage> {
             IconButton(onPressed: widget.onClose, icon: Icon(Icons.close)),
           ],
         ),
-        body: BlocListener<ProjectBloc, ProjectState>(
-          listener: (context, state) {
-            if (state is ProjectLoading) {
-              showLoaderDialog(context);
-            }
-            if (state is DailyLogUploadFailure) {
-              Navigator.of(context, rootNavigator: true).pop();
-              showSnackBar(context, state.error);
-            }
-            if (state is DailyLogUploadSuccess) {
-              Navigator.of(context, rootNavigator: true).pop();
-              showSnackBar(context, 'File has been saved!');
-              widget.onCompleted();
-            }
-          },
+        body: MultiBlocListener(
+          listeners: [
+            BlocListener<ProjectBloc, ProjectState>(
+              listener: (context, state) {
+                if (state is ProjectLoading) {
+                  showLoaderDialog(context);
+                }
+                if (state is DailyLogUploadFailure) {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  showSnackBar(context, state.error);
+                }
+                if (state is DailyLogUploadSuccess) {
+                  // If we have materials to process, do NOT pop yet.
+                  // Dispatch inventory update and let InventoryListener handle the rest.
+                  if (selectedMaterialItems.isNotEmpty) {
+                    final userId =
+                        serviceLocator<SupabaseClient>().auth.currentUser!.id;
+                    final logId = finishedDailyLog!.id;
+
+                    final usageList =
+                        selectedMaterialItems.map((item) {
+                          return {
+                            'materialId': item.material.id,
+                            'quantity': item.quantityUsed,
+                          };
+                        }).toList();
+
+                    context.read<InventoryBloc>().add(
+                      InventoryBatchUseMaterial(
+                        projectId: widget.projectId,
+                        dailyLogId: logId,
+                        actorId: userId,
+                        usageList: usageList,
+                      ),
+                    );
+                  } else {
+                    // No materials, we are done.
+                    Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).pop(); // Pop loader
+                    showSnackBar(context, 'Log Saved!');
+                    widget.onCompleted();
+                  }
+                }
+              },
+            ),
+            BlocListener<InventoryBloc, InventoryState>(
+              listener: (context, state) {
+                if (state is InventoryFailure) {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  showSnackBar(
+                    context,
+                    'Log saved but stock update failed: ${state.error}',
+                  );
+                  widget.onCompleted();
+                }
+                if (state is InventorySuccess) {
+                  Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).pop(); // Pop loader
+                  showSnackBar(context, 'Log & Stock Updated!');
+                  widget.onCompleted();
+                }
+              },
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -504,26 +557,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
                           // 2. Dispatch Log Upload
                           uploadDailyLog(finishedDailyLog!);
 
-                          // 3. Dispatch Inventory Transactions (Fire and Forget or parallel)
-                          // Note: For strict consistency, we should ideally do this on the server side via a trigger or a single API call,
-                          // but sticking to the plan: App Logic & Rules.
-                          // We iterate and deduct.
-                          final userId =
-                              serviceLocator<SupabaseClient>()
-                                  .auth
-                                  .currentUser!
-                                  .id;
-                          for (final item in selectedMaterialItems) {
-                            context.read<InventoryBloc>().add(
-                              InventoryUseMaterial(
-                                projectId: widget.projectId,
-                                materialId: item.material.id,
-                                quantity: item.quantityUsed,
-                                dailyLogId: logId,
-                                actorId: userId,
-                              ),
-                            );
-                          }
+                          // 3. Dispatch Inventory Transactions
+                          // Handled in BlocListener on Success
                         },
                         text: 'Upload',
                       ),
