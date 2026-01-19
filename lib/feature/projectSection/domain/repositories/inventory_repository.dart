@@ -44,4 +44,10 @@ abstract interface class InventoryRepository {
   Future<Either<Failure, List<MaterialTransaction>>> getTransactions({
     required String projectId,
   });
+
+  Future<void> syncPendingTransaction(MaterialTransaction transaction);
+
+  Stream<int> getUnsyncedCount();
+  Future<void> deleteLocalTransaction(String transactionId);
+  Future<List<MaterialTransaction>> getPendingTransactions();
 }

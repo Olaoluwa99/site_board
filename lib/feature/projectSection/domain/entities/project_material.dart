@@ -1,3 +1,5 @@
+import 'package:site_board/core/enums/sync_status.dart';
+
 class ProjectMaterial {
   final String id;
   final String projectId;
@@ -5,6 +7,7 @@ class ProjectMaterial {
   final String unit;
   final double currentQuantity;
   final DateTime createdAt;
+  final SyncStatus? syncStatus;
 
   const ProjectMaterial({
     required this.id,
@@ -13,6 +16,7 @@ class ProjectMaterial {
     required this.unit,
     required this.currentQuantity,
     required this.createdAt,
+    this.syncStatus,
   });
 
   ProjectMaterial copyWith({
@@ -22,6 +26,7 @@ class ProjectMaterial {
     String? unit,
     double? currentQuantity,
     DateTime? createdAt,
+    SyncStatus? syncStatus,
   }) {
     return ProjectMaterial(
       id: id ?? this.id,
@@ -30,6 +35,7 @@ class ProjectMaterial {
       unit: unit ?? this.unit,
       currentQuantity: currentQuantity ?? this.currentQuantity,
       createdAt: createdAt ?? this.createdAt,
+      syncStatus: syncStatus ?? this.syncStatus,
     );
   }
 }

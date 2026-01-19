@@ -1,3 +1,4 @@
+import 'package:site_board/core/enums/sync_status.dart';
 import 'package:site_board/feature/projectSection/domain/entities/material_transaction.dart';
 
 class MaterialTransactionModel extends MaterialTransaction {
@@ -12,6 +13,7 @@ class MaterialTransactionModel extends MaterialTransaction {
     super.materialName,
     super.unitPrice,
     super.actorName,
+    super.syncStatus,
   });
 
   factory MaterialTransactionModel.fromJson(Map<String, dynamic> json) {
@@ -36,6 +38,10 @@ class MaterialTransactionModel extends MaterialTransaction {
               : null,
       actorName:
           json['profiles'] != null ? json['profiles']['name'] as String? : null,
+      syncStatus:
+          json['sync_status'] != null
+              ? SyncStatus.values[json['sync_status'] as int]
+              : null,
     );
   }
 
@@ -51,6 +57,7 @@ class MaterialTransactionModel extends MaterialTransaction {
       'actor_id': actorId,
       'timestamp': timestamp.toIso8601String(),
       'unit_price': unitPrice,
+      'sync_status': syncStatus?.index,
     };
   }
 
@@ -66,6 +73,7 @@ class MaterialTransactionModel extends MaterialTransaction {
       materialName: entity.materialName,
       unitPrice: entity.unitPrice,
       actorName: entity.actorName,
+      syncStatus: entity.syncStatus,
     );
   }
 }

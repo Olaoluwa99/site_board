@@ -7,6 +7,8 @@ import 'package:site_board/feature/projectSection/presentation/pages/edit_projec
 import 'package:site_board/feature/projectSection/presentation/pages/project_summarizer.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/show_bar_chart.dart';
 import 'package:site_board/init_dependencies.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/sync_status_bar.dart';
+import 'package:site_board/feature/projectSection/presentation/bloc/sync_status_cubit.dart';
 
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 
@@ -102,6 +104,14 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
       appBar: AppBar(
         title: Text(widget.project.projectName),
         actions: [
+          if (widget.isLocal)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Tooltip(
+                message: "Offline Mode",
+                child: Icon(Icons.wifi_off_rounded, color: Colors.grey),
+              ),
+            ),
           (widget.isLocal || !canEdit)
               ? SizedBox.shrink()
               : IconButton(
@@ -149,6 +159,11 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              BlocProvider(
+                create: (_) => serviceLocator<SyncStatusCubit>(),
+                child: const SyncStatusBar(),
+              ),
+              const SizedBox(height: 16),
               Text(
                 '7-day Performance',
                 style: Theme.of(context).textTheme.titleLarge,

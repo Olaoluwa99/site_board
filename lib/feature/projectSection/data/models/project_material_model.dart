@@ -1,5 +1,7 @@
 import 'package:site_board/feature/projectSection/domain/entities/project_material.dart';
 
+import 'package:site_board/core/enums/sync_status.dart';
+
 class ProjectMaterialModel extends ProjectMaterial {
   const ProjectMaterialModel({
     required super.id,
@@ -8,6 +10,7 @@ class ProjectMaterialModel extends ProjectMaterial {
     required super.unit,
     required super.currentQuantity,
     required super.createdAt,
+    super.syncStatus,
   });
 
   factory ProjectMaterialModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +21,10 @@ class ProjectMaterialModel extends ProjectMaterial {
       unit: json['unit'] as String,
       currentQuantity: (json['current_quantity'] as num).toDouble(),
       createdAt: DateTime.parse(json['created_at'] as String),
+      syncStatus:
+          json['sync_status'] != null
+              ? SyncStatus.values[json['sync_status'] as int]
+              : null,
     );
   }
 
@@ -29,6 +36,7 @@ class ProjectMaterialModel extends ProjectMaterial {
       'unit': unit,
       'current_quantity': currentQuantity,
       'created_at': createdAt.toIso8601String(),
+      'sync_status': syncStatus?.index,
     };
   }
 
@@ -41,6 +49,7 @@ class ProjectMaterialModel extends ProjectMaterial {
       unit: entity.unit,
       currentQuantity: entity.currentQuantity,
       createdAt: entity.createdAt,
+      syncStatus: entity.syncStatus,
     );
   }
 }

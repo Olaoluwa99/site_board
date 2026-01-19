@@ -1,3 +1,5 @@
+import 'package:site_board/core/enums/sync_status.dart';
+
 enum TransactionType { IN, OUT }
 
 class MaterialTransaction {
@@ -11,6 +13,7 @@ class MaterialTransaction {
   final String? materialName;
   final double? unitPrice;
   final String? actorName;
+  final SyncStatus? syncStatus;
 
   const MaterialTransaction({
     required this.id,
@@ -23,6 +26,7 @@ class MaterialTransaction {
     this.materialName,
     this.unitPrice,
     this.actorName,
+    this.syncStatus,
   });
 
   MaterialTransaction copyWith({
@@ -36,6 +40,7 @@ class MaterialTransaction {
     String? materialName,
     double? unitPrice,
     String? actorName,
+    SyncStatus? syncStatus,
   }) {
     return MaterialTransaction(
       id: id ?? this.id,
@@ -48,6 +53,7 @@ class MaterialTransaction {
       materialName: materialName ?? this.materialName,
       unitPrice: unitPrice ?? this.unitPrice,
       actorName: actorName ?? this.actorName,
+      syncStatus: syncStatus ?? this.syncStatus,
     );
   }
 }

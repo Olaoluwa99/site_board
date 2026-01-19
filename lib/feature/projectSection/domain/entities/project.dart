@@ -1,3 +1,4 @@
+import 'package:site_board/core/enums/sync_status.dart';
 import 'package:site_board/feature/projectSection/domain/entities/Member.dart';
 import 'package:uuid/uuid.dart';
 
@@ -20,6 +21,7 @@ class Project {
   final String? coverPhotoUrl;
   final String projectSecurityType;
   final String projectPassword;
+  final SyncStatus? syncStatus;
 
   Project({
     String? id,
@@ -38,6 +40,7 @@ class Project {
     this.coverPhotoUrl,
     required this.projectSecurityType,
     required this.projectPassword,
+    this.syncStatus,
   }) : id = id ?? const Uuid().v4(),
        createdDate = createdDate ?? DateTime.now(),
        lastUpdated = lastUpdated ?? DateTime.now();
@@ -59,6 +62,7 @@ class Project {
     String? coverPhotoUrl,
     String? projectSecurityType,
     String? projectPassword,
+    SyncStatus? syncStatus,
   }) {
     return Project(
       id: id ?? this.id,
@@ -77,6 +81,7 @@ class Project {
       coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
       projectSecurityType: projectSecurityType ?? this.projectSecurityType,
       projectPassword: projectPassword ?? this.projectPassword,
+      syncStatus: syncStatus ?? this.syncStatus,
     );
   }
 }

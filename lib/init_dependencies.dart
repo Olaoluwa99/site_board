@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
@@ -14,57 +15,72 @@ import 'package:site_board/feature/projectSection/presentation/bloc/summary_bloc
 import 'package:site_board/core/common/bloc/theme/theme_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/common/cubits/app_user/app_user_cubit.dart';
-import 'core/network/connection_checker.dart';
-import 'core/secrets/app_secrets.dart';
-import 'feature/auth/data/datasources/auth_remote_data_source.dart';
-import 'feature/auth/data/repositories/auth_repository_impl.dart';
-import 'feature/auth/domain/repository/auth_repository.dart';
-import 'feature/auth/domain/usecases/current_user.dart';
-import 'feature/auth/domain/usecases/delete_account.dart';
-import 'feature/auth/domain/usecases/user_login.dart';
-import 'feature/auth/domain/usecases/user_logout.dart';
-import 'feature/auth/domain/usecases/user_sign_up.dart';
-import 'feature/auth/presentation/bloc/auth_bloc.dart';
-import 'feature/projectSection/data/dataSources/gemini_remote_data_source.dart';
-import 'feature/projectSection/data/dataSources/project_local_data_source.dart';
-import 'feature/projectSection/data/dataSources/project_remote_data_source.dart';
-import 'feature/projectSection/data/repositories/project_repository_impl.dart';
-import 'feature/projectSection/domain/repositories/project_repository.dart';
-import 'feature/projectSection/domain/useCases/create_daily_log.dart';
-import 'feature/projectSection/domain/useCases/create_project.dart';
-import 'feature/projectSection/domain/useCases/get_all_projects.dart';
-import 'feature/projectSection/domain/useCases/get_project_by_id.dart';
-import 'feature/projectSection/domain/useCases/get_project_by_link.dart';
-import 'feature/projectSection/domain/useCases/get_recent_projects.dart';
-import 'feature/projectSection/domain/useCases/update_project.dart';
-import 'feature/projectSection/presentation/bloc/project_bloc.dart';
-import 'feature/projectSection/data/dataSources/inventory_remote_data_source.dart';
-import 'feature/projectSection/domain/repositories/inventory_repository.dart';
-import 'feature/projectSection/data/repositories/inventory_repository_impl.dart';
-import 'feature/projectSection/presentation/bloc/inventory_bloc.dart';
+import 'package:site_board/core/common/cubits/app_user/app_user_cubit.dart';
+import 'package:site_board/core/network/connection_checker.dart';
+import 'package:site_board/core/secrets/app_secrets.dart';
+import 'package:site_board/feature/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:site_board/feature/auth/data/repositories/auth_repository_impl.dart';
+import 'package:site_board/feature/auth/domain/repository/auth_repository.dart';
+import 'package:site_board/feature/auth/domain/usecases/current_user.dart';
+import 'package:site_board/feature/auth/domain/usecases/delete_account.dart';
+import 'package:site_board/feature/auth/domain/usecases/user_login.dart';
+import 'package:site_board/feature/auth/domain/usecases/user_logout.dart';
+import 'package:site_board/feature/auth/domain/usecases/user_sign_up.dart';
+import 'package:site_board/feature/auth/presentation/bloc/auth_bloc.dart';
+import 'package:site_board/feature/projectSection/data/dataSources/gemini_remote_data_source.dart';
+import 'package:site_board/feature/projectSection/data/dataSources/project_local_data_source.dart';
+import 'package:site_board/feature/projectSection/data/dataSources/project_remote_data_source.dart';
+import 'package:site_board/feature/projectSection/data/repositories/project_repository_impl.dart';
+import 'package:site_board/feature/projectSection/domain/repositories/project_repository.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/create_daily_log.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/create_project.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/get_all_projects.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_id.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/get_project_by_link.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/get_recent_projects.dart';
+import 'package:site_board/feature/projectSection/domain/useCases/update_project.dart';
+import 'package:site_board/feature/projectSection/presentation/bloc/project_bloc.dart';
+import 'package:site_board/feature/projectSection/data/dataSources/inventory_remote_data_source.dart';
+import 'package:site_board/feature/projectSection/domain/repositories/inventory_repository.dart';
+import 'package:site_board/feature/projectSection/data/repositories/inventory_repository_impl.dart';
+import 'package:site_board/feature/projectSection/presentation/bloc/inventory_bloc.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:site_board/core/network/sync_manager.dart';
+import 'package:site_board/feature/projectSection/presentation/bloc/sync_list_cubit.dart';
+import 'package:site_board/feature/projectSection/presentation/bloc/sync_status_cubit.dart';
+import 'package:site_board/feature/projectSection/data/dataSources/inventory_local_data_source.dart';
 
 final serviceLocator = GetIt.instance;
 
 Future<void> initDependencies() async {
-  _initAuth();
-  _initProject();
-  _initInventory();
-  _initTheme();
+  await serviceLocator.reset();
 
-  final supabase = await Supabase.initialize(
-    url: AppSecrets.supabaseUrl,
-    anonKey: AppSecrets.supabaseAnonKey,
-  );
+  Supabase? supabase;
+  try {
+    supabase = await Supabase.initialize(
+      url: AppSecrets.supabaseUrl,
+      anonKey: AppSecrets.supabaseAnonKey,
+    );
+  } catch (e) {
+    try {
+      supabase = Supabase.instance;
+    } catch (_) {
+      rethrow;
+    }
+  }
 
   final appDocsDir = await getApplicationDocumentsDirectory();
   Hive.init(appDocsDir.path);
 
   final recentProjectBox = await Hive.openBox('recent_projects');
   final offlineProjectBox = await Hive.openBox('offline_projects');
+  final transactionBox = await Hive.openBox('transactions');
+  final materialsBox = await Hive.openBox('materials');
   await Hive.openBox('settings'); // Open stored settings box
 
-  serviceLocator.registerLazySingleton(() => supabase.client);
+  // Register Core Services (Supabase & Boxes)
+  serviceLocator.registerLazySingleton(() => supabase!.client);
+
   serviceLocator.registerLazySingleton<Box>(
     () => recentProjectBox,
     instanceName: 'recent',
@@ -73,12 +89,44 @@ Future<void> initDependencies() async {
     () => offlineProjectBox,
     instanceName: 'offline',
   );
+  serviceLocator.registerLazySingleton<Box>(
+    () => transactionBox,
+    instanceName: 'transactions',
+  );
+  serviceLocator.registerLazySingleton<Box>(
+    () => materialsBox,
+    instanceName: 'materials',
+  );
 
+  // Register Core Services (Network & User)
   serviceLocator.registerLazySingleton(() => AppUserCubit());
   serviceLocator.registerFactory(() => InternetConnection());
   serviceLocator.registerFactory<ConnectionChecker>(
     () => ConnectionCheckerImpl(serviceLocator()),
   );
+
+  // Initialize Features (Order matters: Sync last)
+  try {
+    _initAuth();
+    debugPrint("Auth initialized");
+    _initProject();
+    debugPrint("Project initialized");
+    _initInventory();
+    debugPrint("Inventory initialized");
+    _initTheme();
+    debugPrint("Theme initialized");
+  } catch (e, stack) {
+    debugPrint("Error initializing features: $e\n$stack");
+    rethrow;
+  }
+
+  // Debug: Print what we have
+  // Note: GetIt doesn't provide a public list of keys easily, so we rely on control flow logs.
+
+  // Sync initializes last because it resolves dependencies immediately
+  debugPrint("Initializing Sync...");
+  _initSync();
+  debugPrint("Sync initialized");
 }
 
 void _initAuth() {
@@ -175,11 +223,21 @@ void _initProject() {
 
 void _initInventory() {
   serviceLocator
+    ..registerLazySingleton<InventoryLocalDataSource>(
+      () => InventoryLocalDataSourceImpl(
+        serviceLocator<Box>(instanceName: 'transactions'),
+        serviceLocator<Box>(instanceName: 'materials'),
+      ),
+    )
     ..registerFactory<InventoryRemoteDataSource>(
       () => InventoryRemoteDataSourceImpl(serviceLocator()),
     )
     ..registerFactory<InventoryRepository>(
-      () => InventoryRepositoryImpl(serviceLocator()),
+      () => InventoryRepositoryImpl(
+        serviceLocator(),
+        serviceLocator(),
+        serviceLocator(),
+      ),
     )
     ..registerFactory(
       () => InventoryBloc(inventoryRepository: serviceLocator()),
@@ -188,4 +246,31 @@ void _initInventory() {
 
 void _initTheme() {
   serviceLocator.registerLazySingleton(() => ThemeBloc());
+}
+
+void _initSync() {
+  serviceLocator.registerLazySingleton(() => Connectivity());
+
+  serviceLocator.registerLazySingleton(
+    () => SyncManager(
+      projectRepository: serviceLocator(),
+      inventoryRepository: serviceLocator(),
+      connectivity: serviceLocator(),
+    ),
+  );
+  // Trigger initialization to start listening
+  serviceLocator<SyncManager>().initialize();
+
+  serviceLocator.registerFactory(
+    () => SyncStatusCubit(
+      projectRepository: serviceLocator(),
+      inventoryRepository: serviceLocator(),
+    ),
+  );
+  serviceLocator.registerFactory(
+    () => SyncListCubit(
+      projectRepository: serviceLocator(),
+      inventoryRepository: serviceLocator(),
+    ),
+  );
 }

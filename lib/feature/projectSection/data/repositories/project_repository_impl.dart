@@ -10,6 +10,7 @@ import 'package:site_board/feature/projectSection/domain/entities/daily_log.dart
 import 'package:site_board/feature/projectSection/domain/entities/project.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project_summary.dart';
 import 'package:site_board/feature/projectSection/domain/entities/retrieved_projects.dart';
+import 'package:site_board/core/enums/sync_status.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/constants.dart';
@@ -40,9 +41,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
     File? coverImage,
   }) async {
     try {
-      if (!await (connectionChecker.isConnected)) {
-        return left(Failure(Constants.noConnectionErrorMessage));
-      }
       ProjectModel projectModel = ProjectModel(
         id: const Uuid().v1(),
         projectName: project.projectName,
@@ -60,46 +58,69 @@ class ProjectRepositoryImpl implements ProjectRepository {
         coverPhotoUrl: project.coverPhotoUrl,
         projectSecurityType: project.projectSecurityType,
         projectPassword: project.projectPassword,
+        syncStatus: SyncStatus.created,
       );
 
-      if (coverImage != null) {
-        final imageUrl = await projectRemoteDataSource.uploadProjectCoverImage(
-          image: coverImage,
-          project: projectModel,
-        );
-        projectModel = projectModel.copyWithModel(coverPhotoUrl: imageUrl);
-      }
+      // Optimistic Save
+      projectLocalDataSource.uploadRecentProject(project: projectModel);
 
-      final uploadedProject = await projectRemoteDataSource.createProject(
-        projectModel,
-      );
+      // Trigger background sync (Fire and forget)
+      _syncCreatedProject(projectModel, coverImage);
 
-      if (project.creatorId.isNotEmpty) {
-        try {
-          MemberModel creatorMember = MemberModel(
-            id: const Uuid().v4(),
-            projectId: uploadedProject.id,
-            name: "Creator",
-            email: "",
-            userId: uploadedProject.creatorId,
-            isAccepted: true,
-            isBlocked: false,
-            isAdmin: true,
-            hasLeft: false,
-            lastViewed: DateTime.now(),
-          );
-
-          await projectRemoteDataSource.createMember(creatorMember);
-        } catch (e) {
-          debugPrint("Warning: Auto-member creation failed: $e");
-        }
-      }
-
-      return right(uploadedProject);
-    } on ServerException catch (e) {
-      return left(Failure(e.message));
+      return right(projectModel);
     } catch (e) {
       return left(Failure(e.toString()));
+    }
+  }
+
+  Future<void> _syncCreatedProject(
+    ProjectModel projectModel,
+    File? coverImage,
+  ) async {
+    if (await connectionChecker.isConnected) {
+      try {
+        if (coverImage != null) {
+          final imageUrl = await projectRemoteDataSource
+              .uploadProjectCoverImage(
+                image: coverImage,
+                project: projectModel,
+              );
+          projectModel = projectModel.copyWithModel(coverPhotoUrl: imageUrl);
+        }
+
+        final uploadedProject = await projectRemoteDataSource.createProject(
+          projectModel,
+        );
+
+        if (projectModel.creatorId.isNotEmpty) {
+          try {
+            MemberModel creatorMember = MemberModel(
+              id: const Uuid().v4(),
+              projectId: uploadedProject.id,
+              name: "Creator",
+              email: "",
+              userId: uploadedProject.creatorId,
+              isAccepted: true,
+              isBlocked: false,
+              isAdmin: true,
+              hasLeft: false,
+              lastViewed: DateTime.now(),
+            );
+
+            await projectRemoteDataSource.createMember(creatorMember);
+          } catch (e) {
+            debugPrint("Warning: Auto-member creation failed: $e");
+          }
+        }
+
+        // Update local with synced status
+        final syncedProject = uploadedProject.copyWithModel(
+          syncStatus: SyncStatus.synced,
+        );
+        projectLocalDataSource.uploadRecentProject(project: syncedProject);
+      } catch (e) {
+        debugPrint("Background sync failed for project ${projectModel.id}: $e");
+      }
     }
   }
 
@@ -152,6 +173,44 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
+  Future<Either<Failure, ProjectModel>> getProjectById({
+    required String projectId,
+  }) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        // Try to find in local recent projects
+        final localProjects = projectLocalDataSource.loadRecentProjects();
+        final localProject =
+            localProjects.where((p) => p.id == projectId).firstOrNull;
+        if (localProject != null) {
+          return right(localProject);
+        }
+        return left(
+          Failure(
+            'Project not found locally. Connect to the internet and try again.',
+          ),
+        );
+      }
+      final remoteProject = await projectRemoteDataSource.getProjectById(
+        projectId: projectId,
+      );
+      projectLocalDataSource.uploadRecentProject(project: remoteProject);
+      return right(remoteProject);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      // Fallback to local on generic error too?
+      final localProjects = projectLocalDataSource.loadRecentProjects();
+      final localProject =
+          localProjects.where((p) => p.id == projectId).firstOrNull;
+      if (localProject != null) {
+        return right(localProject);
+      }
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, DailyLog>> createDailyLog({
     required String projectId,
     required DailyLog dailyLog,
@@ -160,9 +219,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required List<File?> startingTaskImageList,
   }) async {
     try {
-      if (!await (connectionChecker.isConnected)) {
-        return left(Failure(Constants.noConnectionErrorMessage));
-      }
       DailyLogModel dailyLogModel = DailyLogModel(
         id: dailyLog.id,
         projectId: dailyLog.projectId,
@@ -170,14 +226,50 @@ class ProjectRepositoryImpl implements ProjectRepository {
         numberOfWorkers: dailyLog.numberOfWorkers,
         weatherCondition: dailyLog.weatherCondition,
         materialsAvailable: dailyLog.materialsAvailable,
-        plannedTasks: dailyLog.plannedTasks,
-        startingImageUrl: dailyLog.startingImageUrl,
+        plannedTasks: taskConverter(dailyLog.plannedTasks),
+        startingImageUrl: dailyLog.startingImageUrl, // Initially empty/local
         endingImageUrl: dailyLog.endingImageUrl,
         observations: dailyLog.observations,
         isConfirmed: dailyLog.isConfirmed,
         workScore: dailyLog.workScore,
         generatedSummary: dailyLog.generatedSummary,
       );
+
+      if (!await (connectionChecker.isConnected)) {
+        // Offline Creation
+        // 1. Get Local Project
+        final localProjects = projectLocalDataSource.loadRecentProjects();
+        final localProject =
+            localProjects.where((p) => p.id == projectId).firstOrNull;
+
+        if (localProject == null) {
+          return left(Failure("Project not found locally. Cannot create log."));
+        }
+
+        // 2. Handle Images (Keep local paths or skip?)
+        // For now, we use the local file paths as "placeholders" if needed,
+        // or just accept they won't be URLs yet.
+        // But the model expects strings. `startingTaskImageList` are Files.
+        // We can't put File paths into `startingImageUrl` easily without converting.
+        // Let's assume for offline, no images are uploaded.
+
+        // 3. Update Project Logs
+        // We need to append this log to the project's list.
+        final updatedLogs = List<DailyLogModel>.from(localProject.dailyLogs)
+          ..add(dailyLogModel);
+
+        final updatedProject = localProject.copyWithModel(
+          dailyLogs: updatedLogs,
+        );
+
+        // 4. Save Project
+        projectLocalDataSource.uploadRecentProject(project: updatedProject);
+
+        // 5. Return Success
+        return right(dailyLogModel.copyWith(plannedTasks: currentTasks));
+      }
+
+      // Online Flow
       final modifiedStartingImageUrlList = await projectRemoteDataSource
           .uploadDailyLogImages(
             isEndingImages: false,
@@ -233,10 +325,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required List<File?> endingTaskImageList,
   }) async {
     try {
-      if (!await (connectionChecker.isConnected)) {
-        return left(Failure(Constants.noConnectionErrorMessage));
-      }
-
       DailyLogModel dailyLogModel = DailyLogModel(
         id: dailyLog.id,
         projectId: dailyLog.projectId,
@@ -244,7 +332,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
         numberOfWorkers: dailyLog.numberOfWorkers,
         weatherCondition: dailyLog.weatherCondition,
         materialsAvailable: dailyLog.materialsAvailable,
-        plannedTasks: dailyLog.plannedTasks,
+        plannedTasks: taskConverter(dailyLog.plannedTasks),
         startingImageUrl: dailyLog.startingImageUrl,
         endingImageUrl: dailyLog.endingImageUrl,
         observations: dailyLog.observations,
@@ -253,6 +341,58 @@ class ProjectRepositoryImpl implements ProjectRepository {
         generatedSummary: dailyLog.generatedSummary,
       );
 
+      if (!await (connectionChecker.isConnected)) {
+        // Offline Update
+        final localProjects = projectLocalDataSource.loadRecentProjects();
+        final localProject =
+            localProjects.where((p) => p.id == projectId).firstOrNull;
+
+        if (localProject == null) {
+          return left(Failure("Project not found locally. Cannot update log."));
+        }
+
+        // Replace the log in the list
+        final updatedLogs =
+            localProject.dailyLogs.map((log) {
+              return log.id == dailyLog.id ? dailyLogModel : log;
+            }).toList();
+
+        // If not found (edge case), maybe add it? No, update should fail if not exists.
+
+        // Cast strictly to ensure type safety if needed, but map returns Iterable.
+        final List<DailyLogModel> strictLogs = [];
+        for (var l in updatedLogs) {
+          if (l is DailyLogModel) {
+            strictLogs.add(l);
+          } else {
+            // Convert entity to model if needed (assumed logic)
+            strictLogs.add(
+              DailyLogModel(
+                id: l.id,
+                projectId: l.projectId,
+                dateTimeList: l.dateTimeList,
+                numberOfWorkers: l.numberOfWorkers,
+                weatherCondition: l.weatherCondition,
+                materialsAvailable: l.materialsAvailable,
+                plannedTasks: l.plannedTasks,
+                startingImageUrl: l.startingImageUrl,
+                endingImageUrl: l.endingImageUrl,
+                observations: l.observations,
+                isConfirmed: l.isConfirmed,
+              ),
+            );
+          }
+        }
+
+        final updatedProject = localProject.copyWithModel(
+          dailyLogs: strictLogs,
+        );
+        projectLocalDataSource.uploadRecentProject(project: updatedProject);
+
+        return right(dailyLogModel.copyWith(plannedTasks: currentTasks));
+      }
+
+      // Online Flow
       if (hasAtLeastOneFile(startingTaskImageList)) {
         final modifiedStartingImageUrlList = await projectRemoteDataSource
             .uploadDailyLogImages(
@@ -319,184 +459,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
         dailyLogModel,
       );
       return right(uploadedDailyLog.copyWith(plannedTasks: currentTasks));
-    } on ServerException catch (e) {
-      return left(Failure(e.message));
-    } catch (e) {
-      return left(Failure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, Member>> createMember({
-    required String projectId,
-    required Member member,
-  }) async {
-    try {
-      if (!await (connectionChecker.isConnected)) {
-        return left(Failure(Constants.noConnectionErrorMessage));
-      }
-      MemberModel memberModel = MemberModel(
-        id: member.id,
-        projectId: member.projectId,
-        name: member.name,
-        email: member.email,
-        userId: member.userId,
-        isAccepted: member.isAccepted,
-        isBlocked: member.isBlocked,
-        isAdmin: member.isAdmin,
-        hasLeft: member.hasLeft,
-        lastViewed: member.lastViewed,
-      );
-
-      final uploadedMember = await projectRemoteDataSource.createMember(
-        memberModel,
-      );
-      return right(uploadedMember);
-    } on ServerException catch (e) {
-      return left(Failure(e.message));
-    } catch (e) {
-      return left(Failure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, Member>> updateMember({
-    required String projectId,
-    required Member member,
-  }) async {
-    try {
-      if (!await (connectionChecker.isConnected)) {
-        return left(Failure(Constants.noConnectionErrorMessage));
-      }
-      MemberModel memberModel = MemberModel(
-        id: member.id,
-        projectId: member.projectId,
-        name: member.name,
-        email: member.email,
-        userId: member.userId,
-        isAccepted: member.isAccepted,
-        isBlocked: member.isBlocked,
-        isAdmin: member.isAdmin,
-        hasLeft: member.hasLeft,
-        lastViewed: member.lastViewed,
-      );
-
-      final uploadedMember = await projectRemoteDataSource.updateMember(
-        memberModel,
-      );
-      return right(uploadedMember);
-    } on ServerException catch (e) {
-      return left(Failure(e.message));
-    } catch (e) {
-      return left(Failure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, List<LogTask>>> manageLogTasks({
-    required String dailyLogId,
-    required List<LogTask> currentTasks,
-  }) async {
-    try {
-      if (!await (connectionChecker.isConnected)) {
-        return left(Failure(Constants.noConnectionErrorMessage));
-      }
-
-      final setupCurrentTasks = taskConverter(currentTasks);
-      await projectRemoteDataSource.syncLogTasks(
-        dailyLogId: dailyLogId,
-        currentTasks: setupCurrentTasks,
-      );
-      return right(setupCurrentTasks);
-    } on ServerException catch (e) {
-      return left(Failure(e.message));
-    } catch (e) {
-      return left(Failure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, void>> addRecentProject({
-    required Project project,
-  }) async {
-    try {
-      projectLocalDataSource.uploadRecentProject(
-        project: ProjectModel(
-          id: project.id,
-          projectName: project.projectName,
-          creatorId: project.creatorId,
-          projectLink: project.projectLink,
-          description: project.description,
-          teamAdminIds: project.teamAdminIds,
-          teamMembers: project.teamMembers,
-          createdDate: project.createdDate,
-          endDate: project.endDate,
-          dailyLogs: [],
-          location: project.location,
-          isActive: project.isActive,
-          lastUpdated: DateTime.now(),
-          coverPhotoUrl: project.coverPhotoUrl,
-          projectSecurityType: project.projectSecurityType,
-          projectPassword: project.projectPassword,
-        ),
-      );
-      return Right(null);
-    } on ServerException catch (e) {
-      return left(Failure(e.message));
-    } catch (e) {
-      return left(Failure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, RetrievedProjects>> getAllProjects({
-    required String userId,
-  }) async {
-    try {
-      if (!await (connectionChecker.isConnected)) {
-        return left(Failure('Not connected to the internet. Try again later.'));
-      }
-      final projects = await projectRemoteDataSource.getAllProjects(
-        userId: userId,
-      );
-      projectLocalDataSource.uploadLocalProjects(projects: projects);
-      return right(RetrievedProjects(projects: projects));
-    } on ServerException catch (e) {
-      return left(Failure(e.message));
-    } catch (e) {
-      return left(Failure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, List<Project>>> getRecentProjects() async {
-    try {
-      final projects = projectLocalDataSource.loadRecentProjects();
-      return right(projects);
-    } on ServerException catch (e) {
-      return left(Failure(e.message));
-    } catch (e) {
-      return left(Failure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, ProjectModel>> getProjectById({
-    required String projectId,
-  }) async {
-    try {
-      if (!await connectionChecker.isConnected) {
-        return left(
-          Failure(
-            'Can\'t fetch project right now. Connect to the internet and try again.',
-          ),
-        );
-      }
-      final remoteProject = await projectRemoteDataSource.getProjectById(
-        projectId: projectId,
-      );
-      projectLocalDataSource.uploadRecentProject(project: remoteProject);
-      return right(remoteProject);
     } on ServerException catch (e) {
       return left(Failure(e.message));
     } catch (e) {
@@ -599,6 +561,35 @@ class ProjectRepositoryImpl implements ProjectRepository {
     }
   }
 
+  @override
+  Future<void> syncPendingProject(Project project) async {
+    // We cast to ProjectModel to use the internal method, or refactor _sync to take entity
+    if (project is ProjectModel) {
+      if (project.syncStatus == SyncStatus.created) {
+        // We assume coverImage is handled separately or null for sync retry for now,
+        // unless we store the image path locally.
+        // For simplicity, we sync the data.
+        // TODO: Handle offline image persistence for retry.
+        await _syncCreatedProject(project, null);
+      }
+    }
+  }
+
+  @override
+  Stream<int> getUnsyncedCount() {
+    return projectLocalDataSource.getUnsyncedCountStream();
+  }
+
+  @override
+  Future<void> deleteLocalProject(String projectId) async {
+    projectLocalDataSource.deleteProject(projectId);
+  }
+
+  @override
+  Future<List<Project>> getPendingProjects() async {
+    return projectLocalDataSource.getProjectsByStatus(SyncStatus.created);
+  }
+
   List<DailyLogModel> logConverter(List<DailyLog> logs) {
     List<DailyLogModel> updatedList = [];
     for (DailyLog dLog in logs) {
@@ -652,6 +643,213 @@ class ProjectRepositoryImpl implements ProjectRepository {
       }
     }
     return updatedStartingList;
+  }
+
+  @override
+  Future<Either<Failure, Member>> createMember({
+    required String projectId,
+    required Member member,
+  }) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      // Convert Member to MemberModel
+      final memberModel = MemberModel(
+        id: member.id,
+        projectId: projectId,
+        name: member.name,
+        email: member.email,
+        userId: member.userId,
+        isAccepted: member.isAccepted,
+        isBlocked: member.isBlocked,
+        isAdmin: member.isAdmin,
+        hasLeft: member.hasLeft,
+        lastViewed: member.lastViewed,
+      );
+      final result = await projectRemoteDataSource.createMember(memberModel);
+      return right(result);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Member>> updateMember({
+    required String projectId,
+    required Member member,
+  }) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        return left(Failure(Constants.noConnectionErrorMessage));
+      }
+      final memberModel = MemberModel(
+        id: member.id,
+        projectId: projectId,
+        name: member.name,
+        email: member.email,
+        userId: member.userId,
+        isAccepted: member.isAccepted,
+        isBlocked: member.isBlocked,
+        isAdmin: member.isAdmin,
+        hasLeft: member.hasLeft,
+        lastViewed: member.lastViewed,
+      );
+      final result = await projectRemoteDataSource.updateMember(memberModel);
+      return right(result);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<LogTask>>> manageLogTasks({
+    required String dailyLogId,
+    required List<LogTask> currentTasks,
+  }) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        // Offline: Update local log task list?
+        // For now, fail if not connected, or implement local update implies log update.
+        // Since manageLogTasks is often standalone, we might want to defer.
+        // But user can update LOG via updateDailyLog which handles tasks.
+        // This method might be specific for checkbox toggles.
+        // Let's return error for now or fallback to local log update?
+        // Simpler to return failure if strictly online, but for offline support we should handle it.
+        // Let's implement local update logic.
+        return left(
+          Failure(
+            "Offline task management not fully implemented yet. Use Update Log.",
+          ),
+        );
+      }
+
+      final tasksModel = taskConverter(currentTasks);
+      await projectRemoteDataSource.syncLogTasks(
+        dailyLogId: dailyLogId,
+        currentTasks: tasksModel,
+      );
+      return right(currentTasks);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, RetrievedProjects>> getAllProjects({
+    required String userId,
+  }) async {
+    try {
+      if (!await connectionChecker.isConnected) {
+        final localProjects = projectLocalDataSource.loadRecentProjects();
+        return right(
+          RetrievedProjects(
+            projects: List<Project>.from(localProjects),
+            isLocal: true,
+          ),
+        );
+      }
+      final result = await projectRemoteDataSource.getAllProjects(
+        userId: userId,
+      );
+      return right(
+        RetrievedProjects(projects: List<Project>.from(result), isLocal: false),
+      );
+    } on ServerException catch (e) {
+      // Fallback to local
+      final localProjects = projectLocalDataSource.loadRecentProjects();
+      if (localProjects.isNotEmpty) {
+        return right(
+          RetrievedProjects(
+            projects: List<Project>.from(localProjects),
+            isLocal: true,
+          ),
+        );
+      }
+      return left(Failure(e.message));
+    } catch (e) {
+      final localProjects = projectLocalDataSource.loadRecentProjects();
+      if (localProjects.isNotEmpty) {
+        return right(
+          RetrievedProjects(
+            projects: List<Project>.from(localProjects),
+            isLocal: true,
+          ),
+        );
+      }
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Project>>> getRecentProjects() async {
+    try {
+      final projects = projectLocalDataSource.loadRecentProjects();
+      return right(projects);
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> addRecentProject({
+    required Project project,
+  }) async {
+    try {
+      ProjectModel projectModel;
+      if (project is ProjectModel) {
+        projectModel = project;
+      } else {
+        projectModel = ProjectModel(
+          id: project.id,
+          projectName: project.projectName,
+          creatorId: project.creatorId,
+          projectLink: project.projectLink,
+          description: project.description,
+          teamAdminIds: project.teamAdminIds,
+          teamMembers: project.teamMembers,
+          createdDate: project.createdDate,
+          endDate: project.endDate,
+          dailyLogs:
+              project.dailyLogs
+                  .map(
+                    (log) => DailyLogModel(
+                      id: log.id,
+                      projectId: log.projectId,
+                      dateTimeList: log.dateTimeList,
+                      numberOfWorkers: log.numberOfWorkers,
+                      weatherCondition: log.weatherCondition,
+                      materialsAvailable: log.materialsAvailable,
+                      plannedTasks: taskConverter(log.plannedTasks),
+                      startingImageUrl: log.startingImageUrl,
+                      endingImageUrl: log.endingImageUrl,
+                      observations: log.observations,
+                      isConfirmed: log.isConfirmed,
+                      workScore: log.workScore,
+                      generatedSummary: log.generatedSummary,
+                    ),
+                  )
+                  .toList(),
+          location: project.location,
+          isActive: project.isActive,
+          lastUpdated: DateTime.now(),
+          coverPhotoUrl: project.coverPhotoUrl,
+          projectSecurityType: project.projectSecurityType,
+          projectPassword: project.projectPassword,
+          syncStatus: project.syncStatus,
+        );
+      }
+      projectLocalDataSource.uploadRecentProject(project: projectModel);
+      return right(null);
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
   }
 
   bool hasAtLeastOneFile(List<File?> files) {

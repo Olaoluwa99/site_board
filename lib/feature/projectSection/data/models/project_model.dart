@@ -1,6 +1,7 @@
 import 'package:site_board/feature/projectSection/data/models/daily_log_model.dart';
 import 'package:site_board/feature/projectSection/data/models/member_model.dart';
 
+import 'package:site_board/core/enums/sync_status.dart';
 import '../../domain/entities/project.dart';
 
 class ProjectModel extends Project {
@@ -21,6 +22,7 @@ class ProjectModel extends Project {
     super.coverPhotoUrl = '',
     required super.projectSecurityType,
     required super.projectPassword,
+    super.syncStatus,
   });
 
   @override
@@ -43,7 +45,8 @@ class ProjectModel extends Project {
           lastUpdated == other.lastUpdated &&
           coverPhotoUrl == other.coverPhotoUrl &&
           projectSecurityType == other.projectSecurityType &&
-          projectPassword == other.projectPassword);
+          projectPassword == other.projectPassword &&
+          syncStatus == other.syncStatus);
 
   @override
   String toString() {
@@ -64,6 +67,7 @@ class ProjectModel extends Project {
         ' coverPhotoUrl: $coverPhotoUrl,' +
         ' projectSecurityType: $projectSecurityType,' +
         ' projectPassword: $projectPassword,' +
+        ' syncStatus: $syncStatus,' +
         '}';
   }
 
@@ -84,6 +88,7 @@ class ProjectModel extends Project {
     String? coverPhotoUrl,
     String? projectSecurityType,
     String? projectPassword,
+    SyncStatus? syncStatus,
   }) {
     return ProjectModel(
       id: id ?? this.id,
@@ -102,6 +107,7 @@ class ProjectModel extends Project {
       coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
       projectSecurityType: projectSecurityType ?? this.projectSecurityType,
       projectPassword: projectPassword ?? this.projectPassword,
+      syncStatus: syncStatus ?? this.syncStatus,
     );
   }
 
@@ -129,6 +135,7 @@ class ProjectModel extends Project {
       'cover_photo_url': coverPhotoUrl,
       'project_security_type': projectSecurityType,
       'project_password': projectPassword,
+      'sync_status': syncStatus?.index,
     };
   }
 
@@ -148,6 +155,7 @@ class ProjectModel extends Project {
       'cover_photo_url': coverPhotoUrl,
       'project_security_type': projectSecurityType,
       'project_password': projectPassword,
+      'sync_status': syncStatus?.index,
     };
   }
 
@@ -191,6 +199,10 @@ class ProjectModel extends Project {
       coverPhotoUrl: map['cover_photo_url'] ?? '',
       projectSecurityType: map['project_security_type'] ?? '',
       projectPassword: map['project_password'] ?? '',
+      syncStatus:
+          map['sync_status'] != null
+              ? SyncStatus.values[map['sync_status'] as int]
+              : null,
     );
   }
 }

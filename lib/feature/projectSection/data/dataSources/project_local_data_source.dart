@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:site_board/core/enums/sync_status.dart';
 import 'package:site_board/feature/projectSection/data/models/project_model.dart';
 
 abstract interface class ProjectLocalDataSource {
@@ -6,6 +7,9 @@ abstract interface class ProjectLocalDataSource {
   void uploadRecentProject({required ProjectModel project});
   void uploadOfflineProject({required ProjectModel project});
   List<ProjectModel> loadRecentProjects();
+  List<ProjectModel> getProjectsByStatus(SyncStatus status);
+  Stream<int> getUnsyncedCountStream();
+  void deleteProject(String projectId);
   void clearData();
 }
 
@@ -40,19 +44,29 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   @override
   void uploadRecentProject({required ProjectModel project}) {
     final key = project.id;
-
-    // Add or update the project
     recentBox.put(key, project.toCompleteJson());
+  }
 
-    // Check if the box exceeds 5 items
-    if (recentBox.length > 5) {
-      // Get all keys sorted by insertion order (Hive preserves order)
-      final keys = recentBox.keys.toList();
+  @override
+  List<ProjectModel> getProjectsByStatus(SyncStatus status) {
+    return loadRecentProjects().where((p) => p.syncStatus == status).toList();
+  }
 
-      // Delete the oldest key (first inserted)
-      final oldestKey = keys.first;
-      recentBox.delete(oldestKey);
-    }
+  @override
+  Stream<int> getUnsyncedCountStream() {
+    return recentBox.watch().map((event) {
+      // Re-calculate count on any change
+      return loadRecentProjects()
+          .where(
+            (p) => p.syncStatus != SyncStatus.synced && p.syncStatus != null,
+          )
+          .length;
+    });
+  }
+
+  @override
+  void deleteProject(String projectId) {
+    recentBox.delete(projectId);
   }
 
   @override

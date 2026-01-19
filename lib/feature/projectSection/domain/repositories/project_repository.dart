@@ -76,4 +76,10 @@ abstract interface class ProjectRepository {
 
   // New Method
   Future<Either<Failure, void>> deleteDailyLog(String dailyLogId);
+
+  Future<void> syncPendingProject(Project project);
+
+  Stream<int> getUnsyncedCount();
+  Future<void> deleteLocalProject(String projectId);
+  Future<List<Project>> getPendingProjects();
 }
