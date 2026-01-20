@@ -50,6 +50,9 @@ class SyncManager {
         await inventoryRepository.syncPendingTransaction(txn);
       }
 
+      // 3. Sync Pending Daily Logs
+      await projectRepository.syncPendingLogs();
+
       debugPrint("SyncManager: Sync completed.");
     } catch (e) {
       debugPrint("SyncManager: Error during sync: $e");

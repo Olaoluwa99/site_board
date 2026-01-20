@@ -15,7 +15,7 @@ class ProjectMaterialModel extends ProjectMaterial {
 
   factory ProjectMaterialModel.fromJson(Map<String, dynamic> json) {
     return ProjectMaterialModel(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? '',
       projectId: json['project_id'] as String,
       name: json['name'] as String,
       unit: json['unit'] as String,
@@ -36,7 +36,7 @@ class ProjectMaterialModel extends ProjectMaterial {
       'unit': unit,
       'current_quantity': currentQuantity,
       'created_at': createdAt.toIso8601String(),
-      'sync_status': syncStatus?.index,
+      // 'sync_status': syncStatus?.index, // Local only
     };
   }
 

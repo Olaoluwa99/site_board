@@ -385,37 +385,37 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       currentProjects = currentState.projects;
     }
 
-    if (!isLocalMode) {
-      emit(ProjectLoading());
-      final response = await _getProjectById(
-        GetProjectByIdParams(projectId: event.project.id),
-      );
-      response.fold(
-        (l) => emit(
-          ProjectRetrieveByIdFailure(
-            error: l.message,
-            projects: currentProjects,
-            oldProject: event.project,
-          ),
+    // if (!isLocalMode) {
+    emit(ProjectLoading());
+    final response = await _getProjectById(
+      GetProjectByIdParams(projectId: event.project.id),
+    );
+    response.fold(
+      (l) => emit(
+        ProjectRetrieveByIdFailure(
+          error: l.message,
+          projects: currentProjects,
+          oldProject: event.project,
         ),
-        (retrievedProject) {
-          final updatedProjects = updateProjectInList(
-            currentProjects,
-            retrievedProject,
-          );
-          emit(
-            ProjectRetrieveSuccessId(
-              projects: updatedProjects,
-              project: retrievedProject,
-            ),
-          );
-        },
-      );
-    } else {
-      emit(
-        ProjectFailure('To retrieve a project by ID, switch to Normal Mode.'),
-      );
-    }
+      ),
+      (retrievedProject) {
+        final updatedProjects = updateProjectInList(
+          currentProjects,
+          retrievedProject,
+        );
+        emit(
+          ProjectRetrieveSuccessId(
+            projects: updatedProjects,
+            project: retrievedProject,
+          ),
+        );
+      },
+    );
+    // } else {
+    //   emit(
+    //     ProjectFailure('To retrieve a project by ID, switch to Normal Mode.'),
+    //   );
+    // }
   }
 
   void _onGetProjectByLink(
@@ -428,36 +428,36 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
       currentProjects = currentState.projects;
     }
 
-    if (!isLocalMode) {
-      emit(ProjectLoading());
-      final response = await _getProjectByLink(
-        GetProjectByLinkParams(projectLink: event.projectLink),
-      );
-      response.fold(
-        (l) => emit(
-          ProjectRetrieveByLinkFailure(
-            error: l.message,
-            projects: currentProjects,
-          ),
+    // if (!isLocalMode) {
+    emit(ProjectLoading());
+    final response = await _getProjectByLink(
+      GetProjectByLinkParams(projectLink: event.projectLink),
+    );
+    response.fold(
+      (l) => emit(
+        ProjectRetrieveByLinkFailure(
+          error: l.message,
+          projects: currentProjects,
         ),
-        (retrievedProject) {
-          final updatedProjects = updateProjectInList(
-            currentProjects,
-            retrievedProject,
-          );
-          emit(
-            ProjectRetrieveSuccessLink(
-              projects: updatedProjects,
-              project: retrievedProject,
-            ),
-          );
-        },
-      );
-    } else {
-      emit(
-        ProjectFailure('To retrieve a project by Link, switch to Normal Mode.'),
-      );
-    }
+      ),
+      (retrievedProject) {
+        final updatedProjects = updateProjectInList(
+          currentProjects,
+          retrievedProject,
+        );
+        emit(
+          ProjectRetrieveSuccessLink(
+            projects: updatedProjects,
+            project: retrievedProject,
+          ),
+        );
+      },
+    );
+    // } else {
+    //   emit(
+    //     ProjectFailure('To retrieve a project by Link, switch to Normal Mode.'),
+    //   );
+    // }
   }
 
   void _onAddRecentProject(

@@ -25,8 +25,8 @@ class OfflineToolbar extends StatelessWidget {
             }
 
             return Container(
-              color: isOffline ? Colors.redAccent : Colors.orangeAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.amber[700],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: SafeArea(
                 top: false,
                 child: Row(

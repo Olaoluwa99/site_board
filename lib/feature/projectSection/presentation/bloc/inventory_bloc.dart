@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/projectSection/domain/entities/material_transaction.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project_material.dart';
 import 'package:site_board/feature/projectSection/domain/repositories/inventory_repository.dart';
+import 'package:uuid/uuid.dart';
 
 part 'inventory_event.dart';
 part 'inventory_state.dart';
@@ -98,7 +99,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     // or I will add it here.
 
     final newMaterial = ProjectMaterial(
-      id: '', // Will rely on DB or fix in next step if problematic.
+      id: const Uuid().v4(),
       projectId: event.projectId,
       name: event.name,
       unit: event.unit,
@@ -110,12 +111,24 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       material: newMaterial,
     );
 
-    result.fold((failure) => emit(InventoryFailure(failure.message)), (
-      material,
-    ) {
-      emit(InventorySuccess('Material "${material.name}" created'));
-      add(InventoryGetMaterials(projectId: event.projectId));
-    });
+    await result.fold(
+      (failure) async => emit(InventoryFailure(failure.message)),
+      (material) async {
+        // Refresh list to include new item (merged by repo)
+        final refreshResult = await _inventoryRepository.getMaterials(
+          projectId: event.projectId,
+        );
+        refreshResult.fold(
+          (failure) => emit(InventoryFailure(failure.message)),
+          (materials) => emit(
+            InventoryMaterialsLoaded(
+              materials,
+              message: 'Material "${material.name}" created',
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _onRestockMaterial(
@@ -133,10 +146,23 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       note: event.note,
     );
 
-    result.fold((failure) => emit(InventoryFailure(failure.message)), (_) {
-      emit(InventorySuccess('Stock updated successfully'));
-      add(InventoryGetMaterials(projectId: event.projectId));
-    });
+    await result.fold(
+      (failure) async => emit(InventoryFailure(failure.message)),
+      (_) async {
+        final refreshResult = await _inventoryRepository.getMaterials(
+          projectId: event.projectId,
+        );
+        refreshResult.fold(
+          (failure) => emit(InventoryFailure(failure.message)),
+          (materials) => emit(
+            InventoryMaterialsLoaded(
+              materials,
+              message: 'Stock updated successfully',
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _onUseMaterial(
@@ -151,10 +177,23 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       actorId: event.actorId,
     );
 
-    result.fold((failure) => emit(InventoryFailure(failure.message)), (_) {
-      emit(InventorySuccess('Material usage recorded'));
-      add(InventoryGetMaterials(projectId: event.projectId));
-    });
+    await result.fold(
+      (failure) async => emit(InventoryFailure(failure.message)),
+      (_) async {
+        final refreshResult = await _inventoryRepository.getMaterials(
+          projectId: event.projectId,
+        );
+        refreshResult.fold(
+          (failure) => emit(InventoryFailure(failure.message)),
+          (materials) => emit(
+            InventoryMaterialsLoaded(
+              materials,
+              message: 'Material usage recorded',
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _onBatchUseMaterial(
@@ -168,9 +207,22 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       actorId: event.actorId,
     );
 
-    result.fold((failure) => emit(InventoryFailure(failure.message)), (_) {
-      emit(InventorySuccess('Materials usage recorded'));
-      add(InventoryGetMaterials(projectId: event.projectId));
-    });
+    await result.fold(
+      (failure) async => emit(InventoryFailure(failure.message)),
+      (_) async {
+        final refreshResult = await _inventoryRepository.getMaterials(
+          projectId: event.projectId,
+        );
+        refreshResult.fold(
+          (failure) => emit(InventoryFailure(failure.message)),
+          (materials) => emit(
+            InventoryMaterialsLoaded(
+              materials,
+              message: 'Materials usage recorded',
+            ),
+          ),
+        );
+      },
+    );
   }
 }

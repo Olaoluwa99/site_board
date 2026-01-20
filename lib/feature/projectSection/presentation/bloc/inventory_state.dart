@@ -21,8 +21,9 @@ final class InventorySuccess extends InventoryState {
 
 final class InventoryMaterialsLoaded extends InventoryState {
   final List<ProjectMaterial> materials;
+  final String? message;
 
-  InventoryMaterialsLoaded(this.materials);
+  InventoryMaterialsLoaded(this.materials, {this.message});
 }
 
 final class InventoryTransactionsLoaded extends InventoryState {

@@ -1,10 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/common/widgets/loader.dart';
 import 'package:site_board/core/theme/app_palette.dart';
 import 'package:site_board/feature/projectSection/domain/entities/project_material.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/inventory_bloc.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/offline_toolbar.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/material_analysis_page.dart';
 import 'package:site_board/init_dependencies.dart';
 import 'package:site_board/core/utils/show_snackbar.dart';
@@ -64,59 +64,69 @@ class _InventoryManagerPageState extends State<InventoryManagerPage> {
                   },
                 )
                 : null,
-        body: BlocConsumer<InventoryBloc, InventoryState>(
-          listener: (context, state) {
-            if (state is InventoryFailure) {
-              showSnackBar(context, state.error);
-            }
-            if (state is InventorySuccess) {
-              showSnackBar(context, state.message);
-            }
-          },
-          builder: (context, state) {
-            if (state is InventoryLoading) {
-              return const Loader();
-            }
-            if (state is InventoryMaterialsLoaded) {
-              if (state.materials.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.inventory_2_outlined,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No materials defined yet.',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      if (widget.isAdmin)
-                        TextButton(
-                          onPressed: () => _showCreateMaterialDialog(context),
-                          child: const Text('Create your first item'),
-                        ),
-                    ],
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: state.materials.length,
-                itemBuilder: (context, index) {
-                  final material = state.materials[index];
-                  return _MaterialCard(
-                    material: material,
-                    isAdmin: widget.isAdmin,
-                    onRestock: () => _showRestockDialog(context, material),
-                  );
+        body: Column(
+          children: [
+            const OfflineToolbar(),
+            Expanded(
+              child: BlocConsumer<InventoryBloc, InventoryState>(
+                listener: (context, state) {
+                  if (state is InventoryFailure) {
+                    showSnackBar(context, state.error);
+                  }
+                  if (state is InventoryMaterialsLoaded &&
+                      state.message != null) {
+                    showSnackBar(context, state.message!);
+                  }
                 },
-              );
-            }
-            return const SizedBox();
-          },
+                builder: (context, state) {
+                  if (state is InventoryLoading) {
+                    return const Loader();
+                  }
+                  if (state is InventoryMaterialsLoaded) {
+                    if (state.materials.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.inventory_2_outlined,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No materials defined yet.',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            if (widget.isAdmin)
+                              TextButton(
+                                onPressed:
+                                    () => _showCreateMaterialDialog(context),
+                                child: const Text('Create your first item'),
+                              ),
+                          ],
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: state.materials.length,
+                      itemBuilder: (context, index) {
+                        final material = state.materials[index];
+                        return _MaterialCard(
+                          material: material,
+                          isAdmin: widget.isAdmin,
+                          onRestock:
+                              () => _showRestockDialog(context, material),
+                        );
+                      },
+                    );
+                  }
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -333,7 +343,7 @@ class _MaterialCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppPalette.gradient1.withOpacity(0.1),
+                color: AppPalette.gradient1.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.category, color: AppPalette.gradient1),
@@ -383,7 +393,7 @@ class _MaterialCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.green),
                       ),

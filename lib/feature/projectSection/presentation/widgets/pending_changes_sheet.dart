@@ -70,7 +70,7 @@ class _PendingChangesSheetState extends State<PendingChangesSheet> {
                             color: Colors.orange,
                           ),
                           title: Text(item.title),
-                          subtitle: Text("Waiting for connection..."),
+                          subtitle: Text(item.subtitle),
                           trailing: IconButton(
                             icon: const Icon(
                               Icons.delete_outline,
@@ -104,29 +104,35 @@ class _PendingChangesSheetState extends State<PendingChangesSheet> {
         return Icons.assignment_rounded;
       case SyncItemType.transaction:
         return Icons.inventory_2_rounded;
+      case SyncItemType.material:
+        return Icons.add_box_rounded;
       case SyncItemType.unknown:
         return Icons.sync_problem_rounded;
     }
   }
 
   void _confirmDelete(BuildContext context, SyncItem item) {
+    // Capture the cubit from the parent context before showing the dialog
+    final syncListCubit = context.read<SyncListCubit>();
+
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
             title: const Text("Discard Change?"),
             content: const Text(
               "Are you sure you want to delete this unsynced change? This action cannot be undone.",
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text("Cancel"),
               ),
               TextButton(
                 onPressed: () {
-                  context.read<SyncListCubit>().deleteItem(item);
-                  Navigator.pop(context);
+                  // Use the captured cubit
+                  syncListCubit.deleteItem(item);
+                  Navigator.pop(dialogContext);
                 },
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
                 child: const Text("Delete"),

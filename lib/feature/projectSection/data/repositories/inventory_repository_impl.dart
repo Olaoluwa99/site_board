@@ -24,18 +24,48 @@ class InventoryRepositoryImpl implements InventoryRepository {
     this.connectionChecker,
   );
 
+  String? _getMaterialName(String materialId) {
+    final localMaterials = localDataSource.getLastCachedMaterials();
+    final material =
+        localMaterials.where((m) => m.id == materialId).firstOrNull;
+    return material?.name;
+  }
+
   @override
   Future<Either<Failure, ProjectMaterial>> createMaterial({
     required ProjectMaterial material,
   }) async {
     try {
-      final model = ProjectMaterialModel.fromEntity(material);
-      // TODO: Implement optimistic create material if needed.
-      // For now, focusing on restock as per user request.
-      final createdFn = await remoteDataSource.createMaterial(model);
-      return Right(createdFn);
-    } on ServerException catch (e) {
-      return Left(Failure(e.message));
+      final model = ProjectMaterialModel.fromEntity(
+        material.copyWith(syncStatus: SyncStatus.created),
+      );
+
+      // 1. Optimistic Local Save
+      localDataSource.uploadOfflineMaterial(material: model);
+
+      // 2. Background Sync if connected
+      await _syncCreateMaterial(model);
+
+      return Right(model);
+    } catch (e) {
+      return Left(Failure(e.toString()));
+    }
+  }
+
+  Future<void> _syncCreateMaterial(ProjectMaterialModel material) async {
+    if (await connectionChecker.isConnected) {
+      try {
+        final createdMaterial = await remoteDataSource.createMaterial(material);
+
+        // On success, update local with synced status
+        final syncedMaterial = ProjectMaterialModel.fromEntity(
+          createdMaterial.copyWith(syncStatus: SyncStatus.synced),
+        );
+
+        localDataSource.uploadOfflineMaterial(material: syncedMaterial);
+      } catch (e) {
+        debugPrint("Background sync failed for material creation: $e");
+      }
     }
   }
 
@@ -47,19 +77,125 @@ class InventoryRepositoryImpl implements InventoryRepository {
       if (await connectionChecker.isConnected) {
         final materials = await remoteDataSource.getMaterials(projectId);
         localDataSource.cacheMaterials(materials: materials);
-        return Right(materials);
-      } else {
-        return Right(
-          localDataSource.getLastCachedMaterials(projectId: projectId),
+
+        // Also merge with pending local materials (created offline, or just created)
+        // This ensures the "Optimistic UI" works and we don't need to wait for strict sync
+        final pendingMaterials = localDataSource.getMaterialsByStatus(
+          SyncStatus.created,
         );
+        final pendingForProject =
+            pendingMaterials.where((m) => m.projectId == projectId).toList();
+
+        final Map<String, ProjectMaterial> mergedMap = {};
+        for (var m in materials) {
+          mergedMap[m.id] = m;
+        }
+        for (var m in pendingForProject) {
+          mergedMap[m.id] = m;
+        }
+
+        // We also need to apply pending transaction calculations to this merged list?
+        // Remote data might already include transactions up to sync point.
+        // But local pending transactions are ON TOP of whatever remote has.
+        // So we should do the transaction application logic on this merged list too.
+
+        var mergedList = mergedMap.values.toList();
+
+        // --- Apply Pending Transactions Logic (Similar to offline block) ---
+        final pendingTransactions = localDataSource.getTransactionsByStatus(
+          SyncStatus.created,
+        );
+
+        mergedList =
+            mergedList.map((material) {
+              final materialTransactions = pendingTransactions.where(
+                (t) => t.materialId == material.id,
+              );
+
+              double quantityChange = 0;
+              for (var txn in materialTransactions) {
+                quantityChange += txn.quantityChange;
+              }
+
+              if (quantityChange != 0) {
+                return material.copyWith(
+                  currentQuantity: material.currentQuantity + quantityChange,
+                );
+              }
+              return material;
+            }).toList();
+        // ----------------------------------------------------------------
+
+        // Update cache with merged? No, cache should reflect source of truth (remote) + pure local.
+        // But we are returning a View Model effectively.
+        // Sort by name
+        mergedList.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+
+        return Right(mergedList);
+      } else {
+        final cached = localDataSource.getLastCachedMaterials(
+          projectId: projectId,
+        );
+        // Apply pending offline transactions to reflect current state in UI
+        final pendingTransactions = localDataSource.getTransactionsByStatus(
+          SyncStatus.created,
+        );
+
+        final updatedMaterials =
+            cached.map((material) {
+              final materialTransactions = pendingTransactions.where(
+                (t) => t.materialId == material.id,
+              );
+
+              double quantityChange = 0;
+              for (var txn in materialTransactions) {
+                quantityChange += txn.quantityChange;
+              }
+
+              if (quantityChange != 0) {
+                return material.copyWith(
+                  currentQuantity: material.currentQuantity + quantityChange,
+                );
+              }
+              return material;
+            }).toList();
+
+        return Right(updatedMaterials);
       }
     } catch (e) {
       // Return cached if available, otherwise failure
       final cached = localDataSource.getLastCachedMaterials(
         projectId: projectId,
       );
-      if (cached.isNotEmpty) {
-        return Right(cached);
+
+      // Apply pending offline transactions to reflect current state in UI
+      final pendingTransactions = localDataSource.getTransactionsByStatus(
+        SyncStatus.created,
+      );
+
+      final updatedMaterials =
+          cached.map((material) {
+            final materialTransactions = pendingTransactions.where(
+              (t) => t.materialId == material.id,
+            );
+
+            double quantityChange = 0;
+            for (var txn in materialTransactions) {
+              quantityChange += txn.quantityChange;
+            }
+
+            if (quantityChange != 0) {
+              return material.copyWith(
+                currentQuantity: material.currentQuantity + quantityChange,
+              );
+            }
+            return material;
+          }).toList();
+
+      if (updatedMaterials.isNotEmpty) {
+        return Right(updatedMaterials);
       }
       return Left(Failure(e.toString()));
     }
@@ -74,6 +210,11 @@ class InventoryRepositoryImpl implements InventoryRepository {
     String? note,
   }) async {
     try {
+      // Fetch material name for UI
+      // final localMaterials = localDataSource.getLastCachedMaterials();
+      // final material =
+      //     localMaterials.where((m) => m.id == materialId).firstOrNull;
+
       final transaction = MaterialTransactionModel(
         id: const Uuid().v4(),
         materialId: materialId,
@@ -83,6 +224,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
         unitPrice: unitPrice,
         timestamp: DateTime.now(),
         syncStatus: SyncStatus.created,
+        materialName: _getMaterialName(materialId),
       );
 
       // Optimistic save
@@ -137,6 +279,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
         dailyLogId: dailyLogId,
         timestamp: DateTime.now(),
         syncStatus: SyncStatus.created,
+        materialName: _getMaterialName(materialId),
       );
       localDataSource.uploadOfflineTransaction(transaction: transaction);
 
@@ -226,17 +369,36 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
+  Future<void> syncPendingMaterial(ProjectMaterial material) async {
+    if (material is ProjectMaterialModel) {
+      if (material.syncStatus == SyncStatus.created) {
+        await _syncCreateMaterial(material);
+      }
+    }
+  }
+
+  @override
   Stream<int> getUnsyncedCount() {
     return localDataSource.getUnsyncedCountStream();
   }
 
   @override
   Future<void> deleteLocalTransaction(String transactionId) async {
-    localDataSource.deleteTransaction(transactionId);
+    await localDataSource.deleteTransaction(transactionId);
+  }
+
+  @override
+  Future<void> deleteLocalMaterial(String materialId) async {
+    await localDataSource.deleteMaterial(materialId);
   }
 
   @override
   Future<List<MaterialTransaction>> getPendingTransactions() async {
     return localDataSource.getTransactionsByStatus(SyncStatus.created);
+  }
+
+  @override
+  Future<List<ProjectMaterial>> getPendingMaterials() async {
+    return localDataSource.getMaterialsByStatus(SyncStatus.created);
   }
 }

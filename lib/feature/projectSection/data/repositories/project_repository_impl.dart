@@ -233,6 +233,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
         isConfirmed: dailyLog.isConfirmed,
         workScore: dailyLog.workScore,
         generatedSummary: dailyLog.generatedSummary,
+        syncStatus: SyncStatus.created,
       );
 
       if (!await (connectionChecker.isConnected)) {
@@ -246,12 +247,13 @@ class ProjectRepositoryImpl implements ProjectRepository {
           return left(Failure("Project not found locally. Cannot create log."));
         }
 
-        // 2. Handle Images (Keep local paths or skip?)
-        // For now, we use the local file paths as "placeholders" if needed,
-        // or just accept they won't be URLs yet.
-        // But the model expects strings. `startingTaskImageList` are Files.
-        // We can't put File paths into `startingImageUrl` easily without converting.
-        // Let's assume for offline, no images are uploaded.
+        // 2. Handle Images (Keep local paths)
+        final localImagePaths =
+            startingTaskImageList.map((file) => file?.path ?? '').toList();
+
+        dailyLogModel = dailyLogModel.copyWithModel(
+          startingImageUrl: localImagePaths,
+        );
 
         // 3. Update Project Logs
         // We need to append this log to the project's list.
@@ -351,13 +353,35 @@ class ProjectRepositoryImpl implements ProjectRepository {
           return left(Failure("Project not found locally. Cannot update log."));
         }
 
+        // Handle offline images for update
+        List<String> updatedStartingImages = dailyLogModel.startingImageUrl;
+        if (hasAtLeastOneFile(startingTaskImageList)) {
+          updatedStartingImages = imageModifier(
+            dailyLogModel.startingImageUrl,
+            startingTaskImageList.map((f) => f?.path ?? '').toList(),
+          );
+        }
+
+        List<String> updatedEndingImages = dailyLogModel.endingImageUrl;
+        if (hasAtLeastOneFile(endingTaskImageList)) {
+          updatedEndingImages = imageModifier(
+            dailyLogModel.endingImageUrl,
+            endingTaskImageList.map((f) => f?.path ?? '').toList(),
+          );
+        }
+
+        dailyLogModel = dailyLogModel.copyWithModel(
+          startingImageUrl: updatedStartingImages,
+          endingImageUrl: updatedEndingImages,
+          // Ensure plannedTasks are updated too in case they changed
+          plannedTasks: taskConverter(currentTasks),
+        );
+
         // Replace the log in the list
         final updatedLogs =
             localProject.dailyLogs.map((log) {
               return log.id == dailyLog.id ? dailyLogModel : log;
             }).toList();
-
-        // If not found (edge case), maybe add it? No, update should fail if not exists.
 
         // Cast strictly to ensure type safety if needed, but map returns Iterable.
         final List<DailyLogModel> strictLogs = [];
@@ -576,6 +600,149 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
+  Future<void> syncPendingLogs() async {
+    if (!await connectionChecker.isConnected) return;
+
+    final localProjects = projectLocalDataSource.loadRecentProjects();
+    for (var project in localProjects) {
+      final pendingLogs = project.dailyLogs.where(
+        (log) => log.syncStatus == SyncStatus.created,
+      );
+
+      for (var log in pendingLogs) {
+        // Find current tasks?
+        // We need 'currentTasks' to call createDailyLog/updateDailyLog properly,
+        // but wait, createDailyLog takes 'currentTasks'.
+        // If we just sync the log object...
+        // The log object has 'plannedTasks' which IS the tasks.
+        // We use that.
+        // Also images? Offline images are local paths.
+        // We need to upload them.
+
+        try {
+          if (log is DailyLogModel) {
+            final images =
+                log.startingImageUrl
+                    .map((path) => path.isEmpty ? null : File(path))
+                    .toList();
+            // TODO: handle ending images if any
+
+            // Call _syncCreatedLog (we need to extract logic from createDailyLog)
+            // Or just call createDailyLog?
+            // createDailyLog includes adding to local. We already have it local.
+            // We just need the "Online Flow" from createDailyLog.
+
+            // Refactoring createDailyLog to expose _syncCreatedLog would be best.
+            // But for now, let's implement the sync logic here.
+
+            final modifiedStartingImageUrlList = await projectRemoteDataSource
+                .uploadDailyLogImages(
+                  isEndingImages: false,
+                  images: images,
+                  dailyLogModel: log,
+                );
+
+            final syncedStartingImages = imageModifier(
+              log.startingImageUrl,
+              modifiedStartingImageUrlList,
+            );
+
+            // Handle ending images
+            final endingImages =
+                log.endingImageUrl
+                    .map((path) => path.isEmpty ? null : File(path))
+                    .toList();
+
+            final modifiedEndingImageUrlList = await projectRemoteDataSource
+                .uploadDailyLogImages(
+                  isEndingImages: true,
+                  images: endingImages,
+                  dailyLogModel: log,
+                );
+
+            final syncedEndingImages = imageModifier(
+              log.endingImageUrl,
+              modifiedEndingImageUrlList,
+            );
+
+            final syncedLog = log.copyWithModel(
+              startingImageUrl: syncedStartingImages,
+              endingImageUrl: syncedEndingImages,
+              syncStatus: SyncStatus.synced,
+            );
+
+            await projectRemoteDataSource.createDailyLog(syncedLog);
+
+            // Sync tasks
+            // log.plannedTasks are LogTask/Model
+            final tasksModel = taskConverter(log.plannedTasks);
+            await projectRemoteDataSource.syncLogTasks(
+              dailyLogId: log.id,
+              currentTasks: tasksModel,
+            );
+
+            // Update local project with synced log
+            await _updateLocalLogStatus(project.id, log.id, SyncStatus.synced);
+          }
+        } catch (e) {
+          debugPrint("Failed to sync log ${log.id}: $e");
+        }
+      }
+    }
+  }
+
+  Future<void> _updateLocalLogStatus(
+    String projectId,
+    String logId,
+    SyncStatus status,
+  ) async {
+    // Reload recent projects to ensure thread-safety-ish behavior
+    final localProjects = projectLocalDataSource.loadRecentProjects();
+    final project = localProjects.where((p) => p.id == projectId).firstOrNull;
+
+    if (project != null) {
+      final updatedLogs =
+          project.dailyLogs.map((l) {
+            if (l.id == logId && l is DailyLogModel) {
+              return l.copyWithModel(syncStatus: status);
+            }
+            return l;
+          }).toList();
+
+      final List<DailyLogModel> strictLogs = [];
+      for (var l in updatedLogs) {
+        if (l is DailyLogModel) {
+          strictLogs.add(l);
+        } else {
+          // Conversion fallback if somehow non-model got in
+          strictLogs.add(
+            DailyLogModel(
+              id: l.id,
+              projectId: l.projectId,
+              dateTimeList: l.dateTimeList,
+              numberOfWorkers: l.numberOfWorkers,
+              weatherCondition: l.weatherCondition,
+              materialsAvailable: l.materialsAvailable,
+              plannedTasks: l.plannedTasks,
+              startingImageUrl: l.startingImageUrl,
+              endingImageUrl: l.endingImageUrl,
+              observations: l.observations,
+              isConfirmed: l.isConfirmed,
+              workScore: l.workScore,
+              generatedSummary: l.generatedSummary,
+              syncStatus: l.syncStatus,
+            ),
+          );
+        }
+      }
+
+      projectLocalDataSource.uploadRecentProject(
+        project: project.copyWithModel(dailyLogs: strictLogs),
+      );
+    }
+  }
+
+  @override
   Stream<int> getUnsyncedCount() {
     return projectLocalDataSource.getUnsyncedCountStream();
   }
@@ -588,6 +755,56 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<List<Project>> getPendingProjects() async {
     return projectLocalDataSource.getProjectsByStatus(SyncStatus.created);
+  }
+
+  @override
+  Future<List<DailyLog>> getPendingDailyLogs() async {
+    final localProjects = projectLocalDataSource.loadRecentProjects();
+    List<DailyLog> pendingLogs = [];
+
+    for (var project in localProjects) {
+      final logs = project.dailyLogs.where(
+        (log) => log.syncStatus == SyncStatus.created,
+      );
+      pendingLogs.addAll(logs);
+    }
+    return pendingLogs;
+  }
+
+  @override
+  Future<void> deleteLocalDailyLog(String logId) async {
+    final localProjects = projectLocalDataSource.loadRecentProjects();
+    bool projectModified = false;
+    late ProjectModel targetProject;
+
+    // Find the project containing the log
+    for (var project in localProjects) {
+      final exists = project.dailyLogs.any((log) => log.id == logId);
+      if (exists) {
+        targetProject = project;
+        projectModified = true;
+        break;
+      }
+    }
+
+    if (projectModified) {
+      final updatedLogs =
+          targetProject.dailyLogs.where((log) => log.id != logId).toList();
+
+      // Strict cast to maintain type integrity
+      final List<DailyLogModel> strictLogs = [];
+      for (var l in updatedLogs) {
+        if (l is DailyLogModel) {
+          strictLogs.add(l);
+        } else {
+          // Fallback conversion
+          strictLogs.add(logConverter([l]).first);
+        }
+      }
+
+      final updatedProject = targetProject.copyWithModel(dailyLogs: strictLogs);
+      projectLocalDataSource.uploadRecentProject(project: updatedProject);
+    }
   }
 
   List<DailyLogModel> logConverter(List<DailyLog> logs) {
@@ -608,6 +825,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
           isConfirmed: dLog.isConfirmed,
           workScore: dLog.workScore,
           generatedSummary: dLog.generatedSummary,
+          syncStatus: dLog.syncStatus,
         ),
       );
     }

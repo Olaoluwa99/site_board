@@ -78,8 +78,10 @@ abstract interface class ProjectRepository {
   Future<Either<Failure, void>> deleteDailyLog(String dailyLogId);
 
   Future<void> syncPendingProject(Project project);
-
+  Future<void> syncPendingLogs(); // New method
   Stream<int> getUnsyncedCount();
   Future<void> deleteLocalProject(String projectId);
   Future<List<Project>> getPendingProjects();
+  Future<List<DailyLog>> getPendingDailyLogs();
+  Future<void> deleteLocalDailyLog(String logId);
 }

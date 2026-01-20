@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:hive/hive.dart';
+import 'package:async/async.dart';
 import 'package:site_board/core/enums/sync_status.dart';
 import 'package:site_board/feature/projectSection/data/models/material_transaction_model.dart';
 import 'package:site_board/feature/projectSection/data/models/project_material_model.dart';
@@ -17,7 +19,8 @@ abstract interface class InventoryLocalDataSource {
   void cacheMaterials({required List<ProjectMaterialModel> materials});
   List<ProjectMaterialModel> getLastCachedMaterials({String? projectId});
   Stream<int> getUnsyncedCountStream();
-  void deleteTransaction(String transactionId);
+  Future<void> deleteTransaction(String transactionId);
+  Future<void> deleteMaterial(String materialId);
   void clearData();
 }
 
@@ -151,14 +154,26 @@ class InventoryLocalDataSourceImpl implements InventoryLocalDataSource {
 
   @override
   Stream<int> getUnsyncedCountStream() {
-    return transactionBox.watch().map((event) {
-      return getTransactionsByStatus(SyncStatus.created).length;
+    // Watch both boxes
+    final transactionStream = transactionBox.watch();
+    final materialStream = materialsBox.watch();
+
+    return StreamGroup.merge([transactionStream, materialStream]).map((_) {
+      // Re-calculate total unsynced count on any event
+      final txnCount = getTransactionsByStatus(SyncStatus.created).length;
+      final matCount = getMaterialsByStatus(SyncStatus.created).length;
+      return txnCount + matCount;
     });
   }
 
   @override
-  void deleteTransaction(String transactionId) {
-    transactionBox.delete(transactionId);
+  Future<void> deleteTransaction(String transactionId) async {
+    await transactionBox.delete(transactionId);
+  }
+
+  @override
+  Future<void> deleteMaterial(String materialId) async {
+    await materialsBox.delete(materialId);
   }
 
   @override

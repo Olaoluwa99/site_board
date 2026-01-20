@@ -31,13 +31,15 @@ class MaterialTransactionModel extends MaterialTransaction {
       materialName:
           json['project_materials'] != null
               ? json['project_materials']['name'] as String?
-              : null,
+              : json['material_name'] as String?,
       unitPrice:
           json['unit_price'] != null
               ? (json['unit_price'] as num).toDouble()
               : null,
       actorName:
-          json['profiles'] != null ? json['profiles']['name'] as String? : null,
+          json['profiles'] != null
+              ? json['profiles']['name'] as String?
+              : json['actor_name'] as String?,
       syncStatus:
           json['sync_status'] != null
               ? SyncStatus.values[json['sync_status'] as int]
@@ -57,6 +59,8 @@ class MaterialTransactionModel extends MaterialTransaction {
       'actor_id': actorId,
       'timestamp': timestamp.toIso8601String(),
       'unit_price': unitPrice,
+      'material_name': materialName,
+      'actor_name': actorName,
       'sync_status': syncStatus?.index,
     };
   }

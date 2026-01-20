@@ -24,6 +24,7 @@ class SyncStatusCubit extends Cubit<SyncStatusState> {
     required this.inventoryRepository,
   }) : super(SyncStatusState()) {
     _init();
+    _loadInitialCounts();
   }
 
   void _init() {
@@ -43,6 +44,20 @@ class SyncStatusCubit extends Cubit<SyncStatusState> {
         ),
       );
     });
+  }
+
+  Future<void> _loadInitialCounts() async {
+    final pendingProjects = await projectRepository.getPendingProjects();
+    final pendingTransactions =
+        await inventoryRepository.getPendingTransactions();
+    final pendingMaterials = await inventoryRepository.getPendingMaterials();
+
+    emit(
+      SyncStatusState(
+        projectCount: pendingProjects.length,
+        inventoryCount: pendingTransactions.length + pendingMaterials.length,
+      ),
+    );
   }
 
   @override

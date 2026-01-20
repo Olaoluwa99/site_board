@@ -32,6 +32,7 @@ class SyncService {
 
   Future<void> syncAll() async {
     await syncProjects();
+    await projectRepository.syncPendingLogs();
     await syncInventory();
   }
 
@@ -49,6 +50,13 @@ class SyncService {
         .getTransactionsByStatus(SyncStatus.created);
     for (final transaction in pendingTransactions) {
       await inventoryRepository.syncPendingTransaction(transaction);
+    }
+
+    final pendingMaterials = inventoryLocalDataSource.getMaterialsByStatus(
+      SyncStatus.created,
+    );
+    for (final material in pendingMaterials) {
+      await inventoryRepository.syncPendingMaterial(material);
     }
   }
 }

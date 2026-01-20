@@ -7,8 +7,7 @@ import 'package:site_board/feature/projectSection/presentation/pages/edit_projec
 import 'package:site_board/feature/projectSection/presentation/pages/project_summarizer.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/show_bar_chart.dart';
 import 'package:site_board/init_dependencies.dart';
-import 'package:site_board/feature/projectSection/presentation/widgets/sync_status_bar.dart';
-import 'package:site_board/feature/projectSection/presentation/bloc/sync_status_cubit.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/offline_toolbar.dart';
 
 import '../../../../core/common/cubits/app_user/app_user_cubit.dart';
 
@@ -154,176 +153,182 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
             showSnackBar(context, state.error);
           }
         },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              BlocProvider(
-                create: (_) => serviceLocator<SyncStatusCubit>(),
-                child: const SyncStatusBar(),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '7-day Performance',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                height: 240,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Theme.of(context).dividerColor.withOpacity(0.1),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
-                  child:
-                      chartValues.isEmpty
-                          ? Center(child: Text("No confirmed logs yet"))
-                          : ShowBarChart(values: chartValues),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'About Project',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              AboutProjectCard(
-                project: currentProject,
-                isLocal: widget.isLocal,
-                canEdit: canEdit,
-                onViewClicked: () {
-                  final currentProject = _getCurrentProject();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => ViewProjectDetail(
-                            project: currentProject,
-                            onClose: () => Navigator.pop(context),
-                            onCompleted: () => Navigator.pop(context),
-                          ),
+        child: Column(
+          children: [
+            const OfflineToolbar(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '7-day Performance',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                  );
-                },
-                onEditClicked: () {
-                  final currentProject = _getCurrentProject();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => EditProjectDetail(
-                            project: currentProject,
-                            onClose: () => Navigator.pop(context),
-                            onCompleted: () => Navigator.pop(context),
-                          ),
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      height: 240,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardTheme.color,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withOpacity(0.1),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+                        child:
+                            chartValues.isEmpty
+                                ? Center(child: Text("No confirmed logs yet"))
+                                : ShowBarChart(values: chartValues),
+                      ),
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.3,
-                children: [
-                  _ActionCard(
-                    title: "Project Logs",
-                    icon: Icons.history_edu,
-                    color: Colors.blueAccent,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => ProjectLogsPage(
-                                project: currentProject,
-                                isLocal: widget.isLocal,
-                              ),
-                        ),
-                      );
-                    },
-                  ),
-                  _ActionCard(
-                    title: "Inventory Manager",
-                    icon: Icons.inventory_2,
-                    color: Colors.orangeAccent,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => InventoryManagerPage(
-                                projectId: widget.project.id,
-                                isAdmin: canEdit,
-                              ),
-                        ),
-                      );
-                    },
-                  ),
-                  _ActionCard(
-                    title: "AI Summarizer",
-                    icon: Icons.auto_awesome,
-                    color: Colors.purpleAccent,
-                    onTap: () {
-                      if (widget.isLocal) {
-                        showSnackBar(
+                    const SizedBox(height: 20),
+                    Text(
+                      'About Project',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    AboutProjectCard(
+                      project: currentProject,
+                      isLocal: widget.isLocal,
+                      canEdit: canEdit,
+                      onViewClicked: () {
+                        final currentProject = _getCurrentProject();
+                        Navigator.push(
                           context,
-                          "Not available for offline projects",
-                        );
-                        return;
-                      }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => BlocProvider(
-                                create:
-                                    (context) => serviceLocator<SummaryBloc>(),
-                                child: ProjectSummarizer(
+                          MaterialPageRoute(
+                            builder:
+                                (context) => ViewProjectDetail(
                                   project: currentProject,
                                   onClose: () => Navigator.pop(context),
                                   onCompleted: () => Navigator.pop(context),
                                 ),
+                          ),
+                        );
+                      },
+                      onEditClicked: () {
+                        final currentProject = _getCurrentProject();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => EditProjectDetail(
+                                  project: currentProject,
+                                  onClose: () => Navigator.pop(context),
+                                  onCompleted: () => Navigator.pop(context),
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Quick Actions',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.3,
+                      children: [
+                        _ActionCard(
+                          title: "Project Logs",
+                          icon: Icons.history_edu,
+                          color: Colors.blueAccent,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => ProjectLogsPage(
+                                      project: currentProject,
+                                      isLocal: widget.isLocal,
+                                    ),
                               ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  _ActionCard(
-                    title: "Site ledger",
-                    icon: Icons.analytics,
-                    color: Colors.teal,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => MaterialAnalysisPage(
-                                projectId: widget.project.id,
+                        _ActionCard(
+                          title: "Inventory Manager",
+                          icon: Icons.inventory_2,
+                          color: Colors.orangeAccent,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => InventoryManagerPage(
+                                      projectId: widget.project.id,
+                                      isAdmin: canEdit,
+                                    ),
                               ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ],
+                        _ActionCard(
+                          title: "AI Summarizer",
+                          icon: Icons.auto_awesome,
+                          color: Colors.purpleAccent,
+                          onTap: () {
+                            if (widget.isLocal) {
+                              showSnackBar(
+                                context,
+                                "Not available for offline projects",
+                              );
+                              return;
+                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => BlocProvider(
+                                      create:
+                                          (context) =>
+                                              serviceLocator<SummaryBloc>(),
+                                      child: ProjectSummarizer(
+                                        project: currentProject,
+                                        onClose: () => Navigator.pop(context),
+                                        onCompleted:
+                                            () => Navigator.pop(context),
+                                      ),
+                                    ),
+                              ),
+                            );
+                          },
+                        ),
+                        _ActionCard(
+                          title: "Site ledger",
+                          icon: Icons.analytics,
+                          color: Colors.teal,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => MaterialAnalysisPage(
+                                      projectId: widget.project.id,
+                                    ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-              const SizedBox(height: 32),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

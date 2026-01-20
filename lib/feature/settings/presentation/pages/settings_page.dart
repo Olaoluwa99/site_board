@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/common/bloc/theme/theme_bloc.dart';
+
+import 'package:site_board/feature/projectSection/presentation/widgets/offline_toolbar.dart';
 import 'package:site_board/core/theme/app_palette.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,24 +16,31 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Settings")),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeader(context, "Appearance"),
-            const SizedBox(height: 10),
-            _buildThemeSelector(context),
-            const SizedBox(height: 30),
-            _buildSectionHeader(context, "Feedback"),
-            const SizedBox(height: 10),
-            _buildRateUsTile(context),
-            const SizedBox(height: 30),
-            _buildSectionHeader(context, "About"),
-            const SizedBox(height: 10),
-            _buildAboutTile(context),
-          ],
-        ),
+      body: Column(
+        children: [
+          const OfflineToolbar(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(context, "Appearance"),
+                  const SizedBox(height: 10),
+                  _buildThemeSelector(context),
+                  const SizedBox(height: 30),
+                  _buildSectionHeader(context, "Feedback"),
+                  const SizedBox(height: 10),
+                  _buildRateUsTile(context),
+                  const SizedBox(height: 30),
+                  _buildSectionHeader(context, "About"),
+                  const SizedBox(height: 10),
+                  _buildAboutTile(context),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

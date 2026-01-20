@@ -1,3 +1,5 @@
+import 'package:site_board/core/enums/sync_status.dart';
+
 class DailyLog {
   final String id;
   final String projectId;
@@ -12,6 +14,7 @@ class DailyLog {
   final bool isConfirmed;
   final double workScore;
   final String generatedSummary;
+  final SyncStatus? syncStatus;
 
   const DailyLog({
     required this.id,
@@ -27,6 +30,7 @@ class DailyLog {
     required this.isConfirmed,
     this.workScore = 0.0,
     this.generatedSummary = '',
+    this.syncStatus,
   });
 
   DailyLog copyWith({
@@ -43,6 +47,7 @@ class DailyLog {
     bool? isConfirmed,
     double? workScore,
     String? generatedSummary,
+    SyncStatus? syncStatus,
   }) {
     return DailyLog(
       id: id ?? this.id,
@@ -58,6 +63,7 @@ class DailyLog {
       isConfirmed: isConfirmed ?? this.isConfirmed,
       workScore: workScore ?? this.workScore,
       generatedSummary: generatedSummary ?? this.generatedSummary,
+      syncStatus: syncStatus ?? this.syncStatus,
     );
   }
 }

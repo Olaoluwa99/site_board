@@ -1,5 +1,7 @@
 import 'package:site_board/feature/projectSection/domain/entities/daily_log.dart';
 
+import 'package:site_board/core/enums/sync_status.dart';
+
 class DailyLogModel extends DailyLog {
   const DailyLogModel({
     required super.id,
@@ -15,7 +17,42 @@ class DailyLogModel extends DailyLog {
     required super.isConfirmed,
     super.workScore = 0.0,
     super.generatedSummary = '',
+    super.syncStatus,
   });
+
+  DailyLogModel copyWithModel({
+    String? id,
+    String? projectId,
+    List<DateTime>? dateTimeList,
+    int? numberOfWorkers,
+    String? weatherCondition,
+    List<String>? materialsAvailable,
+    List<LogTask>? plannedTasks,
+    List<String>? startingImageUrl,
+    List<String>? endingImageUrl,
+    String? observations,
+    bool? isConfirmed,
+    double? workScore,
+    String? generatedSummary,
+    SyncStatus? syncStatus,
+  }) {
+    return DailyLogModel(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      dateTimeList: dateTimeList ?? this.dateTimeList,
+      numberOfWorkers: numberOfWorkers ?? this.numberOfWorkers,
+      weatherCondition: weatherCondition ?? this.weatherCondition,
+      materialsAvailable: materialsAvailable ?? this.materialsAvailable,
+      plannedTasks: plannedTasks ?? this.plannedTasks,
+      startingImageUrl: startingImageUrl ?? this.startingImageUrl,
+      endingImageUrl: endingImageUrl ?? this.endingImageUrl,
+      observations: observations ?? this.observations,
+      isConfirmed: isConfirmed ?? this.isConfirmed,
+      workScore: workScore ?? this.workScore,
+      generatedSummary: generatedSummary ?? this.generatedSummary,
+      syncStatus: syncStatus ?? this.syncStatus,
+    );
+  }
 
   Map<String, dynamic> toCompleteJson() {
     return {
@@ -32,7 +69,9 @@ class DailyLogModel extends DailyLog {
       'observations': observations,
       'is_confirmed': isConfirmed,
       'work_score': workScore,
+
       'generated_summary': generatedSummary,
+      'sync_status': syncStatus?.name ?? SyncStatus.synced.name,
     };
   }
 
@@ -50,7 +89,9 @@ class DailyLogModel extends DailyLog {
       'observations': observations,
       'is_confirmed': isConfirmed,
       'work_score': workScore,
+
       'generated_summary': generatedSummary,
+      // 'sync_status': syncStatus?.name ?? SyncStatus.synced.name, // Local only
     };
   }
 
@@ -88,6 +129,13 @@ class DailyLogModel extends DailyLog {
               )
               .toList() ??
           [],
+      syncStatus:
+          map['sync_status'] != null
+              ? SyncStatus.values.firstWhere(
+                (e) => e.name == map['sync_status'],
+                orElse: () => SyncStatus.synced,
+              )
+              : SyncStatus.synced,
     );
   }
 }
