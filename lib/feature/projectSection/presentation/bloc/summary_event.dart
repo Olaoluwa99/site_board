@@ -29,3 +29,5 @@ class ExportSummaryToPdf extends SummaryEvent {
 
   ExportSummaryToPdf({required this.summary, required this.projectName});
 }
+
+class ResetSummary extends SummaryEvent {}

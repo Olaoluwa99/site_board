@@ -143,6 +143,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       quantity: event.quantity,
       unitPrice: event.unitPrice,
       actorId: event.actorId,
+      actorName: event.actorName,
       note: event.note,
     );
 
@@ -175,6 +176,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       quantity: event.quantity,
       dailyLogId: event.dailyLogId,
       actorId: event.actorId,
+      actorName: event.actorName,
     );
 
     await result.fold(
@@ -205,6 +207,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       usageList: event.usageList,
       dailyLogId: event.dailyLogId,
       actorId: event.actorId,
+      actorName: event.actorName,
     );
 
     await result.fold(

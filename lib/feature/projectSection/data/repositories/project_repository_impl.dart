@@ -976,6 +976,12 @@ class ProjectRepositoryImpl implements ProjectRepository {
       final result = await projectRemoteDataSource.getAllProjects(
         userId: userId,
       );
+
+      // Cache all fetched projects to local storage
+      for (final project in result) {
+        projectLocalDataSource.uploadRecentProject(project: project);
+      }
+
       return right(
         RetrievedProjects(projects: List<Project>.from(result), isLocal: false),
       );
@@ -1073,5 +1079,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
   bool hasAtLeastOneFile(List<File?> files) {
     if (files.isEmpty) return false;
     return files.any((file) => file != null);
+  }
+
+  @override
+  Future<void> clearData() async {
+    projectLocalDataSource.clearData();
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/pages/project_settings.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/about_project_card.dart';
@@ -48,6 +49,41 @@ class ProjectHomePage extends StatefulWidget {
 }
 
 class _ProjectHomePageState extends State<ProjectHomePage> {
+  bool _isOffline = false;
+  late final dynamic _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivity();
+    _subscription = Connectivity().onConnectivityChanged.listen(
+      _updateConnectionStatus,
+    );
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initConnectivity() async {
+    try {
+      final result = await Connectivity().checkConnectivity();
+      _updateConnectionStatus(result);
+    } catch (e) {
+      debugPrint('Couldn\'t check connectivity status: $e');
+    }
+  }
+
+  void _updateConnectionStatus(List<ConnectivityResult> result) {
+    if (mounted) {
+      setState(() {
+        _isOffline = result.contains(ConnectivityResult.none);
+      });
+    }
+  }
+
   Project _getCurrentProject() {
     final state = context.read<ProjectBloc>().state;
     if (state is ProjectRetrieveSuccess) {
@@ -103,16 +139,16 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
       appBar: AppBar(
         title: Text(widget.project.projectName),
         actions: [
-          if (widget.isLocal)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Tooltip(
-                message: "Offline Mode",
-                child: Icon(Icons.wifi_off_rounded, color: Colors.grey),
-              ),
-            ),
-          (widget.isLocal || !canEdit)
-              ? SizedBox.shrink()
+          (widget.isLocal || _isOffline)
+              ? IconButton(
+                onPressed: () {
+                  showSnackBar(context, "No Network Connection");
+                },
+                icon: const Icon(Icons.wifi_off_rounded, color: Colors.grey),
+                tooltip: "Offline Mode",
+              )
+              : (!canEdit)
+              ? const SizedBox.shrink()
               : IconButton(
                 onPressed: () {
                   final currentProject = _getCurrentProject();
@@ -128,7 +164,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     ),
                   );
                 },
-                icon: Icon(Icons.settings),
+                icon: const Icon(Icons.settings),
               ),
         ],
       ),
@@ -196,7 +232,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                     AboutProjectCard(
                       project: currentProject,
                       isLocal: widget.isLocal,
-                      canEdit: canEdit,
+                      canEdit: canEdit && !widget.isLocal && !_isOffline,
                       onViewClicked: () {
                         final currentProject = _getCurrentProject();
                         Navigator.push(
@@ -279,7 +315,7 @@ class _ProjectHomePageState extends State<ProjectHomePage> {
                           icon: Icons.auto_awesome,
                           color: Colors.purpleAccent,
                           onTap: () {
-                            if (widget.isLocal) {
+                            if (widget.isLocal || _isOffline) {
                               showSnackBar(
                                 context,
                                 "Not available for offline projects",

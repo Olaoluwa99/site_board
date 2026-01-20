@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:site_board/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/common/widgets/loader.dart';
 import 'package:site_board/core/theme/app_palette.dart';
@@ -289,6 +290,10 @@ class _InventoryManagerPageState extends State<InventoryManagerPage> {
                   final userId =
                       serviceLocator<SupabaseClient>().auth.currentUser!.id;
 
+                  final userObj =
+                      context.read<AppUserCubit>().state as AppUserLoggedIn;
+                  final userName = userObj.user.name;
+
                   context.read<InventoryBloc>().add(
                     InventoryRestockMaterial(
                       projectId: widget.projectId,
@@ -296,6 +301,7 @@ class _InventoryManagerPageState extends State<InventoryManagerPage> {
                       quantity: double.parse(quantityController.text),
                       unitPrice: double.parse(unitPriceController.text),
                       actorId: userId,
+                      actorName: userName,
                       note:
                           noteController.text.trim().isEmpty
                               ? null

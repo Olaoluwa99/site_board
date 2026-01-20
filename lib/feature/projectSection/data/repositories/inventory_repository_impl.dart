@@ -207,6 +207,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
     required double quantity,
     required double unitPrice,
     required String actorId,
+    required String actorName,
     String? note,
   }) async {
     try {
@@ -221,6 +222,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
         type: TransactionType.IN,
         quantityChange: quantity,
         actorId: actorId,
+        actorName: actorName,
         unitPrice: unitPrice,
         timestamp: DateTime.now(),
         syncStatus: SyncStatus.created,
@@ -231,7 +233,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
       localDataSource.uploadOfflineTransaction(transaction: transaction);
 
       // Background sync
-      _syncRestockMaterial(transaction);
+      _syncTransaction(transaction);
 
       return const Right(null);
     } catch (e) {
@@ -239,15 +241,13 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
-  Future<void> _syncRestockMaterial(
-    MaterialTransactionModel transaction,
-  ) async {
+  Future<void> _syncTransaction(MaterialTransactionModel transaction) async {
     if (await connectionChecker.isConnected) {
       try {
         await remoteDataSource.recordTransaction(
           materialId: transaction.materialId,
           quantityChange: transaction.quantityChange,
-          transactionType: 'IN',
+          transactionType: transaction.type.name,
           actorId: transaction.actorId ?? '',
           unitPrice: transaction.unitPrice ?? 0,
         );
@@ -257,7 +257,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
           transaction: MaterialTransactionModel.fromEntity(syncedTxn),
         );
       } catch (e) {
-        debugPrint("Background sync failed for restock: $e");
+        debugPrint("Background sync failed for transaction: $e");
       }
     }
   }
@@ -268,6 +268,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
     required double quantity,
     required String dailyLogId,
     required String actorId,
+    required String actorName,
   }) async {
     try {
       final transaction = MaterialTransactionModel(
@@ -276,6 +277,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
         type: TransactionType.OUT,
         quantityChange: -quantity,
         actorId: actorId,
+        actorName: actorName,
         dailyLogId: dailyLogId,
         timestamp: DateTime.now(),
         syncStatus: SyncStatus.created,
@@ -284,17 +286,9 @@ class InventoryRepositoryImpl implements InventoryRepository {
       localDataSource.uploadOfflineTransaction(transaction: transaction);
 
       if (await connectionChecker.isConnected) {
-        await remoteDataSource.recordTransaction(
-          materialId: materialId,
-          quantityChange: -quantity,
-          transactionType: 'OUT',
-          dailyLogId: dailyLogId,
-          actorId: actorId,
-        );
-        final syncedTxn = transaction.copyWith(syncStatus: SyncStatus.synced);
-        localDataSource.uploadOfflineTransaction(
-          transaction: MaterialTransactionModel.fromEntity(syncedTxn),
-        );
+        // Use generic sync
+        _syncTransaction(transaction);
+        // Note: recordTransaction is enough, relying on syncTransaction logic above
       }
       return const Right(null);
     } on ServerException catch (e) {
@@ -309,6 +303,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
     required List<Map<String, dynamic>> usageList,
     required String dailyLogId,
     required String actorId,
+    required String actorName,
   }) async {
     try {
       for (final usage in usageList) {
@@ -320,6 +315,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
           quantity: qty,
           dailyLogId: dailyLogId,
           actorId: actorId,
+          actorName: actorName,
         );
       }
       return const Right(null);
@@ -363,7 +359,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
   Future<void> syncPendingTransaction(MaterialTransaction transaction) async {
     if (transaction is MaterialTransactionModel) {
       if (transaction.syncStatus == SyncStatus.created) {
-        await _syncRestockMaterial(transaction);
+        await _syncTransaction(transaction);
       }
     }
   }

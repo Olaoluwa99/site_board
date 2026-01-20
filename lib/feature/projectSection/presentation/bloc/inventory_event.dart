@@ -26,6 +26,7 @@ final class InventoryRestockMaterial extends InventoryEvent {
   final double quantity;
   final double unitPrice;
   final String actorId;
+  final String actorName;
   final String? note;
   final String projectId; // Needed to refresh the list
 
@@ -34,6 +35,7 @@ final class InventoryRestockMaterial extends InventoryEvent {
     required this.quantity,
     required this.unitPrice,
     required this.actorId,
+    required this.actorName,
     this.note,
     required this.projectId,
   });
@@ -45,6 +47,7 @@ final class InventoryUseMaterial extends InventoryEvent {
   final double quantity;
   final String dailyLogId;
   final String actorId;
+  final String actorName;
   final String projectId;
 
   InventoryUseMaterial({
@@ -52,6 +55,7 @@ final class InventoryUseMaterial extends InventoryEvent {
     required this.quantity,
     required this.dailyLogId,
     required this.actorId,
+    required this.actorName,
     required this.projectId,
   });
 }
@@ -60,12 +64,14 @@ final class InventoryBatchUseMaterial extends InventoryEvent {
   final List<Map<String, dynamic>> usageList;
   final String dailyLogId;
   final String actorId;
+  final String actorName;
   final String projectId;
 
   InventoryBatchUseMaterial({
     required this.usageList,
     required this.dailyLogId,
     required this.actorId,
+    required this.actorName,
     required this.projectId,
   });
 }

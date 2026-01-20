@@ -11,6 +11,8 @@ import 'package:site_board/feature/projectSection/presentation/bloc/summary_bloc
 import 'package:site_board/feature/projectSection/presentation/bloc/summary_event.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/summary_state.dart';
 
+import 'package:site_board/feature/projectSection/presentation/widgets/offline_toolbar.dart';
+
 import '../../domain/entities/project.dart';
 
 class ProjectSummarizer extends StatefulWidget {
@@ -80,23 +82,30 @@ class _ProjectSummarizerState extends State<ProjectSummarizer> {
           IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close)),
         ],
       ),
-      body: BlocConsumer<SummaryBloc, SummaryState>(
-        listener: (context, state) {
-          if (state is SummaryFailure) {
-            showSnackBar(context, state.error);
-          }
-        },
-        builder: (context, state) {
-          if (state is SummaryLoading) {
-            return const Loader();
-          }
+      body: Column(
+        children: [
+          const OfflineToolbar(),
+          Expanded(
+            child: BlocConsumer<SummaryBloc, SummaryState>(
+              listener: (context, state) {
+                if (state is SummaryFailure) {
+                  showSnackBar(context, state.error);
+                }
+              },
+              builder: (context, state) {
+                if (state is SummaryLoading) {
+                  return const Loader();
+                }
 
-          if (state is SummaryGenerated) {
-            return _buildGeneratedView(state.summary);
-          }
+                if (state is SummaryGenerated) {
+                  return _buildGeneratedView(state.summary);
+                }
 
-          return _buildInputView();
-        },
+                return _buildInputView();
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -319,7 +328,7 @@ class _ProjectSummarizerState extends State<ProjectSummarizer> {
             child: TextButton(
               onPressed: () {
                 // Reset to generate another one
-                context.read<SummaryBloc>().emit(SummaryInitial());
+                context.read<SummaryBloc>().add(ResetSummary());
               },
               child: const Text("Generate New Summary"),
             ),
@@ -330,11 +339,11 @@ class _ProjectSummarizerState extends State<ProjectSummarizer> {
   }
 
   Widget _buildSectionList(
-      String title,
-      List<String> items, {
-        IconData icon = Icons.check_circle_outline,
-        Color iconColor = AppPalette.gradient1,
-      }) {
+    String title,
+    List<String> items, {
+    IconData icon = Icons.check_circle_outline,
+    Color iconColor = AppPalette.gradient1,
+  }) {
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -350,14 +359,16 @@ class _ProjectSummarizerState extends State<ProjectSummarizer> {
         ),
         const SizedBox(height: 8),
         ...items.map(
-              (item) => Padding(
+          (item) => Padding(
             padding: const EdgeInsets.only(bottom: 6.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(icon, size: 20, color: iconColor),
                 const SizedBox(width: 10),
-                Expanded(child: Text(item, style: const TextStyle(fontSize: 16))),
+                Expanded(
+                  child: Text(item, style: const TextStyle(fontSize: 16)),
+                ),
               ],
             ),
           ),

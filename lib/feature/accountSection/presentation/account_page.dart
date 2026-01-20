@@ -1,24 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:site_board/core/common/widgets/loader.dart';
 import 'package:site_board/core/utils/show_snackbar.dart';
 import 'package:site_board/feature/auth/presentation/bloc/auth_bloc.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/common/entities/user.dart';
 import '../../../core/common/widgets/default_button.dart';
-import '../../../core/constants/constants.dart';
-import '../../../core/theme/app_palette.dart';
-import '../../projectSection/domain/entities/Member.dart';
-import '../../projectSection/domain/entities/project.dart';
 import '../../projectSection/presentation/bloc/project_bloc.dart';
 import '../../projectSection/presentation/pages/home_page.dart';
-import 'package:site_board/feature/projectSection/presentation/pages/project_home_page.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/offline_toolbar.dart';
-import '../../projectSection/presentation/widgets/admin_permission_notifier.dart';
-import '../../projectSection/presentation/widgets/blocked_notifier.dart';
-import '../../projectSection/presentation/widgets/project_list_item.dart';
-import '../../projectSection/presentation/widgets/project_password.dart';
 import '../../projectSection/presentation/widgets/text_with_prefix.dart';
 
 class AccountPage extends StatefulWidget {
@@ -40,139 +29,20 @@ class _AccountPageState extends State<AccountPage> {
     super.initState();
   }
 
-  void _handleProjectClick(Project project) {
-    _checkAccessAndNavigate(project);
-  }
-
-  Future<void> _checkAccessAndNavigate(Project project) async {
-    bool isCreator = project.creatorId == widget.user.id;
-
-    // If creator, proceed directly
-    if (isCreator) {
-      _proceedToProject(project);
-      return;
-    }
-
-    // Check if I am a member
-    Member? myMember;
-    try {
-      myMember = project.teamMembers.firstWhere(
-        (m) => m.userId == widget.user.id,
-      );
-    } catch (e) {
-      myMember = null;
-    }
-
-    // If I am a member in the list
-    if (myMember != null) {
-      // 1. Check if blocked
-      if (myMember.isBlocked) {
-        showDialog(
-          context: context,
-          builder:
-              (context) =>
-                  BlockedNotifier(onCompleted: () => Navigator.pop(context)),
-        );
-        return;
-      }
-
-      // 2. Check if accepted
-      if (!myMember.isAccepted) {
-        showDialog(
-          context: context,
-          builder:
-              (context) => AdminPermissionNotifier(
-                onCompleted: () => Navigator.pop(context),
-              ),
-        );
-        return;
-      }
-
-      // 3. Update Last Viewed (Optional, keeps data fresh)
-      // If everything is fine, proceed.
-      // We could update 'lastViewed' here but to keep UI snappy we proceed.
-      _proceedToProject(project);
-      return;
-    }
-
-    // If not a member (unlikely in AccountPage since it lists "Joined Projects",
-    // but possible if logic changes or data is stale)
-    // We should treat it as a fresh join attempt or access request.
-
-    if (project.projectSecurityType == Constants.securityPassword) {
-      final String? passwordText = await showDialog<String>(
-        context: context,
-        builder:
-            (context) => ProjectPasswordDialog(
-              onCompleted: (passwordText) {
-                Navigator.pop(context, passwordText);
-              },
-            ),
-      );
-
-      if (passwordText == null) return;
-
-      if (passwordText == project.projectPassword) {
-        _joinProjectAndProceed(project, true); // Join as accepted
-      } else {
-        showSnackBar(context, 'Incorrect Password.');
-      }
-    } else if (project.projectSecurityType == Constants.securityApproval) {
-      // Join as pending
-      _joinProjectAndProceed(project, false);
-      // Notify user
-      showDialog(
-        context: context,
-        builder:
-            (context) => AdminPermissionNotifier(
-              onCompleted: () => Navigator.pop(context),
-            ),
-      );
-    } else {
-      // No security
-      _joinProjectAndProceed(project, true);
-    }
-  }
-
-  void _joinProjectAndProceed(Project project, bool isAccepted) {
-    Member uploadMember = Member(
-      id: const Uuid().v4(),
-      projectId: project.id,
-      name: widget.user.name,
-      email: widget.user.email,
-      userId: widget.user.id,
-      isAccepted: isAccepted,
-      isBlocked: false,
-      isAdmin: false,
-      hasLeft: false,
-      lastViewed: DateTime.now(),
-    );
-
-    context.read<ProjectBloc>().add(
-      UpdateMemberEvent(
-        project: project,
-        member: uploadMember,
-        isCreateMember: true,
-      ),
-    );
-
-    // If automatically accepted, navigate. Otherwise wait (handled by Bloc listener in HomePage usually,
-    // but here we might need to rely on the user tapping again or a listener)
-    // For AccountPage, typically the user is ALREADY a member if they see the project.
-    // So this block is a fallback.
-    if (isAccepted) {
-      _proceedToProject(project);
-    }
-  }
-
-  void _proceedToProject(Project project) {
-    Navigator.push(
-      context,
-      ProjectHomePage.route(
-        project: project,
-        projectIndex: 0,
-        isLocal: context.read<ProjectBloc>().isLocalMode,
-      ),
+  Widget _buildCountItem(BuildContext context, String label, String count) {
+    return Column(
+      children: [
+        Text(
+          count,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+      ],
     );
   }
 
@@ -250,122 +120,74 @@ class _AccountPageState extends State<AccountPage> {
                         const SizedBox(height: 16),
                         const Divider(),
                         const SizedBox(height: 8),
-                        TabBar(
-                          tabs: const [
-                            Tab(text: "Created Projects"),
-                            Tab(text: "Joined Projects"),
-                          ],
-                          indicatorColor: AppPalette.gradient2,
-                          labelColor: Theme.of(context).colorScheme.primary,
-                          unselectedLabelColor: Theme.of(context).hintColor,
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 300,
-                          child: BlocConsumer<ProjectBloc, ProjectState>(
-                            listener: (context, state) {
-                              if (state is ProjectLoading) {
-                                showLoaderDialog(context);
-                              }
-                              if (state is ProjectRetrieveSuccess ||
-                                  state is ProjectFailure ||
-                                  state is ProjectMemberUpdateSuccess) {
-                                Navigator.of(
-                                  context,
-                                  rootNavigator: true,
-                                ).pop();
-                              }
-
-                              if (state is ProjectMemberUpdateSuccess) {
-                                // If we just joined a project (rare case for AccountPage), navigate
-                                if (state.member.isAccepted &&
-                                    !state.member.isBlocked) {
-                                  _proceedToProject(state.project);
-                                }
-                              }
-                            },
-                            builder: (context, state) {
-                              if (state is ProjectFailure) {
-                                return Center(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      context.read<ProjectBloc>().add(
-                                        ProjectGetAllProjects(
-                                          userId: widget.user.id,
-                                        ),
-                                      );
-                                    },
+                        BlocConsumer<ProjectBloc, ProjectState>(
+                          listener: (context, state) {
+                            if (state is ProjectLoading) {
+                              // optional: show loading
+                            }
+                            if (state is ProjectRetrieveSuccess ||
+                                state is ProjectFailure) {
+                              // No action needed for navigation here
+                            }
+                          },
+                          builder: (context, state) {
+                            if (state is ProjectFailure) {
+                              return Center(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    context.read<ProjectBloc>().add(
+                                      ProjectGetAllProjects(
+                                        userId: widget.user.id,
+                                      ),
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 24.0,
+                                    ),
                                     child: Text(
-                                      'Not connected. Click to retry.',
-                                      style: TextStyle(fontSize: 16),
-                                      textAlign: TextAlign.center,
+                                      'Not connected. Tap to retry.',
+                                      style: TextStyle(fontSize: 14),
                                     ),
                                   ),
-                                );
-                              }
+                                ),
+                              );
+                            }
 
-                              if (state is ProjectRetrieveSuccess) {
-                                final createdProjects =
-                                    state.projects
-                                        .where(
-                                          (p) => p.creatorId == widget.user.id,
-                                        )
-                                        .toList();
-                                final joinedProjects =
-                                    state.projects
-                                        .where(
-                                          (p) => p.creatorId != widget.user.id,
-                                        )
-                                        .toList();
+                            if (state is ProjectRetrieveSuccess) {
+                              final createdCount =
+                                  state.projects
+                                      .where(
+                                        (p) => p.creatorId == widget.user.id,
+                                      )
+                                      .length;
+                              final joinedCount =
+                                  state.projects
+                                      .where(
+                                        (p) => p.creatorId != widget.user.id,
+                                      )
+                                      .length;
 
-                                return TabBarView(
-                                  children: [
-                                    // Created Projects List
-                                    createdProjects.isEmpty
-                                        ? Center(
-                                          child: Text("No created projects."),
-                                        )
-                                        : ListView.builder(
-                                          itemCount: createdProjects.length,
-                                          itemBuilder: (context, index) {
-                                            return ProjectListItem(
-                                              projectName:
-                                                  createdProjects[index]
-                                                      .projectName,
-                                              onClicked:
-                                                  () => _handleProjectClick(
-                                                    createdProjects[index],
-                                                  ),
-                                            );
-                                          },
-                                        ),
+                              return Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildCountItem(
+                                    context,
+                                    'Created Projects',
+                                    createdCount.toString(),
+                                  ),
+                                  _buildCountItem(
+                                    context,
+                                    'Joined Projects',
+                                    joinedCount.toString(),
+                                  ),
+                                ],
+                              );
+                            }
 
-                                    // Joined Projects List
-                                    joinedProjects.isEmpty
-                                        ? Center(
-                                          child: Text("No joined projects."),
-                                        )
-                                        : ListView.builder(
-                                          itemCount: joinedProjects.length,
-                                          itemBuilder: (context, index) {
-                                            return ProjectListItem(
-                                              projectName:
-                                                  joinedProjects[index]
-                                                      .projectName,
-                                              onClicked:
-                                                  () => _handleProjectClick(
-                                                    joinedProjects[index],
-                                                  ),
-                                            );
-                                          },
-                                        ),
-                                  ],
-                                );
-                              }
-
-                              return SizedBox.shrink();
-                            },
-                          ),
+                            return SizedBox.shrink();
+                          },
                         ),
 
                         SizedBox(height: 16),

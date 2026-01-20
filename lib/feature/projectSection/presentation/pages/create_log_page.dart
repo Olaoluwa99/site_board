@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:site_board/core/common/cubits/app_user/app_user_cubit.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/core/common/widgets/gradient_button.dart';
@@ -76,6 +78,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
     WeatherItem(tag: 'Cloudy', iconData: Icons.cloud),
   ];
   bool dropdownOpen = false;
+  bool isLoading = false; // Prevent double clicks
   String? toUseAsDailyLogId; // = const Uuid().v1();
 
   @override
@@ -208,6 +211,9 @@ class _CreateLogPageState extends State<CreateLogPage> {
                 }
                 if (state is DailyLogUploadFailure) {
                   Navigator.of(context, rootNavigator: true).pop();
+                  setState(() {
+                    isLoading = false;
+                  });
                   showSnackBar(context, state.error);
                 }
                 if (state is DailyLogUploadSuccess) {
@@ -226,11 +232,16 @@ class _CreateLogPageState extends State<CreateLogPage> {
                           };
                         }).toList();
 
+                    final userObj =
+                        context.read<AppUserCubit>().state as AppUserLoggedIn;
+                    final userName = userObj.user.name;
+
                     context.read<InventoryBloc>().add(
                       InventoryBatchUseMaterial(
                         projectId: widget.projectId,
                         dailyLogId: logId,
                         actorId: userId,
+                        actorName: userName,
                         usageList: usageList,
                       ),
                     );
@@ -249,7 +260,13 @@ class _CreateLogPageState extends State<CreateLogPage> {
             BlocListener<InventoryBloc, InventoryState>(
               listener: (context, state) {
                 if (state is InventoryFailure) {
-                  Navigator.of(context, rootNavigator: true).pop();
+                  Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).pop(); // Pop loader
+                  setState(() {
+                    isLoading = false;
+                  });
                   showSnackBar(
                     context,
                     'Log saved but stock update failed: ${state.error}',
@@ -489,6 +506,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
                       SizedBox(height: 24),
                       GradientButton(
                         onClick: () {
+                          if (isLoading) return;
+
                           // Strict Validation Check
                           // 1. Ensure all items have valid quantities <= available
                           for (final item in selectedMaterialItems) {
@@ -552,6 +571,10 @@ class _CreateLogPageState extends State<CreateLogPage> {
                                 '${_observationsController.text}\n\n\n',
                             isConfirmed: false,
                           );
+
+                          setState(() {
+                            isLoading = true;
+                          });
 
                           // 2. Dispatch Log Upload
                           uploadDailyLog(finishedDailyLog!);

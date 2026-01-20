@@ -20,6 +20,7 @@ abstract interface class InventoryRepository {
     required double quantity,
     required double unitPrice,
     required String actorId,
+    required String actorName,
     String? note,
   });
 
@@ -30,6 +31,7 @@ abstract interface class InventoryRepository {
     required double quantity,
     required String dailyLogId,
     required String actorId,
+    required String actorName,
   });
 
   /// Consumes stock from multiple materials in a single batch.
@@ -38,6 +40,7 @@ abstract interface class InventoryRepository {
     usageList, // List of {materialId, quantity}
     required String dailyLogId,
     required String actorId,
+    required String actorName,
   });
 
   /// Gets the transaction history for a project.

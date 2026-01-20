@@ -84,4 +84,5 @@ abstract interface class ProjectRepository {
   Future<List<Project>> getPendingProjects();
   Future<List<DailyLog>> getPendingDailyLogs();
   Future<void> deleteLocalDailyLog(String logId);
+  Future<void> clearData();
 }

@@ -10,6 +10,7 @@ import 'package:site_board/feature/projectSection/presentation/widgets/material_
 import 'package:site_board/feature/projectSection/presentation/widgets/material_report_summary_cards.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/material_usage_chart.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/transaction_ledger_item.dart';
+import 'package:site_board/feature/projectSection/presentation/widgets/offline_toolbar.dart';
 import 'package:site_board/init_dependencies.dart';
 
 class MaterialAnalysisPage extends StatelessWidget {
@@ -100,6 +101,7 @@ class _MaterialAnalysisView extends StatelessWidget {
 
                 return Column(
                   children: [
+                    const OfflineToolbar(),
                     const MaterialReportSummaryCards(),
                     const MaterialReportFilterBar(),
                     const MaterialPeriodComparison(),

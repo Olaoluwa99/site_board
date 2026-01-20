@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:site_board/feature/accountSection/presentation/account_page.dart';
 import 'package:site_board/feature/auth/presentation/pages/login_page.dart';
 import 'package:site_board/feature/auth/presentation/bloc/auth_bloc.dart';
@@ -49,7 +50,9 @@ class _HomePageState extends State<HomePage> {
     final userState = context.read<AppUserCubit>().state;
     if (userState is AppUserLoggedIn) {
       retrievedUser = userState.user;
-      context.read<ProjectBloc>().add(ProjectGetRecentProjects());
+      context.read<ProjectBloc>().add(
+        ProjectGetAllProjects(userId: retrievedUser!.id),
+      );
     }
   }
 
@@ -115,6 +118,14 @@ class _HomePageState extends State<HomePage> {
     int index,
   ) async {
     if (!isLocal) {
+      // Logic Change: Check connectivity first
+      // Suppress membership update error when offline
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        _proceedToProject(currentProject, index, isLocal);
+        return;
+      }
+
       bool isOldUser = false;
       Member? soughtMember;
 
@@ -365,7 +376,7 @@ class _HomePageState extends State<HomePage> {
                           retrievedUser = state.user;
                         });
                         context.read<ProjectBloc>().add(
-                          ProjectGetRecentProjects(),
+                          ProjectGetAllProjects(userId: state.user.id),
                         );
                       }
                     },

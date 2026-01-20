@@ -4,80 +4,114 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/projectSection/presentation/bloc/sync_status_cubit.dart';
 import 'package:site_board/feature/projectSection/presentation/widgets/pending_changes_sheet.dart';
 
-class OfflineToolbar extends StatelessWidget {
+class OfflineToolbar extends StatefulWidget {
   const OfflineToolbar({super.key});
 
   @override
+  State<OfflineToolbar> createState() => _OfflineToolbarState();
+}
+
+class _OfflineToolbarState extends State<OfflineToolbar> {
+  List<ConnectivityResult> _connectionStatus = [ConnectivityResult.wifi];
+  late final dynamic _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivity();
+    _subscription = Connectivity().onConnectivityChanged.listen(
+      _updateConnectionStatus,
+    );
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initConnectivity() async {
+    try {
+      final result = await Connectivity().checkConnectivity();
+      _updateConnectionStatus(result);
+    } catch (e) {
+      debugPrint('Couldn\'t check connectivity status: $e');
+    }
+  }
+
+  void _updateConnectionStatus(List<ConnectivityResult> result) {
+    if (mounted) {
+      setState(() {
+        _connectionStatus = result;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<ConnectivityResult>>(
-      stream: Connectivity().onConnectivityChanged,
-      builder: (context, snapshot) {
-        final isOffline =
-            snapshot.data != null &&
-            snapshot.data!.contains(ConnectivityResult.none);
+    final isOffline = _connectionStatus.contains(ConnectivityResult.none);
 
-        return BlocBuilder<SyncStatusCubit, SyncStatusState>(
-          builder: (context, state) {
-            final hasPendingChanges = state.totalCount > 0;
+    return BlocBuilder<SyncStatusCubit, SyncStatusState>(
+      builder: (context, state) {
+        final hasPendingChanges = state.totalCount > 0;
 
-            if (!isOffline && !hasPendingChanges) {
-              return const SizedBox.shrink();
-            }
+        if (!isOffline && !hasPendingChanges) {
+          return const SizedBox.shrink();
+        }
 
-            return Container(
-              color: Colors.amber[700],
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
-                    Icon(
-                      isOffline ? Icons.wifi_off_rounded : Icons.sync,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        isOffline
-                            ? (hasPendingChanges
-                                ? "Offline • ${state.totalCount} unsynced changes"
-                                : "You are offline")
-                            : "Syncing ${state.totalCount} changes...",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    if (hasPendingChanges)
-                      TextButton(
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            isScrollControlled: true,
-                            builder: (context) => const PendingChangesSheet(),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.white.withOpacity(0.2),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text("View"),
-                      ),
-                  ],
+        return Container(
+          color: Colors.amber[700],
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: Row(
+              children: [
+                Icon(
+                  isOffline ? Icons.wifi_off_rounded : Icons.sync,
+                  color: Colors.white,
+                  size: 20,
                 ),
-              ),
-            );
-          },
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    isOffline
+                        ? (hasPendingChanges
+                            ? "You are offline - ${state.totalCount} change(s) made"
+                            : "You are offline")
+                        : "Syncing ${state.totalCount} changes...",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                if (hasPendingChanges)
+                  TextButton(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
+                        builder: (context) => const PendingChangesSheet(),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text("View"),
+                  ),
+              ],
+            ),
+          ),
         );
       },
     );

@@ -11,16 +11,17 @@ class SummaryBloc extends Bloc<SummaryEvent, SummaryState> {
   final GenerateProjectSummary _generateProjectSummary;
 
   SummaryBloc({required GenerateProjectSummary generateProjectSummary})
-      : _generateProjectSummary = generateProjectSummary,
-        super(SummaryInitial()) {
+    : _generateProjectSummary = generateProjectSummary,
+      super(SummaryInitial()) {
     on<GenerateSummary>(_onGenerateSummary);
     on<ExportSummaryToPdf>(_onExportSummaryToPdf);
+    on<ResetSummary>((event, emit) => emit(SummaryInitial()));
   }
 
   void _onGenerateSummary(
-      GenerateSummary event,
-      Emitter<SummaryState> emit,
-      ) async {
+    GenerateSummary event,
+    Emitter<SummaryState> emit,
+  ) async {
     emit(SummaryLoading());
     final result = await _generateProjectSummary(
       GenerateProjectSummaryParams(
@@ -33,15 +34,15 @@ class SummaryBloc extends Bloc<SummaryEvent, SummaryState> {
     );
 
     result.fold(
-          (failure) => emit(SummaryFailure(failure.message)),
-          (summary) => emit(SummaryGenerated(summary)),
+      (failure) => emit(SummaryFailure(failure.message)),
+      (summary) => emit(SummaryGenerated(summary)),
     );
   }
 
   void _onExportSummaryToPdf(
-      ExportSummaryToPdf event,
-      Emitter<SummaryState> emit,
-      ) async {
+    ExportSummaryToPdf event,
+    Emitter<SummaryState> emit,
+  ) async {
     try {
       final pdf = pw.Document();
       final summary = event.summary;
@@ -53,7 +54,9 @@ class SummaryBloc extends Bloc<SummaryEvent, SummaryState> {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          theme: pw.ThemeData.withFont(base: font), // Apply the font to the page
+          theme: pw.ThemeData.withFont(
+            base: font,
+          ), // Apply the font to the page
           build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -69,28 +72,43 @@ class SummaryBloc extends Bloc<SummaryEvent, SummaryState> {
                   ),
                 ),
                 pw.SizedBox(height: 10),
-                pw.Text('Date Range: ${summary.dateRange}', style: const pw.TextStyle(fontSize: 12)),
+                pw.Text(
+                  'Date Range: ${summary.dateRange}',
+                  style: const pw.TextStyle(fontSize: 12),
+                ),
                 pw.Divider(),
                 pw.SizedBox(height: 20),
 
                 _buildSectionHeader('Overview'),
-                pw.Text(summary.overview, style: const pw.TextStyle(fontSize: 12)),
+                pw.Text(
+                  summary.overview,
+                  style: const pw.TextStyle(fontSize: 12),
+                ),
                 pw.SizedBox(height: 20),
 
                 _buildSectionHeader('Completed Tasks'),
                 ...summary.completedTasks.map(
-                      (task) => pw.Bullet(text: task, style: const pw.TextStyle(fontSize: 12)),
+                  (task) => pw.Bullet(
+                    text: task,
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
                 ),
                 pw.SizedBox(height: 20),
 
                 _buildSectionHeader('Issues / Challenges'),
                 ...summary.issuesRaised.map(
-                      (issue) => pw.Bullet(text: issue, style: const pw.TextStyle(fontSize: 12)),
+                  (issue) => pw.Bullet(
+                    text: issue,
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
                 ),
                 pw.SizedBox(height: 20),
 
                 _buildSectionHeader('Upcoming Plans'),
-                pw.Text(summary.upcomingPlans, style: const pw.TextStyle(fontSize: 12)),
+                pw.Text(
+                  summary.upcomingPlans,
+                  style: const pw.TextStyle(fontSize: 12),
+                ),
               ],
             );
           },
