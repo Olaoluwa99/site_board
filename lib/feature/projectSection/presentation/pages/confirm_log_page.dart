@@ -200,7 +200,10 @@ class _ConfirmLogPageState extends State<ConfirmLogPage> {
                         return ImageItem(
                           index: index,
                           imageAsFile: image,
-                          imageAsLink: widget.log.endingImageUrl[index],
+                          imageAsLink:
+                              (index < widget.log.endingImageUrl.length)
+                                  ? widget.log.endingImageUrl[index]
+                                  : '',
                           onSelect: () => selectImage(index),
                         );
                       }),

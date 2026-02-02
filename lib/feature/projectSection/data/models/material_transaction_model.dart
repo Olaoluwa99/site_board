@@ -48,8 +48,7 @@ class MaterialTransactionModel extends MaterialTransaction {
   }
 
   Map<String, dynamic> toJson() {
-    // Note: This toJson is likely used for inserts/updates if we were using it that way.
-    // But transactions are inserted via RPC.
+    // For Supabase uploads - excludes sync_status
     return {
       'id': id,
       'material_id': materialId,
@@ -59,9 +58,24 @@ class MaterialTransactionModel extends MaterialTransaction {
       'actor_id': actorId,
       'timestamp': timestamp.toIso8601String(),
       'unit_price': unitPrice,
+      // material_name and actor_name are not in server schema, excluded
+    };
+  }
+
+  // Separate method for local storage (Hive) that includes sync_status
+  Map<String, dynamic> toLocalJson() {
+    return {
+      'id': id,
+      'material_id': materialId,
+      'type': type.name,
+      'quantity_change': quantityChange,
+      'daily_log_id': dailyLogId,
+      'actor_id': actorId,
+      'timestamp': timestamp.toIso8601String(),
+      'unit_price': unitPrice,
       'material_name': materialName,
       'actor_name': actorName,
-      'sync_status': syncStatus?.index,
+      'sync_status': syncStatus?.index, // Local only
     };
   }
 

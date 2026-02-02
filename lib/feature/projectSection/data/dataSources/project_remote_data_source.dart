@@ -53,10 +53,10 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<ProjectModel> createProject(ProjectModel project) async {
     try {
       final projectData =
-      await supabaseClient
-          .from('projects')
-          .insert(project.toJson())
-          .select();
+          await supabaseClient
+              .from('projects')
+              .upsert(project.toJson())
+              .select();
       return ProjectModel.fromJson(projectData.first);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
@@ -69,11 +69,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<ProjectModel> updateProject(ProjectModel project) async {
     try {
       final updatedProject =
-      await supabaseClient
-          .from('projects')
-          .update(project.toJson())
-          .eq('id', project.id)
-          .select();
+          await supabaseClient
+              .from('projects')
+              .update(project.toJson())
+              .eq('id', project.id)
+              .select();
 
       return ProjectModel.fromJson(updatedProject.first);
     } on PostgrestException catch (e) {
@@ -87,10 +87,10 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<DailyLogModel> createDailyLog(DailyLogModel dailyLog) async {
     try {
       final dailyLogData =
-      await supabaseClient
-          .from('daily_logs')
-          .insert(dailyLog.toJson())
-          .select();
+          await supabaseClient
+              .from('daily_logs')
+              .upsert(dailyLog.toJson())
+              .select();
       return DailyLogModel.fromJson(dailyLogData.first);
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
@@ -103,11 +103,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<DailyLogModel> updateDailyLog(DailyLogModel dailyLog) async {
     try {
       final updatedDailyLogData =
-      await supabaseClient
-          .from('daily_logs')
-          .update(dailyLog.toJson())
-          .eq('id', dailyLog.id)
-          .select();
+          await supabaseClient
+              .from('daily_logs')
+              .update(dailyLog.toJson())
+              .eq('id', dailyLog.id)
+              .select();
 
       return DailyLogModel.fromJson(updatedDailyLogData.first);
     } on PostgrestException catch (e) {
@@ -120,12 +120,12 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<MemberModel> _upsertMember(MemberModel member) async {
     try {
       final existingMember =
-      await supabaseClient
-          .from('members')
-          .select()
-          .eq('project_id', member.projectId)
-          .eq('user_id', member.userId)
-          .maybeSingle();
+          await supabaseClient
+              .from('members')
+              .select()
+              .eq('project_id', member.projectId)
+              .eq('user_id', member.userId)
+              .maybeSingle();
 
       if (existingMember != null) {
         final Map<String, dynamic> updateData = {};
@@ -156,11 +156,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
         }
 
         final updatedData =
-        await supabaseClient
-            .from('members')
-            .update(updateData)
-            .eq('id', existingMember['id'])
-            .select();
+            await supabaseClient
+                .from('members')
+                .update(updateData)
+                .eq('id', existingMember['id'])
+                .select();
 
         if (updatedData.isEmpty) {
           throw const ServerException(
@@ -171,10 +171,10 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
         return MemberModel.fromJson(updatedData.first);
       } else {
         final newData =
-        await supabaseClient
-            .from('members')
-            .insert(member.toJson())
-            .select();
+            await supabaseClient
+                .from('members')
+                .insert(member.toJson())
+                .select();
 
         if (newData.isEmpty) {
           throw const ServerException("Insert failed: No rows returned");
@@ -217,11 +217,13 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
         }
 
         if (images[i] != null) {
-          await supabaseClient.storage.from('daily_log_images').upload(
-            filePath,
-            images[i]!,
-            fileOptions: const FileOptions(upsert: true),
-          );
+          await supabaseClient.storage
+              .from('daily_log_images')
+              .upload(
+                filePath,
+                images[i]!,
+                fileOptions: const FileOptions(upsert: true),
+              );
           final publicUrl = supabaseClient.storage
               .from('daily_log_images')
               .getPublicUrl(filePath);
@@ -244,11 +246,13 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     try {
       final filePath = 'covers/${project.id}';
 
-      await supabaseClient.storage.from('project_images').upload(
-        filePath,
-        image,
-        fileOptions: const FileOptions(upsert: true),
-      );
+      await supabaseClient.storage
+          .from('project_images')
+          .upload(
+            filePath,
+            image,
+            fileOptions: const FileOptions(upsert: true),
+          );
 
       return supabaseClient.storage
           .from('project_images')
@@ -263,22 +267,20 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   @override
   Future<List<ProjectModel>> getAllProjects({required String userId}) async {
     try {
-      final membersResponse =
-      await supabaseClient
+      final membersResponse = await supabaseClient
           .from('members')
           .select('project_id')
           .eq('user_id', userId)
           .eq('has_left', false);
 
       final projectIds =
-      (membersResponse as List)
-          .map((m) => m['project_id'] as String)
-          .toList();
+          (membersResponse as List)
+              .map((m) => m['project_id'] as String)
+              .toList();
 
       if (projectIds.isEmpty) return [];
 
-      final response =
-      await supabaseClient
+      final response = await supabaseClient
           .from('projects')
           .select('*, daily_logs(*, log_tasks(*)), members(*)')
           .inFilter('id', projectIds);
@@ -297,11 +299,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<ProjectModel> getProjectById({required String projectId}) async {
     try {
       final response =
-      await supabaseClient
-          .from('projects')
-          .select('*, daily_logs(*, log_tasks(*)), members(*)')
-          .eq('id', projectId)
-          .maybeSingle();
+          await supabaseClient
+              .from('projects')
+              .select('*, daily_logs(*, log_tasks(*)), members(*)')
+              .eq('id', projectId)
+              .maybeSingle();
 
       if (response == null) {
         throw ServerException('Project not found for id: $projectId');
@@ -319,11 +321,11 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   Future<ProjectModel> getProjectByLink({required String projectLink}) async {
     try {
       final response =
-      await supabaseClient
-          .from('projects')
-          .select('*, daily_logs(*, log_tasks(*)), members(*)')
-          .eq('project_link', projectLink)
-          .maybeSingle();
+          await supabaseClient
+              .from('projects')
+              .select('*, daily_logs(*, log_tasks(*)), members(*)')
+              .eq('project_link', projectLink)
+              .maybeSingle();
 
       if (response == null) {
         throw ServerException('Project not found for link: $projectLink');
@@ -349,29 +351,29 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
           .eq('daily_log_id', dailyLogId);
 
       final existingTasks =
-      (response as List<dynamic>)
-          .map((e) => LogTaskModel.fromJson(e))
-          .toList();
+          (response as List<dynamic>)
+              .map((e) => LogTaskModel.fromJson(e))
+              .toList();
 
       final existingMap = {for (var t in existingTasks) t.id: t};
       final currentMap = {for (var t in currentTasks) t.id: t};
 
       final tasksToDelete =
-      existingTasks
-          .where((t) => !currentMap.containsKey(t.id))
-          .map((t) => t.id)
-          .toList();
+          existingTasks
+              .where((t) => !currentMap.containsKey(t.id))
+              .map((t) => t.id)
+              .toList();
 
       final tasksToInsert =
-      currentTasks
-          .where((t) => t.id.isEmpty || !existingMap.containsKey(t.id))
-          .toList();
+          currentTasks
+              .where((t) => t.id.isEmpty || !existingMap.containsKey(t.id))
+              .toList();
 
       final tasksToUpdate =
-      currentTasks.where((t) {
-        final existing = existingMap[t.id];
-        return existing != null && existing != t;
-      }).toList();
+          currentTasks.where((t) {
+            final existing = existingMap[t.id];
+            return existing != null && existing != t;
+          }).toList();
 
       if (tasksToDelete.isNotEmpty) {
         await supabaseClient
@@ -380,17 +382,12 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
             .inFilter('id', tasksToDelete);
       }
 
-      if (tasksToInsert.isNotEmpty) {
-        await supabaseClient
-            .from('log_tasks')
-            .insert(tasksToInsert.map((e) => e.toJson()).toList());
-      }
+      final tasksToUpsert = [...tasksToInsert, ...tasksToUpdate];
 
-      for (final task in tasksToUpdate) {
+      if (tasksToUpsert.isNotEmpty) {
         await supabaseClient
             .from('log_tasks')
-            .update(task.toJson())
-            .eq('id', task.id);
+            .upsert(tasksToUpsert.map((e) => e.toJson()).toList());
       }
     } on PostgrestException catch (e) {
       throw ServerException(e.message);

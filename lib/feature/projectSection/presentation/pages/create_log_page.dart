@@ -273,7 +273,8 @@ class _CreateLogPageState extends State<CreateLogPage> {
                   );
                   widget.onCompleted();
                 }
-                if (state is InventorySuccess) {
+                if (state is InventorySuccess ||
+                    state is InventoryMaterialsLoaded) {
                   Navigator.of(
                     context,
                     rootNavigator: true,
@@ -358,6 +359,7 @@ class _CreateLogPageState extends State<CreateLogPage> {
                       SizedBox(height: 16),
                       MaterialSelector(
                         projectId: widget.projectId,
+                        initialMaterials: widget.log?.materialsAvailable ?? [],
                         onChanged: (items, strings) {
                           selectedMaterialItems = items;
                           selectedMaterialStrings = strings;
@@ -442,7 +444,11 @@ class _CreateLogPageState extends State<CreateLogPage> {
                             index: index,
                             imageAsFile: image,
                             imageAsLink:
-                                widget.log?.startingImageUrl[index] ?? '',
+                                (widget.log != null &&
+                                        index <
+                                            widget.log!.startingImageUrl.length)
+                                    ? widget.log!.startingImageUrl[index]
+                                    : '',
                             onSelect: () => selectImage(index, false),
                           );
                         }),
@@ -478,7 +484,14 @@ class _CreateLogPageState extends State<CreateLogPage> {
                                     index: index,
                                     imageAsFile: image,
                                     imageAsLink:
-                                        widget.log?.endingImageUrl[index] ?? '',
+                                        (widget.log != null &&
+                                                index <
+                                                    widget
+                                                        .log!
+                                                        .endingImageUrl
+                                                        .length)
+                                            ? widget.log!.endingImageUrl[index]
+                                            : '',
                                     onSelect: () => selectImage(index, true),
                                   );
                                 }),

@@ -138,6 +138,25 @@ class DailyLogModel extends DailyLog {
               : SyncStatus.synced,
     );
   }
+
+  factory DailyLogModel.fromEntity(DailyLog log) {
+    return DailyLogModel(
+      id: log.id,
+      projectId: log.projectId,
+      dateTimeList: log.dateTimeList,
+      numberOfWorkers: log.numberOfWorkers,
+      weatherCondition: log.weatherCondition,
+      materialsAvailable: log.materialsAvailable,
+      plannedTasks: log.plannedTasks,
+      startingImageUrl: log.startingImageUrl,
+      endingImageUrl: log.endingImageUrl,
+      observations: log.observations,
+      isConfirmed: log.isConfirmed,
+      workScore: log.workScore,
+      generatedSummary: log.generatedSummary,
+      syncStatus: log.syncStatus,
+    );
+  }
 }
 
 class LogTaskModel extends LogTask {

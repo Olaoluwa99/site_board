@@ -61,11 +61,44 @@ class ProjectRepositoryImpl implements ProjectRepository {
         syncStatus: SyncStatus.created,
       );
 
+      // Create Creator Member locally immediately to prevent race conditions in UI
+      MemberModel creatorMember = MemberModel(
+        id: const Uuid().v4(),
+        projectId: projectModel.id,
+        name: "Creator", // Will be updated by profile sync or passed in?
+        // Ideally we should pass the actual name/email if available in the 'project' entity or assume current user.
+        // But 'project' entity doesn't strictly have creator name.
+        // However, the UI expects *some* member.
+        // Let's use empty strings if not available, simply to satisfy existence.
+        // OR better: The UI 'CreateProjectPage' passes 'userId' as creatorId.
+        email: "",
+        userId: project.creatorId,
+        isAccepted: true,
+        isBlocked: false,
+        isAdmin: true,
+        hasLeft: false,
+        lastViewed: DateTime.now(),
+      );
+
+      // Update project model with this member
+      projectModel = projectModel.copyWithModel(
+        teamMembers: [
+          creatorMember,
+          ...project.teamMembers.map((m) => MemberModel.fromEntity(m)),
+        ],
+        teamAdminIds: [project.creatorId, ...project.teamAdminIds],
+      );
+
       // Optimistic Save
       projectLocalDataSource.uploadRecentProject(project: projectModel);
 
-      // Trigger background sync (Fire and forget)
-      _syncCreatedProject(projectModel, coverImage);
+      // Trigger background sync
+      // If online, await it to prevent race conditions in UI (fetch before server has it)
+      if (await connectionChecker.isConnected) {
+        await _syncCreatedProject(projectModel, coverImage);
+      } else {
+        _syncCreatedProject(projectModel, coverImage);
+      }
 
       return right(projectModel);
     } catch (e) {
@@ -93,24 +126,20 @@ class ProjectRepositoryImpl implements ProjectRepository {
         );
 
         if (projectModel.creatorId.isNotEmpty) {
-          try {
-            MemberModel creatorMember = MemberModel(
-              id: const Uuid().v4(),
-              projectId: uploadedProject.id,
-              name: "Creator",
-              email: "",
-              userId: uploadedProject.creatorId,
-              isAccepted: true,
-              isBlocked: false,
-              isAdmin: true,
-              hasLeft: false,
-              lastViewed: DateTime.now(),
-            );
+          MemberModel creatorMember = MemberModel(
+            id: const Uuid().v4(),
+            projectId: uploadedProject.id,
+            name: "Creator",
+            email: "",
+            userId: uploadedProject.creatorId,
+            isAccepted: true,
+            isBlocked: false,
+            isAdmin: true,
+            hasLeft: false,
+            lastViewed: DateTime.now(),
+          );
 
-            await projectRemoteDataSource.createMember(creatorMember);
-          } catch (e) {
-            debugPrint("Warning: Auto-member creation failed: $e");
-          }
+          await projectRemoteDataSource.createMember(creatorMember);
         }
 
         // Update local with synced status
@@ -119,7 +148,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
         );
         projectLocalDataSource.uploadRecentProject(project: syncedProject);
       } catch (e) {
-        debugPrint("Background sync failed for project ${projectModel.id}: $e");
+        debugPrint("Sync failed for project ${projectModel.id}: $e");
+        rethrow; // Propagate to createProject so UI can show the error
       }
     }
   }
@@ -370,11 +400,19 @@ class ProjectRepositoryImpl implements ProjectRepository {
           );
         }
 
+        // Determine correct SyncStatus
+        // If it was 'created', keep it 'created'. Otherwise, mark as 'updated'.
+        SyncStatus newStatus = dailyLog.syncStatus ?? SyncStatus.synced;
+        if (newStatus == SyncStatus.synced) {
+          newStatus = SyncStatus.updated;
+        }
+
         dailyLogModel = dailyLogModel.copyWithModel(
           startingImageUrl: updatedStartingImages,
           endingImageUrl: updatedEndingImages,
           // Ensure plannedTasks are updated too in case they changed
           plannedTasks: taskConverter(currentTasks),
+          syncStatus: newStatus,
         );
 
         // Replace the log in the list
@@ -403,6 +441,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
                 endingImageUrl: l.endingImageUrl,
                 observations: l.observations,
                 isConfirmed: l.isConfirmed,
+                workScore: l.workScore,
+                generatedSummary: l.generatedSummary,
+                syncStatus: l.syncStatus,
               ),
             );
           }
@@ -482,7 +523,40 @@ class ProjectRepositoryImpl implements ProjectRepository {
       final uploadedDailyLog = await projectRemoteDataSource.updateDailyLog(
         dailyLogModel,
       );
-      return right(uploadedDailyLog.copyWith(plannedTasks: currentTasks));
+
+      // Update Local with Synced Status
+      final syncedLog = uploadedDailyLog.copyWithModel(
+        syncStatus: SyncStatus.synced,
+        plannedTasks: setupCurrentTasks, // ensure tasks are carried over
+      );
+      // We reuse the offline update logic or similar helper to update just this log in the project
+      final localProjects = projectLocalDataSource.loadRecentProjects();
+      final localProject =
+          localProjects.where((p) => p.id == projectId).firstOrNull;
+
+      if (localProject != null) {
+        final updatedLogs =
+            localProject.dailyLogs.map((log) {
+              return log.id == dailyLog.id ? syncedLog : log;
+            }).toList();
+
+        // Cast strictly
+        final List<DailyLogModel> strictLogs = [];
+        for (var l in updatedLogs) {
+          if (l is DailyLogModel) {
+            strictLogs.add(l);
+          } else {
+            strictLogs.add(DailyLogModel.fromEntity(l));
+          }
+        }
+
+        final updatedProject = localProject.copyWithModel(
+          dailyLogs: strictLogs,
+        );
+        projectLocalDataSource.uploadRecentProject(project: updatedProject);
+      }
+
+      return right(syncedLog.copyWith(plannedTasks: currentTasks));
     } on ServerException catch (e) {
       return left(Failure(e.message));
     } catch (e) {
@@ -606,52 +680,30 @@ class ProjectRepositoryImpl implements ProjectRepository {
     final localProjects = projectLocalDataSource.loadRecentProjects();
     for (var project in localProjects) {
       final pendingLogs = project.dailyLogs.where(
-        (log) => log.syncStatus == SyncStatus.created,
+        (log) =>
+            log.syncStatus == SyncStatus.created ||
+            log.syncStatus == SyncStatus.updated,
       );
 
       for (var log in pendingLogs) {
-        // Find current tasks?
-        // We need 'currentTasks' to call createDailyLog/updateDailyLog properly,
-        // but wait, createDailyLog takes 'currentTasks'.
-        // If we just sync the log object...
-        // The log object has 'plannedTasks' which IS the tasks.
-        // We use that.
-        // Also images? Offline images are local paths.
-        // We need to upload them.
-
         try {
           if (log is DailyLogModel) {
-            final images =
+            final startingImages =
                 log.startingImageUrl
                     .map((path) => path.isEmpty ? null : File(path))
                     .toList();
-            // TODO: handle ending images if any
-
-            // Call _syncCreatedLog (we need to extract logic from createDailyLog)
-            // Or just call createDailyLog?
-            // createDailyLog includes adding to local. We already have it local.
-            // We just need the "Online Flow" from createDailyLog.
-
-            // Refactoring createDailyLog to expose _syncCreatedLog would be best.
-            // But for now, let's implement the sync logic here.
-
-            final modifiedStartingImageUrlList = await projectRemoteDataSource
-                .uploadDailyLogImages(
-                  isEndingImages: false,
-                  images: images,
-                  dailyLogModel: log,
-                );
-
-            final syncedStartingImages = imageModifier(
-              log.startingImageUrl,
-              modifiedStartingImageUrlList,
-            );
-
-            // Handle ending images
             final endingImages =
                 log.endingImageUrl
                     .map((path) => path.isEmpty ? null : File(path))
                     .toList();
+
+            // 1. Upload Images First (Common for both Create and Update)
+            final modifiedStartingImageUrlList = await projectRemoteDataSource
+                .uploadDailyLogImages(
+                  isEndingImages: false,
+                  images: startingImages,
+                  dailyLogModel: log,
+                );
 
             final modifiedEndingImageUrlList = await projectRemoteDataSource
                 .uploadDailyLogImages(
@@ -660,6 +712,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
                   dailyLogModel: log,
                 );
 
+            final syncedStartingImages = imageModifier(
+              log.startingImageUrl,
+              modifiedStartingImageUrlList,
+            );
             final syncedEndingImages = imageModifier(
               log.endingImageUrl,
               modifiedEndingImageUrlList,
@@ -671,17 +727,21 @@ class ProjectRepositoryImpl implements ProjectRepository {
               syncStatus: SyncStatus.synced,
             );
 
-            await projectRemoteDataSource.createDailyLog(syncedLog);
+            // 2. Branch Logic based on Status
+            if (log.syncStatus == SyncStatus.created) {
+              await projectRemoteDataSource.createDailyLog(syncedLog);
+            } else if (log.syncStatus == SyncStatus.updated) {
+              await projectRemoteDataSource.updateDailyLog(syncedLog);
+            }
 
-            // Sync tasks
-            // log.plannedTasks are LogTask/Model
+            // 3. Sync Tasks (Common)
             final tasksModel = taskConverter(log.plannedTasks);
             await projectRemoteDataSource.syncLogTasks(
               dailyLogId: log.id,
               currentTasks: tasksModel,
             );
 
-            // Update local project with synced log
+            // 4. Update Local Status
             await _updateLocalLogStatus(project.id, log.id, SyncStatus.synced);
           }
         } catch (e) {
@@ -758,13 +818,16 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
+  @override
   Future<List<DailyLog>> getPendingDailyLogs() async {
     final localProjects = projectLocalDataSource.loadRecentProjects();
     List<DailyLog> pendingLogs = [];
 
     for (var project in localProjects) {
       final logs = project.dailyLogs.where(
-        (log) => log.syncStatus == SyncStatus.created,
+        (log) =>
+            log.syncStatus == SyncStatus.created ||
+            log.syncStatus == SyncStatus.updated,
       );
       pendingLogs.addAll(logs);
     }
@@ -852,7 +915,13 @@ class ProjectRepositoryImpl implements ProjectRepository {
     List<String> currentImageUrls,
     List<String> newImageUrls,
   ) {
+    // Ensure the list is at least as long as the new inputs, filling with empty strings if needed
     List<String> updatedStartingList = List.from(currentImageUrls);
+    if (updatedStartingList.length < newImageUrls.length) {
+      updatedStartingList.addAll(
+        List.filled(newImageUrls.length - updatedStartingList.length, ''),
+      );
+    }
 
     for (int index = 0; index < newImageUrls.length; index++) {
       final selectedUrl = newImageUrls[index];

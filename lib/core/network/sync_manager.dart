@@ -38,20 +38,55 @@ class SyncManager {
       debugPrint("SyncManager: Starting sync process...");
 
       // 1. Sync Pending Projects
-      final pendingProjects = await projectRepository.getPendingProjects();
-      for (final project in pendingProjects) {
-        await projectRepository.syncPendingProject(project);
+      try {
+        final pendingProjects = await projectRepository.getPendingProjects();
+        for (final project in pendingProjects) {
+          try {
+            await projectRepository.syncPendingProject(project);
+          } catch (e) {
+            debugPrint("Failed to sync project ${project.id}: $e");
+          }
+        }
+      } catch (e) {
+        debugPrint("Error fetching/syncing projects: $e");
       }
 
-      // 2. Sync Pending Transactions
-      final pendingTransactions =
-          await inventoryRepository.getPendingTransactions();
-      for (final txn in pendingTransactions) {
-        await inventoryRepository.syncPendingTransaction(txn);
+      // 1.5 Sync Pending Materials
+      try {
+        final pendingMaterials =
+            await inventoryRepository.getPendingMaterials();
+        for (final material in pendingMaterials) {
+          try {
+            await inventoryRepository.syncPendingMaterial(material);
+          } catch (e) {
+            debugPrint("Failed to sync material ${material.id}: $e");
+          }
+        }
+      } catch (e) {
+        debugPrint("Error fetching/syncing materials: $e");
       }
 
-      // 3. Sync Pending Daily Logs
-      await projectRepository.syncPendingLogs();
+      // 2. Sync Pending Logs
+      try {
+        await projectRepository.syncPendingLogs();
+      } catch (e) {
+        debugPrint("Error syncing logs: $e");
+      }
+
+      // 3. Sync Pending Transactions
+      try {
+        final pendingTransactions =
+            await inventoryRepository.getPendingTransactions();
+        for (final txn in pendingTransactions) {
+          try {
+            await inventoryRepository.syncPendingTransaction(txn);
+          } catch (e) {
+            debugPrint("Failed to sync transaction ${txn.id}: $e");
+          }
+        }
+      } catch (e) {
+        debugPrint("Error fetching/syncing transactions: $e");
+      }
 
       debugPrint("SyncManager: Sync completed.");
     } catch (e) {

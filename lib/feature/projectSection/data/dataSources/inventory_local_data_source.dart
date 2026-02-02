@@ -34,7 +34,7 @@ class InventoryLocalDataSourceImpl implements InventoryLocalDataSource {
   void uploadOfflineTransaction({
     required MaterialTransactionModel transaction,
   }) {
-    transactionBox.put(transaction.id, transaction.toJson());
+    transactionBox.put(transaction.id, transaction.toLocalJson());
   }
 
   @override
@@ -104,7 +104,7 @@ class InventoryLocalDataSourceImpl implements InventoryLocalDataSource {
 
   @override
   void uploadOfflineMaterial({required ProjectMaterialModel material}) {
-    materialsBox.put(material.id, material.toJson());
+    materialsBox.put(material.id, material.toLocalJson());
   }
 
   @override
@@ -130,7 +130,7 @@ class InventoryLocalDataSourceImpl implements InventoryLocalDataSource {
       final cachedMat = mat.copyWith(syncStatus: SyncStatus.synced);
       materialsBox.put(
         cachedMat.id,
-        ProjectMaterialModel.fromEntity(cachedMat).toJson(),
+        ProjectMaterialModel.fromEntity(cachedMat).toLocalJson(),
       );
     }
   }

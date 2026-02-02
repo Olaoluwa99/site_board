@@ -155,7 +155,6 @@ class ProjectModel extends Project {
       'cover_photo_url': coverPhotoUrl,
       'project_security_type': projectSecurityType,
       'project_password': projectPassword,
-      'sync_status': syncStatus?.index,
     };
   }
 

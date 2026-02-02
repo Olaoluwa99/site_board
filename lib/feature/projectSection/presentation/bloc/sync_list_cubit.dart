@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:site_board/feature/projectSection/domain/repositories/inventory_repository.dart';
 import 'package:site_board/feature/projectSection/domain/repositories/project_repository.dart';
+import 'package:site_board/core/enums/sync_status.dart';
 
 abstract class SyncListState {}
 
@@ -70,14 +71,19 @@ class SyncListCubit extends Cubit<SyncListState> {
       }
 
       for (var log in dailyLogs) {
-        // Find project name if possible, or just say Daily Log
-        // log.projectId could be used to fetch project name, but for now simple title
+        String subtitle =
+            "Workers: ${log.numberOfWorkers}, Weather: ${log.weatherCondition}";
+        if (log.syncStatus == SyncStatus.updated) {
+          subtitle = "Modified Locally (Waiting for sync)";
+        } else if (log.syncStatus == SyncStatus.created) {
+          subtitle = "New Log (Waiting for sync)";
+        }
+
         items.add(
           SyncItem(
             id: log.id,
             title: "Daily Log",
-            subtitle:
-                "Workers: ${log.numberOfWorkers}, Weather: ${log.weatherCondition}",
+            subtitle: subtitle,
             type: SyncItemType.dailyLog,
             originalObject: log,
           ),

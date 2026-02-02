@@ -42,10 +42,16 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController linkController = TextEditingController();
   bool showExtra = false;
   User? retrievedUser;
+  List<ConnectivityResult> _connectionStatus = [ConnectivityResult.wifi];
+  late final dynamic _subscription;
 
   @override
   void initState() {
     super.initState();
+    _initConnectivity();
+    _subscription = Connectivity().onConnectivityChanged.listen(
+      _updateConnectionStatus,
+    );
     // Issue 1 Fix: Initialize retrievedUser immediately from current state
     final userState = context.read<AppUserCubit>().state;
     if (userState is AppUserLoggedIn) {
@@ -53,6 +59,23 @@ class _HomePageState extends State<HomePage> {
       context.read<ProjectBloc>().add(
         ProjectGetAllProjects(userId: retrievedUser!.id),
       );
+    }
+  }
+
+  Future<void> _initConnectivity() async {
+    try {
+      final result = await Connectivity().checkConnectivity();
+      _updateConnectionStatus(result);
+    } catch (e) {
+      debugPrint('Couldn\'t check connectivity status: $e');
+    }
+  }
+
+  void _updateConnectionStatus(List<ConnectivityResult> result) {
+    if (mounted) {
+      setState(() {
+        _connectionStatus = result;
+      });
     }
   }
 
@@ -86,30 +109,6 @@ class _HomePageState extends State<HomePage> {
         'The project link is not valid. Enter a correct link and try again.',
       );
     }
-  }
-
-  void _uploadCreatorStatus(Project currentProject, bool isLocal, int index) {
-    Member? uploadMember = Member(
-      id: const Uuid().v4(),
-      projectId: currentProject.id,
-      name: retrievedUser!.name,
-      email: retrievedUser!.email,
-      userId: retrievedUser!.id,
-      isAccepted: true,
-      isBlocked: false,
-      isAdmin: true,
-      hasLeft: false,
-      lastViewed: DateTime.now(),
-    );
-
-    context.read<ProjectBloc>().add(
-      UpdateMemberEvent(
-        project: currentProject,
-        member: uploadMember,
-        isCreateMember: true,
-      ),
-    );
-    Navigator.pop(context);
   }
 
   Future<void> _uploadMemberStatus(
@@ -284,12 +283,15 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _subscription.cancel(); // Dispose subscription
     linkController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isOffline = _connectionStatus.contains(ConnectivityResult.none);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -344,7 +346,7 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       floatingActionButton:
-          widget.isLoggedIn
+          (widget.isLoggedIn && !isOffline)
               ? FloatingActionButton.extended(
                 onPressed: _showCustomDialog,
                 label: const Text('Create Project'),
@@ -421,17 +423,15 @@ class _HomePageState extends State<HomePage> {
                           });
                         }
                         if (state is ProjectMemberUpdateFailure) {
-                          showDialog(
-                            context: context,
-                            builder:
-                                (context) => MainAlertDialog(
-                                  title: 'Error Loading Project',
-                                  text:
-                                      '${state.error}\n\nWe encountered an error while updating your membership status.',
-                                  onDismiss: () {
-                                    Navigator.pop(context);
-                                  },
-                                ),
+                          // Graceful Fallback: If member update fails (e.g. offline), proceed anyway.
+                          showSnackBar(
+                            context,
+                            "Could not update membership status. Proceeding in offline mode.",
+                          );
+                          _proceedToProject(
+                            state.project,
+                            state.projects.indexOf(state.project),
+                            false,
                           );
                         }
                         if (state is ProjectMemberUpdateSuccess) {
@@ -472,13 +472,6 @@ class _HomePageState extends State<HomePage> {
                         }
                         if (state is ProjectRetrieveSuccessId) {
                           _uploadMemberStatus(
-                            state.project,
-                            false,
-                            state.projects.indexOf(state.project),
-                          );
-                        }
-                        if (state is ProjectCreateSuccess) {
-                          _uploadCreatorStatus(
                             state.project,
                             false,
                             state.projects.indexOf(state.project),

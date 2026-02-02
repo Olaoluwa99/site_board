@@ -21,6 +21,7 @@ class MaterialUsageItem {
 
 class MaterialSelector extends StatefulWidget {
   final String projectId;
+  final List<String> initialMaterials;
   // Callback returns the structured usage data AND the string representation
   // for backward compatibility with DailyLog.materialsAvailable
   final Function(List<MaterialUsageItem> items, List<String> stringList)
@@ -30,6 +31,7 @@ class MaterialSelector extends StatefulWidget {
     super.key,
     required this.projectId,
     required this.onChanged,
+    this.initialMaterials = const [],
   });
 
   @override
@@ -41,11 +43,79 @@ class _MaterialSelectorState extends State<MaterialSelector> {
   final Map<int, _MaterialRowState> _rows = {};
   int _nextIndex = 0;
   List<ProjectMaterial> _availableMaterials = [];
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _addRow();
+    // Start with one empty row if no initial data
+    if (widget.initialMaterials.isEmpty) {
+      _addRow();
+    }
+  }
+
+  void _initializeRowsFromStrings() {
+    debugPrint("Initializing rows from strings: ${widget.initialMaterials}");
+    if (_isInitialized) return; // Prevent double init
+
+    // If we have initial strings but no materials, we can't match them yet.
+    // BUT we should wait for materials?
+    // If materials loaded is empty, we still want to show something?
+    if (widget.initialMaterials.isNotEmpty && _availableMaterials.isEmpty) {
+      // Wait for materials? The listener handles this.
+      // Only return if we truly have nothing to do.
+      return;
+    }
+
+    _rows.clear(); // Clear default empty row
+    _nextIndex = 0;
+
+    for (var str in widget.initialMaterials) {
+      // Format: "Name: Quantity Unit"
+      try {
+        debugPrint("Parsing: $str");
+        // Format: "Name: Quantity Unit"
+        final index = str.indexOf(':'); // Allow ':' without space
+        if (index == -1) {
+          debugPrint("Invalid format: $str");
+          continue;
+        }
+
+        final name = str.substring(0, index).trim();
+        final rest = str.substring(index + 1).trim(); // Skip ':'
+        final qtyPart = rest.split(' ')[0]; // "5.0" from "5.0 bags"
+        final quantity = double.tryParse(qtyPart) ?? 0.0;
+
+        debugPrint("Parsed: Name=$name, Qty=$quantity");
+
+        final material =
+            _availableMaterials
+                .where((m) => m.name.toLowerCase() == name.toLowerCase())
+                .firstOrNull;
+
+        if (material != null) {
+          debugPrint("Found material match: ${material.name}");
+          _rows[_nextIndex] = _MaterialRowState(
+            selectedMaterial: material,
+            quantity: quantity,
+          );
+          _nextIndex++;
+        } else {
+          debugPrint("No material match found for: $name");
+        }
+      } catch (e) {
+        debugPrint("Error parsing material string: $str. Error: $e");
+      }
+    }
+
+    // If we failed to parse anything, at least show one empty row
+    if (_rows.isEmpty) {
+      _addRow();
+    } else {
+      _notifyParent();
+    }
+
+    _isInitialized = true;
   }
 
   void _addRow() {
@@ -108,24 +178,49 @@ class _MaterialSelectorState extends State<MaterialSelector> {
             setState(() {
               _availableMaterials = state.materials;
             });
+            _initializeRowsFromStrings();
           }
         },
         builder: (context, state) {
+          // Debug Header
+          final debugHeader = Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              "Debug: InitMaterials=${widget.initialMaterials.length}, AvailMaterials=${_availableMaterials.length}",
+              style: TextStyle(color: Colors.grey, fontSize: 10),
+            ),
+          );
+
           if (state is InventoryLoading) {
             return const Padding(padding: EdgeInsets.all(8.0), child: Loader());
           }
 
+          if (state is InventoryFailure) {
+            return Center(
+              child: Text("Failed to load materials: ${state.error}"),
+            );
+          }
+
           if (state is InventoryMaterialsLoaded || state is InventorySuccess) {
             if (_availableMaterials.isEmpty) {
-              return const Text("No materials configured in Inventory.");
+              return Column(
+                children: [
+                  debugHeader,
+                  const Text("No materials configured in Inventory."),
+                ],
+              );
             }
 
             return Column(
               children: [
+                debugHeader,
                 ..._rows.keys.map((index) {
+                  final rowState = _rows[index];
                   return _MaterialUsageRow(
                     key: ValueKey(index),
                     materials: _availableMaterials,
+                    initialMaterial: rowState?.selectedMaterial,
+                    initialQuantity: rowState?.quantity,
                     onDelete: _rows.length > 1 ? () => _removeRow(index) : null,
                     onUpdate: (m, q) => _updateRow(index, m, q),
                   );
@@ -175,12 +270,16 @@ class _MaterialRowState {
 
 class _MaterialUsageRow extends StatefulWidget {
   final List<ProjectMaterial> materials;
+  final ProjectMaterial? initialMaterial;
+  final double? initialQuantity;
   final VoidCallback? onDelete;
   final Function(ProjectMaterial?, double?) onUpdate;
 
   const _MaterialUsageRow({
     super.key,
     required this.materials,
+    this.initialMaterial,
+    this.initialQuantity,
     this.onDelete,
     required this.onUpdate,
   });
@@ -191,8 +290,26 @@ class _MaterialUsageRow extends StatefulWidget {
 
 class _MaterialUsageRowState extends State<_MaterialUsageRow> {
   ProjectMaterial? _selected;
-  final TextEditingController _qtyController = TextEditingController();
+  late TextEditingController _qtyController;
   String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initialMaterial;
+    _qtyController = TextEditingController(
+      text:
+          widget.initialQuantity != null && widget.initialQuantity! > 0
+              ? widget.initialQuantity.toString()
+              : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _qtyController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -205,6 +322,7 @@ class _MaterialUsageRowState extends State<_MaterialUsageRow> {
           Expanded(
             flex: 3,
             child: DropdownButtonFormField<ProjectMaterial>(
+              value: _selected, // Bind value
               isExpanded: true,
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(
@@ -231,7 +349,10 @@ class _MaterialUsageRowState extends State<_MaterialUsageRow> {
                   _selected = val;
                   _validate();
                 });
-                widget.onUpdate(val, null);
+                widget.onUpdate(
+                  val,
+                  double.tryParse(_qtyController.text),
+                ); // Pass current qty
               },
             ),
           ),

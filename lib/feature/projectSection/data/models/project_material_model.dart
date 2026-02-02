@@ -36,7 +36,20 @@ class ProjectMaterialModel extends ProjectMaterial {
       'unit': unit,
       'current_quantity': currentQuantity,
       'created_at': createdAt.toIso8601String(),
-      // 'sync_status': syncStatus?.index, // Local only
+      // 'sync_status': syncStatus?.index, // Excluded - server doesn't have this column
+    };
+  }
+
+  // Separate method for local storage (Hive) that includes sync_status
+  Map<String, dynamic> toLocalJson() {
+    return {
+      if (id.isNotEmpty) 'id': id,
+      'project_id': projectId,
+      'name': name,
+      'unit': unit,
+      'current_quantity': currentQuantity,
+      'created_at': createdAt.toIso8601String(),
+      'sync_status': syncStatus?.index, // Local only
     };
   }
 

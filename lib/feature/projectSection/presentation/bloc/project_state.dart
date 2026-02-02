@@ -106,9 +106,11 @@ class ProjectMemberUpdateSuccess extends ProjectRetrieveSuccess {
 
 class ProjectMemberUpdateFailure extends ProjectRetrieveSuccess {
   final String error;
+  final Project project;
   ProjectMemberUpdateFailure({
     required this.error,
     required List<Project> projects,
+    required this.project,
   }) : super(projects);
 }
 

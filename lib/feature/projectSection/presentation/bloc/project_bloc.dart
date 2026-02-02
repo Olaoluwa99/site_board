@@ -256,6 +256,7 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
             ProjectMemberUpdateFailure(
               error: l.message,
               projects: currentState.projects,
+              project: event.project,
             ),
           );
         },

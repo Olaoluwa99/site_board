@@ -45,4 +45,18 @@ class MemberModel extends Member {
               : DateTime.parse(map['last_viewed']),
     );
   }
+  factory MemberModel.fromEntity(Member member) {
+    return MemberModel(
+      id: member.id,
+      projectId: member.projectId,
+      name: member.name,
+      email: member.email,
+      userId: member.userId,
+      isAccepted: member.isAccepted,
+      isBlocked: member.isBlocked,
+      isAdmin: member.isAdmin,
+      hasLeft: member.hasLeft,
+      lastViewed: member.lastViewed,
+    );
+  }
 }

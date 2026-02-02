@@ -11,6 +11,7 @@ abstract interface class InventoryRemoteDataSource {
   Future<void> deleteMaterial(String materialId);
 
   Future<void> recordTransaction({
+    required String transactionId,
     required String materialId,
     required double quantityChange,
     required String transactionType, // "IN" or "OUT"
@@ -35,7 +36,7 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
       final data =
           await supabaseClient
               .from('project_materials')
-              .insert(material.toJson())
+              .upsert(material.toJson())
               .select()
               .single();
       return ProjectMaterialModel.fromJson(data);
@@ -81,25 +82,28 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
 
   @override
   Future<void> recordTransaction({
+    required String transactionId,
     required String materialId,
     required double quantityChange,
-    required String transactionType,
+    required String transactionType, // "IN" or "OUT"
     String? dailyLogId,
     required String actorId,
     double? unitPrice,
   }) async {
     try {
-      await supabaseClient.rpc(
-        'record_material_transaction',
-        params: {
-          'p_material_id': materialId,
-          'p_quantity_change': quantityChange,
-          'p_transaction_type': transactionType,
-          'p_daily_log_id': dailyLogId,
-          'p_actor_id': actorId,
-          'p_unit_price': unitPrice,
-        },
-      );
+      final data = {
+        'id': transactionId,
+        'material_id': materialId,
+        'quantity_change': quantityChange,
+        'type': transactionType,
+        'daily_log_id': dailyLogId,
+        'actor_id': actorId,
+        'unit_price': unitPrice,
+        'timestamp':
+            DateTime.now().toIso8601String(), // Ensure timestamp is set
+      };
+
+      await supabaseClient.from('material_transactions').upsert(data).select();
     } on PostgrestException catch (e) {
       // Catch specific DB constraint errors (e.g. check constraint)
       if (e.code == '23514') {
@@ -119,46 +123,13 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
     try {
       final data = await supabaseClient
           .from('material_transactions')
-          .select('*, project_materials!inner(project_id, name)')
+          .select(
+            '*, project_materials!inner(project_id, name), profiles(name)',
+          )
           .eq('project_materials.project_id', projectId)
           .order('timestamp', ascending: false);
 
       final List<dynamic> transactionsData = List.from(data);
-
-      if (transactionsData.isNotEmpty) {
-        // Safe Fallback: Manually fetch actor names if the join fails or isn't possible
-        final actorIds =
-            transactionsData
-                .map((t) => t['actor_id'] as String?)
-                .where((id) => id != null)
-                .toSet()
-                .toList();
-
-        if (actorIds.isNotEmpty) {
-          try {
-            final profilesData = await supabaseClient
-                .from('profiles')
-                .select('id, name')
-                .inFilter('id', actorIds);
-
-            final Map<String, String> profileNames = {
-              for (var p in profilesData)
-                p['id'] as String: p['name'] as String,
-            };
-
-            for (var t in transactionsData) {
-              final aId = t['actor_id'] as String?;
-              if (aId != null && profileNames.containsKey(aId)) {
-                t['profiles'] = {'name': profileNames[aId]};
-              }
-            }
-          } catch (e) {
-            // If separate profile fetch fails, we just show "Unknown" (handled by Model)
-            // This prevents the whole list from crashing.
-            print("Failed to fetch profiles separately: $e");
-          }
-        }
-      }
 
       return transactionsData
           .map((e) => MaterialTransactionModel.fromJson(e))

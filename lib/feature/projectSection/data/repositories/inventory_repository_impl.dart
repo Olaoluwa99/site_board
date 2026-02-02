@@ -54,18 +54,14 @@ class InventoryRepositoryImpl implements InventoryRepository {
 
   Future<void> _syncCreateMaterial(ProjectMaterialModel material) async {
     if (await connectionChecker.isConnected) {
-      try {
-        final createdMaterial = await remoteDataSource.createMaterial(material);
+      final createdMaterial = await remoteDataSource.createMaterial(material);
 
-        // On success, update local with synced status
-        final syncedMaterial = ProjectMaterialModel.fromEntity(
-          createdMaterial.copyWith(syncStatus: SyncStatus.synced),
-        );
+      // On success, update local with synced status
+      final syncedMaterial = ProjectMaterialModel.fromEntity(
+        createdMaterial.copyWith(syncStatus: SyncStatus.synced),
+      );
 
-        localDataSource.uploadOfflineMaterial(material: syncedMaterial);
-      } catch (e) {
-        debugPrint("Background sync failed for material creation: $e");
-      }
+      localDataSource.uploadOfflineMaterial(material: syncedMaterial);
     }
   }
 
@@ -75,104 +71,33 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }) async {
     try {
       if (await connectionChecker.isConnected) {
-        final materials = await remoteDataSource.getMaterials(projectId);
-        localDataSource.cacheMaterials(materials: materials);
-
-        // Also merge with pending local materials (created offline, or just created)
-        // This ensures the "Optimistic UI" works and we don't need to wait for strict sync
-        final pendingMaterials = localDataSource.getMaterialsByStatus(
-          SyncStatus.created,
-        );
-        final pendingForProject =
-            pendingMaterials.where((m) => m.projectId == projectId).toList();
-
-        final Map<String, ProjectMaterial> mergedMap = {};
-        for (var m in materials) {
-          mergedMap[m.id] = m;
+        try {
+          debugPrint(
+            "🔄 Fetching materials from server for project: $projectId",
+          );
+          final materials = await remoteDataSource.getMaterials(projectId);
+          debugPrint("📥 Received ${materials.length} materials from server");
+          for (var mat in materials) {
+            debugPrint("   - ${mat.name}: ${mat.currentQuantity}");
+          }
+          localDataSource.cacheMaterials(materials: materials);
+        } catch (e) {
+          debugPrint("Remote fetch failed, using cache: $e");
         }
-        for (var m in pendingForProject) {
-          mergedMap[m.id] = m;
-        }
-
-        // We also need to apply pending transaction calculations to this merged list?
-        // Remote data might already include transactions up to sync point.
-        // But local pending transactions are ON TOP of whatever remote has.
-        // So we should do the transaction application logic on this merged list too.
-
-        var mergedList = mergedMap.values.toList();
-
-        // --- Apply Pending Transactions Logic (Similar to offline block) ---
-        final pendingTransactions = localDataSource.getTransactionsByStatus(
-          SyncStatus.created,
-        );
-
-        mergedList =
-            mergedList.map((material) {
-              final materialTransactions = pendingTransactions.where(
-                (t) => t.materialId == material.id,
-              );
-
-              double quantityChange = 0;
-              for (var txn in materialTransactions) {
-                quantityChange += txn.quantityChange;
-              }
-
-              if (quantityChange != 0) {
-                return material.copyWith(
-                  currentQuantity: material.currentQuantity + quantityChange,
-                );
-              }
-              return material;
-            }).toList();
-        // ----------------------------------------------------------------
-
-        // Update cache with merged? No, cache should reflect source of truth (remote) + pure local.
-        // But we are returning a View Model effectively.
-        // Sort by name
-        mergedList.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        );
-
-        return Right(mergedList);
-      } else {
-        final cached = localDataSource.getLastCachedMaterials(
-          projectId: projectId,
-        );
-        // Apply pending offline transactions to reflect current state in UI
-        final pendingTransactions = localDataSource.getTransactionsByStatus(
-          SyncStatus.created,
-        );
-
-        final updatedMaterials =
-            cached.map((material) {
-              final materialTransactions = pendingTransactions.where(
-                (t) => t.materialId == material.id,
-              );
-
-              double quantityChange = 0;
-              for (var txn in materialTransactions) {
-                quantityChange += txn.quantityChange;
-              }
-
-              if (quantityChange != 0) {
-                return material.copyWith(
-                  currentQuantity: material.currentQuantity + quantityChange,
-                );
-              }
-              return material;
-            }).toList();
-
-        return Right(updatedMaterials);
       }
-    } catch (e) {
-      // Return cached if available, otherwise failure
+
+      // Always load from cache (Source of Truth for UI)
       final cached = localDataSource.getLastCachedMaterials(
         projectId: projectId,
       );
+      debugPrint("💿 Loaded ${cached.length} materials from cache");
 
-      // Apply pending offline transactions to reflect current state in UI
+      // Apply pending offline transactions to reflect current state
       final pendingTransactions = localDataSource.getTransactionsByStatus(
         SyncStatus.created,
+      );
+      debugPrint(
+        "⏳ Found ${pendingTransactions.length} PENDING (unsynced) transactions",
       );
 
       final updatedMaterials =
@@ -184,19 +109,30 @@ class InventoryRepositoryImpl implements InventoryRepository {
             double quantityChange = 0;
             for (var txn in materialTransactions) {
               quantityChange += txn.quantityChange;
+              debugPrint("   Applying txn ${txn.id}: ${txn.quantityChange}");
             }
 
             if (quantityChange != 0) {
+              debugPrint(
+                "🔢 ${material.name}: ${material.currentQuantity} + $quantityChange = ${material.currentQuantity + quantityChange}",
+              );
               return material.copyWith(
                 currentQuantity: material.currentQuantity + quantityChange,
               );
             }
             return material;
           }).toList();
-
-      if (updatedMaterials.isNotEmpty) {
-        return Right(updatedMaterials);
+      debugPrint("📊 Final materials to display:");
+      for (var mat in updatedMaterials) {
+        debugPrint("   - ${mat.name}: ${mat.currentQuantity}");
       }
+
+      updatedMaterials.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
+
+      return Right(updatedMaterials);
+    } catch (e) {
       return Left(Failure(e.toString()));
     }
   }
@@ -230,10 +166,13 @@ class InventoryRepositoryImpl implements InventoryRepository {
       );
 
       // Optimistic save
+      debugPrint(
+        "📦 Creating transaction: ${transaction.id} | Material: $materialId | Qty: +$quantity | Status: ${transaction.syncStatus}",
+      );
       localDataSource.uploadOfflineTransaction(transaction: transaction);
 
       // Background sync
-      _syncTransaction(transaction);
+      await _syncTransaction(transaction);
 
       return const Right(null);
     } catch (e) {
@@ -243,22 +182,22 @@ class InventoryRepositoryImpl implements InventoryRepository {
 
   Future<void> _syncTransaction(MaterialTransactionModel transaction) async {
     if (await connectionChecker.isConnected) {
-      try {
-        await remoteDataSource.recordTransaction(
-          materialId: transaction.materialId,
-          quantityChange: transaction.quantityChange,
-          transactionType: transaction.type.name,
-          actorId: transaction.actorId ?? '',
-          unitPrice: transaction.unitPrice ?? 0,
-        );
-        // On success, mark as synced.
-        final syncedTxn = transaction.copyWith(syncStatus: SyncStatus.synced);
-        localDataSource.uploadOfflineTransaction(
-          transaction: MaterialTransactionModel.fromEntity(syncedTxn),
-        );
-      } catch (e) {
-        debugPrint("Background sync failed for transaction: $e");
-      }
+      debugPrint("🌐 Syncing transaction: ${transaction.id} to server");
+      await remoteDataSource.recordTransaction(
+        transactionId: transaction.id,
+        materialId: transaction.materialId,
+        quantityChange: transaction.quantityChange,
+        transactionType: transaction.type.name,
+        actorId: transaction.actorId ?? '',
+        unitPrice: transaction.unitPrice ?? 0,
+      );
+      // On success, mark as synced.
+      debugPrint("✅ Transaction synced successfully: ${transaction.id}");
+      final syncedTxn = transaction.copyWith(syncStatus: SyncStatus.synced);
+      localDataSource.uploadOfflineTransaction(
+        transaction: MaterialTransactionModel.fromEntity(syncedTxn),
+      );
+      debugPrint("💾 Updated local transaction to SYNCED status");
     }
   }
 
@@ -283,11 +222,14 @@ class InventoryRepositoryImpl implements InventoryRepository {
         syncStatus: SyncStatus.created,
         materialName: _getMaterialName(materialId),
       );
+      debugPrint(
+        "📦 Creating transaction: ${transaction.id} | Material: $materialId | Qty: $quantity (OUT) | Status: ${transaction.syncStatus}",
+      );
       localDataSource.uploadOfflineTransaction(transaction: transaction);
 
       if (await connectionChecker.isConnected) {
         // Use generic sync
-        _syncTransaction(transaction);
+        await _syncTransaction(transaction);
         // Note: recordTransaction is enough, relying on syncTransaction logic above
       }
       return const Right(null);

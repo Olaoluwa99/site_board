@@ -56,11 +56,22 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   Stream<int> getUnsyncedCountStream() {
     return recentBox.watch().map((event) {
       // Re-calculate count on any change
-      return loadRecentProjects()
-          .where(
-            (p) => p.syncStatus != SyncStatus.synced && p.syncStatus != null,
-          )
-          .length;
+      int count = 0;
+      final projects = loadRecentProjects();
+      for (var p in projects) {
+        if (p.syncStatus != SyncStatus.synced && p.syncStatus != null) {
+          count++;
+        } else {
+          // Check if any log inside satisfied the condition
+          final unsyncedLogs = p.dailyLogs.where(
+            (l) => l.syncStatus != SyncStatus.synced && l.syncStatus != null,
+          );
+          if (unsyncedLogs.isNotEmpty) {
+            count += unsyncedLogs.length;
+          }
+        }
+      }
+      return count;
     });
   }
 
